@@ -1,3 +1,4 @@
+# This will help us to create cluster cnf on the fly
 import os
 import configparser
 import shutil
@@ -10,6 +11,12 @@ class CreateCNF:
         self.workdir = workdir
         self.basedir = basedir
 
+    """ Method to create cluster configuration file 
+        based on the node count. To create configuration
+        file it will take default values from conf/my.cnf.
+        For customised configuration please add your values 
+        in conf/custom.conf.
+    """
     def createconfig(self):
         rport = random.randint(10, 50) * 1000
         rport_list = []

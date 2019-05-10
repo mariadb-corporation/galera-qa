@@ -12,10 +12,10 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 workdir = config['config']['workdir']
 basedir = config['config']['basedir']
+node = config['config']['node']
 
 dbconnection_check = db_connection.DbConnection('root', '/tmp/node1.sock')
-cluster = pxc_startup.StartCluster(workdir, basedir, 2)
-
+cluster = pxc_startup.StartCluster(workdir, basedir, node)
 
 result = cluster.sanitycheck()
 if result == 0:

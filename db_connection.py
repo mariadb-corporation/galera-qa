@@ -7,6 +7,12 @@ class DbConnection:
         self.user = user
         self.socket = socket
 
+    """ Method to test the cluster database connection. 
+        Since we are initializing the cluster using 
+        --initialize-insecure option we can login
+        to database using default user (username : root) 
+        without password.
+    """
     def connectioncheck(self):
         try:
             connection = mysql.connector.connect(host='localhost', user=self.user, unix_socket=self.socket)

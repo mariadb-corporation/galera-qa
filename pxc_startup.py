@@ -15,6 +15,11 @@ class StartCluster:
         self.basedir = basedir
         self.node = node
 
+    """ Sanity check method will remove existing
+        cluster data directories and forcefully kill
+        running mysqld processes. This will also check 
+        the availability of mysqld binary file.
+    """
     def sanitycheck(self):
         #kill existing mysqld process
         os.system("ps -ef | grep 'node[0-9]' | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1")
@@ -30,6 +35,12 @@ class StartCluster:
 
         return 0
 
+    """ Method to create cluster configuration file 
+        based on the node count. To create configuration
+        file it will take default values from conf/my.cnf.
+        For customised configuration please add your values 
+        in conf/custom.conf.
+    """
     def createconfig(self):
         rport = random.randint(10, 50) * 1000
         rport_list = []
@@ -49,6 +60,11 @@ class StartCluster:
             cnfname.write('socket=/tmp/node' + str(i) + '.sock')
             cnfname.close()
 
+    """ Method to initialize the cluster database 
+        directories. This will initialize the cluster 
+        using --initialize-insecure option for 
+        passwordless authentication.
+    """
     def initializecluster(self):
         for i in range(1, self.node + 1):
             if os.path.exists(self.workdir + '/node' + str(i)):
@@ -65,6 +81,8 @@ class StartCluster:
 
         return int(result)
 
+    # Method to start the cluster nodes. This method
+    # will also check the startup status.
     def startcluster(self):
         for i in range(1, self.node + 1):
             if i == 1:
