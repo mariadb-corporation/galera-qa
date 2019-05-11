@@ -10,7 +10,8 @@ import time
 
 class StartCluster:
 
-    def __init__(self, workdir, basedir, node):
+    def __init__(self, scriptdir, workdir, basedir, node):
+        self.scriptdir = scriptdir
         self.workdir = workdir
         self.basedir = basedir
         self.node = node
@@ -25,6 +26,9 @@ class StartCluster:
         os.system("ps -ef | grep 'node[0-9]' | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1")
         if not os.path.exists(self.workdir + '/log'):
             os.mkdir(self.workdir + '/log')
+
+        if not os.path.exists(self.workdir + '/conf'):
+            os.mkdir(self.workdir + '/conf')
 
         if os.path.isfile(self.basedir + '/bin/mysqld'):
             binary = self.basedir + '/bin/mysqld'
@@ -48,11 +52,14 @@ class StartCluster:
         for j in range(1, self.node + 1):
             rport_list += [rport + (j * 100)]
             raddr_list = raddr_list + '127.0.0.1:' + str(rport + (j * 100) + 8 ) + ','
-        if not os.path.isfile(self.workdir + '/conf/my.cnf'):
-            print('Default my.cnf is missing in ' + self.workdir + '/conf')
+        if not os.path.isfile(self.scriptdir + '/conf/my.cnf'):
+            print('Default my.cnf is missing in ' + self.scriptdir + '/conf')
             exit(1)
+        else:
+            shutil.copy(self.scriptdir + '/conf/custom.cnf', self.workdir + '/conf/custom.cnf')
+
         for i in range(1, self.node + 1):
-            shutil.copy(self.workdir + '/conf/my.cnf', self.workdir + '/conf/node' + str(i) + '.cnf')
+            shutil.copy(self.scriptdir + '/conf/my.cnf', self.workdir + '/conf/node' + str(i) + '.cnf')
             cnfname = open(self.workdir + '/conf/node' + str(i) + '.cnf', 'a+')
             cnfname.write('wsrep_cluster_address=gcomm://' + raddr_list + '\n')
             cnfname.write('port=' + str(rport_list[i - 1]) + '\n')

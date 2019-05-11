@@ -7,15 +7,15 @@ import os
 import pxc_startup
 import db_connection
 
-cwd = os.getcwd()
 config = configparser.ConfigParser()
 config.read('config.ini')
+scriptdir = os.path.dirname(os.path.realpath(__file__))
 workdir = config['config']['workdir']
 basedir = config['config']['basedir']
 node = config['config']['node']
 
 dbconnection_check = db_connection.DbConnection('root', '/tmp/node1.sock')
-cluster = pxc_startup.StartCluster(workdir, basedir, node)
+cluster = pxc_startup.StartCluster(scriptdir, workdir, basedir, int(node))
 
 result = cluster.sanitycheck()
 if result == 0:
