@@ -39,6 +39,15 @@ class StartCluster:
 
         return 0
 
+    # This method will help us to check PXC version
+    def versioncheck(self):
+        version_info = os.popen(self.basedir +
+                                "/bin/mysqld --version 2>&1 | grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1").read()
+        version = "{:02d}{:02d}{:02d}".format(int(version_info.split('.')[0]),
+                                              int(version_info.split('.')[1]),
+                                              int(version_info.split('.')[2]))
+        return version
+
     """ Method to create cluster configuration file 
         based on the node count. To create configuration
         file it will take default values from conf/my.cnf.
@@ -51,7 +60,7 @@ class StartCluster:
         raddr_list = ''
         for j in range(1, self.node + 1):
             rport_list += [rport + (j * 100)]
-            raddr_list = raddr_list + '127.0.0.1:' + str(rport + (j * 100) + 8 ) + ','
+            raddr_list = raddr_list + '127.0.0.1:' + str(rport + (j * 100) + 8) + ','
         if not os.path.isfile(self.scriptdir + '/conf/my.cnf'):
             print('Default my.cnf is missing in ' + self.scriptdir + '/conf')
             exit(1)
@@ -62,9 +71,17 @@ class StartCluster:
             shutil.copy(self.scriptdir + '/conf/my.cnf', self.workdir + '/conf/node' + str(i) + '.cnf')
             cnfname = open(self.workdir + '/conf/node' + str(i) + '.cnf', 'a+')
             cnfname.write('wsrep_cluster_address=gcomm://' + raddr_list + '\n')
+
+            """ Calling version check method to compare the version to 
+                add wsrep_sst_auth variable. This variable does not 
+                required starting from PXC-8.x 
+            """
+            version = self.versioncheck()
+            if int(version) < int("080000"):
+                cnfname.write('wsrep_sst_auth=root:\n')
             cnfname.write('port=' + str(rport_list[i - 1]) + '\n')
             cnfname.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:" + str(rport_list[i - 1] + 8) + "'\n")
-            cnfname.write('socket=/tmp/node' + str(i) + '.sock')
+            cnfname.write('socket=/tmp/node' + str(i) + '.sock\n')
             cnfname.close()
 
     """ Method to initialize the cluster database 
