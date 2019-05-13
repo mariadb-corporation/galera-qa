@@ -80,7 +80,8 @@ class StartCluster:
             if int(version) < int("080000"):
                 cnfname.write('wsrep_sst_auth=root:\n')
             cnfname.write('port=' + str(rport_list[i - 1]) + '\n')
-            cnfname.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:" + str(rport_list[i - 1] + 8) + "'\n")
+            cnfname.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
+                          + str(rport_list[i - 1] + 8) + "'\n")
             cnfname.write('socket=/tmp/node' + str(i) + '.sock\n')
             cnfname.close()
 
