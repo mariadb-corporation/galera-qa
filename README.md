@@ -30,15 +30,15 @@ Initializing framework
 
 Example output
 ```
-ramesh@qaserver-05:~/work/ptest/pxc-qa$ python3.7 pxc_qa_framework.py
-Sanity check passed!
-Database initialization passed!
-Cluster started successfully!
-Database connection passed!
-sysbench sanity check passed!
-sysbench data load passed!
-sysbench oltp read only run passed!
-sysbench oltp read write run passed!
-sysbench oltp write only run passed!
+ramesh@qaserver-05:~/work/ptest/pxc-qa$ python3.7 pxc_qa_framework.py --testname=sysbench
+02:33:13  Sanity check                                                [ Passed ]
+02:33:28  Database initialization                                     [ Passed ]
+02:33:48  Cluster startup                                             [ Passed ]
+02:33:48  Database connection                                         [ Passed ]
+02:33:48  sysbench sanity check                                       [ Passed ]
+02:33:48  sysbench data load check                                    [ Passed ]
+02:33:58  sysbench oltp read only run                                 [ Passed ]
+02:34:08  sysbench oltp read write run                                [ Passed ]
+02:34:18  sysbench oltp write only run                                [ Passed ]
 ramesh@qaserver-05:~/work/ptest/pxc-qa$
 ```
