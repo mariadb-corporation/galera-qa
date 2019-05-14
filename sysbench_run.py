@@ -47,8 +47,8 @@ class SysbenchRun:
         return 0
     def sysbench_load(self):
         querystatus = os.system("sysbench /usr/share/sysbench/oltp_insert.lua"
-                                " --table-size=" + self.table_size +
-                                " --tables=" + self.tables +
+                                " --table-size=" + str(self.table_size) +
+                                " --tables=" + str(self.tables) +
                                 " --mysql-db=" + self.db +
                                 " --mysql-user=" + self.user +
                                 " --mysql-password=" + self.password +
@@ -64,8 +64,8 @@ class SysbenchRun:
 
     def sysbench_oltp_read_write(self):
         querystatus = os.system("sysbench /usr/share/sysbench/oltp_read_write.lua"
-                                " --table-size=" + self.table_size +
-                                " --tables=" + self.tables +
+                                " --table-size=" + str(self.table_size) +
+                                " --tables=" + str(self.tables) +
                                 " --mysql-db=" + self.db +
                                 " --mysql-user=" + self.user +
                                 " --mysql-password=" + self.password +
@@ -81,8 +81,8 @@ class SysbenchRun:
 
     def sysbench_oltp_read_only(self):
         querystatus = os.system("sysbench /usr/share/sysbench/oltp_read_only.lua"
-                                " --table-size=" + self.table_size +
-                                " --tables=" + self.tables +
+                                " --table-size=" + str(self.table_size) +
+                                " --tables=" + str(self.tables) +
                                 " --mysql-db=" + self.db +
                                 " --mysql-user=" + self.user +
                                 " --mysql-password=" + self.password +
@@ -98,8 +98,8 @@ class SysbenchRun:
 
     def sysbench_oltp_write_only(self):
         querystatus = os.system("sysbench /usr/share/sysbench/oltp_write_only.lua"
-                                " --table-size=" + self.table_size +
-                                " --tables=" + self.tables +
+                                " --table-size=" + str(self.table_size) +
+                                " --tables=" + str(self.tables) +
                                 " --mysql-db=" + self.db +
                                 " --mysql-user=" + self.user +
                                 " --mysql-password=" + self.password +
