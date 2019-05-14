@@ -23,10 +23,16 @@ def check_testcase(result,testcase):
         printit(testcase, "Failed")
 
 
-def sysbenchtest(basedir, workdir, sysbench_user, sysbench_pass,sysbench_db):
-    sysbench = sysbench_run.SysbenchRun(basedir, workdir, sysbench_user, sysbench_pass,
-                                            '/tmp/node1.sock', '10', '100',
-                                            sysbench_db, '2', '10')
+def sysbenchtest(basedir, workdir,
+                 sysbench_user, sysbench_pass, node1_socket,
+                 sysbench_db, sysbench_threads,
+                 sysbench_table_size):
+
+    sysbench = sysbench_run.SysbenchRun(basedir, workdir,
+                                        sysbench_user, sysbench_pass,
+                                        node1_socket, sysbench_threads,
+                                        sysbench_table_size, sysbench_db,
+                                        sysbench_threads, '10')
 
     result = sysbench.sanitycheck()
     check_testcase(result, "sysbench sanity check")
@@ -45,31 +51,40 @@ def sysbenchtest(basedir, workdir, sysbench_user, sysbench_pass,sysbench_db):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Get variables')
-    parser.add_subparsers()
-    parser.add_argument('-t', '--testname', default='all', choices=['sysbench', 'replication', 'correctness', 'all'],
+    scriptdir = os.path.dirname(os.path.realpath(__file__))
+    parser = argparse.ArgumentParser(prog='PXC QA Framework', usage='%(prog)s [options]')
+    parser.add_argument('-t', '--testname', default='all',
+                        choices=['sysbench', 'replication', 'correctness', 'all'],
                         help='Specify test name')
+    parser.add_argument('--sysbench_threads', default=2, help='Specify sysbench threads. sysbench '
+                                                              'table count will be based on this value')
+    parser.add_argument('--sysbench_table_size', default=1000, help='Specify sysbench table size')
     args = parser.parse_args()
     testname = args.testname
+    sysbench_threads = args.sysbench_threads
+    sysbench_table_size = args.sysbench_table_size
 
     config = configparser.ConfigParser()
     config.read('config.ini')
-    scriptdir = os.path.dirname(os.path.realpath(__file__))
     workdir = config['config']['workdir']
     basedir = config['config']['basedir']
     node = config['config']['node']
+    user = config['config']['user']
+    node1_socket = config['config']['node1_sock']
     sysbench_user = config['sysbench']['sysbench_user']
     sysbench_pass = config['sysbench']['sysbench_pass']
     sysbench_db = config['sysbench']['sysbench_db']
 
-    dbconnection_check = db_connection.DbConnection('root', '/tmp/node1.sock')
+    dbconnection_check = db_connection.DbConnection(user, node1_socket)
     cluster = pxc_startup.StartCluster(scriptdir, workdir, basedir, int(node))
     result = cluster.sanitycheck()
-    check_testcase(result, "Sanity check ")
-    cluster.createconfig()
+    check_testcase(result, "Sanity check")
+
+    result = cluster.createconfig()
+    check_testcase(result, "PXC configuration file creation")
 
     result = cluster.initializecluster()
-    check_testcase(result, "Database initialization")
+    check_testcase(result, "PXC database initialization")
 
     startup_check = cluster.startcluster()
     check_testcase(startup_check, "Cluster startup")
@@ -78,7 +93,11 @@ def main():
     check_testcase(result, "Database connection")
 
     if testname == 'sysbench':
-        sysbenchtest(basedir, workdir, sysbench_user, sysbench_pass, sysbench_db)
+        sysbenchtest(basedir, workdir,
+                     sysbench_user, sysbench_pass, node1_socket,
+                     sysbench_db, sysbench_threads,
+                     sysbench_table_size)
+
 
 if __name__ == "__main__":
     main()

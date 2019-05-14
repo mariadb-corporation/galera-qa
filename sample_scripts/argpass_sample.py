@@ -8,19 +8,17 @@ import unittest
 import pxc_startup
 
 cwd = os.getcwd()
-parser = argparse.ArgumentParser(description='Get variables')
-subparser = parser.add_subparsers()
-parser.add_argument('-w', '--workdir', default=cwd, help='Specify work directory')
-parser.add_argument('-b', '--basedir', default=cwd, help='Specify base directory')
-parser.add_argument('-t', '--testname', default='all', choices=['replication', 'correctness', 'all'],
+parser = argparse.ArgumentParser(prog='PXC QA Framework', usage='%(prog)s [options]')
+parser.add_argument('-t', '--testname', default='all',
+                    choices=['sysbench', 'replication', 'correctness', 'all'],
                     help='Specify test name')
-
+parser.add_argument('--sysbench_threads', default=2, help='Specify sysbench threads. sysbench '
+                                                          'table count will be based on this value')
+parser.add_argument('--sysbench_table_size', default=1000, help='Specify sysbench table size')
 args = parser.parse_args()
-workdir = args.workdir
-basedir = args.basedir
 testname = args.testname
+sysbench_threads = args.sysbench_threads
+sysbench_table_size = args.sysbench_table_size
+print(args)
 
 
-node1 = pxc_startup.StartCluster(workdir, basedir)
-node1.sanitycheck()
-node1.initializecluster()

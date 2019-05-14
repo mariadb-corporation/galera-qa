@@ -26,6 +26,7 @@ class CreateCNF:
             raddr_list = raddr_list + '127.0.0.1:' + str(rport + (j * 100) + 8 ) + ','
         if not os.path.isfile(self.workdir + '/conf/my.cnf'):
             print('Default my.cnf is missing in ' + self.workdir + '/conf')
+            return 1
             exit(1)
         for i in range(1, self.node + 1):
             shutil.copy(self.workdir + '/conf/my.cnf', self.workdir + '/conf/node' + str(i) + '.cnf')
@@ -34,6 +35,7 @@ class CreateCNF:
             cnfname.write('port=' + str(rport_list[i - 1]) + '\n')
             cnfname.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:" + str(rport_list[i - 1] + 8) + "'\n")
             cnfname.close()
+        return 0
 
 config = configparser.ConfigParser()
 config.read('config.ini')

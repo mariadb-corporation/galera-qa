@@ -63,6 +63,7 @@ class StartCluster:
             raddr_list = raddr_list + '127.0.0.1:' + str(rport + (j * 100) + 8) + ','
         if not os.path.isfile(self.scriptdir + '/conf/my.cnf'):
             print('Default my.cnf is missing in ' + self.scriptdir + '/conf')
+            return 1
             exit(1)
         else:
             shutil.copy(self.scriptdir + '/conf/custom.cnf', self.workdir + '/conf/custom.cnf')
@@ -84,6 +85,7 @@ class StartCluster:
                           + str(rport_list[i - 1] + 8) + "'\n")
             cnfname.write('socket=/tmp/node' + str(i) + '.sock\n')
             cnfname.close()
+        return 0
 
     """ Method to initialize the cluster database 
         directories. This will initialize the cluster 
