@@ -26,13 +26,13 @@ def check_testcase(result,testcase):
 def sysbenchtest(basedir, workdir,
                  sysbench_user, sysbench_pass, node1_socket,
                  sysbench_db, sysbench_threads,
-                 sysbench_table_size):
+                 sysbench_table_size, sysbench_run_time):
 
     sysbench = sysbench_run.SysbenchRun(basedir, workdir,
                                         sysbench_user, sysbench_pass,
                                         node1_socket, sysbench_threads,
                                         sysbench_table_size, sysbench_db,
-                                        sysbench_threads, '10')
+                                        sysbench_threads, sysbench_run_time)
 
     result = sysbench.sanitycheck()
     check_testcase(result, "sysbench sanity check")
@@ -59,10 +59,12 @@ def main():
     parser.add_argument('--sysbench_threads', default=2, help='Specify sysbench threads. sysbench '
                                                               'table count will be based on this value')
     parser.add_argument('--sysbench_table_size', default=1000, help='Specify sysbench table size')
+    parser.add_argument('--sysbench_run_time', default=10, help='Specify sysbench oltp run time (in sec)')
     args = parser.parse_args()
     testname = args.testname
     sysbench_threads = args.sysbench_threads
     sysbench_table_size = args.sysbench_table_size
+    sysbench_run_time = args.sysbench_run_time
 
     config = configparser.ConfigParser()
     config.read('config.ini')
@@ -70,7 +72,7 @@ def main():
     basedir = config['config']['basedir']
     node = config['config']['node']
     user = config['config']['user']
-    node1_socket = config['config']['node1_sock']
+    node1_socket = config['config']['node1_socket']
     sysbench_user = config['sysbench']['sysbench_user']
     sysbench_pass = config['sysbench']['sysbench_pass']
     sysbench_db = config['sysbench']['sysbench_db']
@@ -96,7 +98,7 @@ def main():
         sysbenchtest(basedir, workdir,
                      sysbench_user, sysbench_pass, node1_socket,
                      sysbench_db, sysbench_threads,
-                     sysbench_table_size)
+                     sysbench_table_size, sysbench_run_time)
 
 
 if __name__ == "__main__":
