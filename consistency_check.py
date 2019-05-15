@@ -90,11 +90,9 @@ class ConsistencyCheck:
         self.runquery(query)
 
         run_checksum = self.pt_basedir + "/bin/pt-table-checksum h=127.0.0.1,P=" + \
-            str(port) + ",u=root -d" + self.database + \
-            " --recursion-method dsn=h=127.0.0.1,P=" + \
-            str(port) + ",u=root,D=percona,t=dsns >" + \
-            self.workdir + "/log/pt-table-checksum.log 2>&1"
-        time.sleep(5)
+            str(port) + ",u=pt_user,p=test -d" + self.database + \
+            " --recursion-method dsn=h=127.0.0.1,P=" + str(port) + \
+            ",u=pt_user,p=test,D=percona,t=dsns >" + self.workdir + "/log/pt-table-checksum.log 2>&1"
         checksumstatus = os.system(run_checksum)
         if int(checksumstatus) != 0:
             return 1
