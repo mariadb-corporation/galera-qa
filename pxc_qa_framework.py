@@ -8,6 +8,7 @@ import pxc_startup
 import db_connection
 import sysbench_run
 import argparse
+import consistency_check
 from datetime import datetime
 
 
@@ -49,6 +50,17 @@ def sysbenchtest(basedir, workdir,
     result = sysbench.sysbench_oltp_write_only()
     check_testcase(result, "sysbench oltp write only run")
 
+def checksumtest(basedir, workdir, sysbench_user,
+                 sysbench_pass, node1_socket,
+                 pt_basedir, sysbench_db, node):
+    checksum = consistency_check.ConsistencyCheck(basedir, workdir,
+                                                  sysbench_user, sysbench_pass, node1_socket,
+                                                  pt_basedir, sysbench_db, int(node))
+    result = checksum.sanitycheck()
+    check_testcase(result, "PXC correctness sanity check")
+
+    result = checksum.data_consistency()
+    check_testcase(result, "PXC database correctness run")
 
 def main():
     scriptdir = os.path.dirname(os.path.realpath(__file__))
@@ -73,6 +85,7 @@ def main():
     node = config['config']['node']
     user = config['config']['user']
     node1_socket = config['config']['node1_socket']
+    pt_basedir = config['config']['pt_basedir']
     sysbench_user = config['sysbench']['sysbench_user']
     sysbench_pass = config['sysbench']['sysbench_pass']
     sysbench_db = config['sysbench']['sysbench_db']
@@ -99,6 +112,15 @@ def main():
                      sysbench_user, sysbench_pass, node1_socket,
                      sysbench_db, sysbench_threads,
                      sysbench_table_size, sysbench_run_time)
+
+    elif testname == 'correctness':
+        sysbenchtest(basedir, workdir,
+                     sysbench_user, sysbench_pass, node1_socket,
+                     sysbench_db, sysbench_threads,
+                     sysbench_table_size, sysbench_run_time)
+        checksumtest(basedir, workdir,
+                     sysbench_user, sysbench_pass, node1_socket,
+                     pt_basedir, sysbench_db, int(node))
 
 
 if __name__ == "__main__":

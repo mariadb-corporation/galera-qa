@@ -134,6 +134,9 @@ class StartCluster:
                 pingcheck = subprocess.call(pingquery, shell=True, stderr=subprocess.DEVNULL)
                 pingstatus = ("{}".format(pingcheck))
                 if int(pingstatus) == 0:
+                    if i == 1:
+                        pingquery = self.basedir + '/bin/mysql --user=root --socket=/tmp/node' \
+                                    + str(i) + '.sock -e > /dev/null 2>&1'
                     break  # break the loop if mysqld is running
 
         return int(pingstatus)

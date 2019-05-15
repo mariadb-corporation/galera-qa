@@ -70,7 +70,7 @@ class SysbenchRun:
                                 " --mysql-user=" + self.user +
                                 " --mysql-password=" + self.password +
                                 " --mysql-socket=" + self.socket +
-                                " --time=" + self.time +
+                                " --time=" + str(self.time) +
                                 " --db-driver=mysql --db-ps-mode=disable run >" +
                                 self.workdir + "/log/sysbench_read_write.log")
         if int(querystatus) != 0:
@@ -88,7 +88,7 @@ class SysbenchRun:
                                 " --mysql-user=" + self.user +
                                 " --mysql-password=" + self.password +
                                 " --mysql-socket=" + self.socket +
-                                " --time=" + self.time +
+                                " --time=" + str(self.time) +
                                 " --db-driver=mysql --db-ps-mode=disable run >" +
                                 self.workdir + "/log/sysbench_read_only.log")
         if int(querystatus) != 0:
@@ -106,7 +106,7 @@ class SysbenchRun:
                                 " --mysql-user=" + self.user +
                                 " --mysql-password=" + self.password +
                                 " --mysql-socket=" + self.socket +
-                                " --time=" + self.time +
+                                " --time=" + str(self.time) +
                                 " --db-driver=mysql --db-ps-mode=disable run >" +
                                 self.workdir + "/log/sysbench_write_only.log")
         if int(querystatus) != 0:
