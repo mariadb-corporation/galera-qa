@@ -17,6 +17,7 @@ basedir = /dev/shm/qa/Percona-XtraDB-Cluster-5.7.25-rel28-31.35.1.Linux.x86_64.s
 node = 2
 user = root
 node1_socket = /tmp/node1.sock
+pt_basedir = /dev/shm/qa/percona-toolkit-3.0.13
 
 [sysbench]
 sysbench_user=sysbench
