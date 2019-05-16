@@ -67,24 +67,6 @@ class StartPerconaServer:
             cnf_name.write('port=' + str(port) + '\n')
             cnf_name.write('socket=/tmp/psnode.sock\n')
             cnf_name.close()
-
-        for i in range(1, self.node + 1):
-            shutil.copy(self.scriptdir + '/conf/pxc.cnf', self.workdir + '/conf/node' + str(i) + '.cnf')
-            cnf_name = open(self.workdir + '/conf/node' + str(i) + '.cnf', 'a+')
-            cnf_name.write('wsrep_cluster_address=gcomm://' + raddr_list + '\n')
-
-            """ Calling version check method to compare the version to 
-                add wsrep_sst_auth variable. This variable does not 
-                required starting from PXC-8.x 
-            """
-            version = self.version_check()
-            if int(version) < int("080000"):
-                cnf_name.write('wsrep_sst_auth=root:\n')
-            cnf_name.write('port=' + str(rport_list[i - 1]) + '\n')
-            cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
-                          + str(rport_list[i - 1] + 8) + "'\n")
-            cnf_name.write('socket=/tmp/node' + str(i) + '.sock\n')
-            cnf_name.close()
         return 0
 
     def initialize_cluster(self):
@@ -93,49 +75,38 @@ class StartPerconaServer:
             using --initialize-insecure option for 
             passwordless authentication.
         """
-        for i in range(1, self.node + 1):
-            if os.path.exists(self.workdir + '/node' + str(i)):
-                os.system('rm -rf ' + self.workdir + '/node' + str(i) + '>/dev/null 2>&1')
-            if not os.path.isfile(self.workdir + '/conf/node' + str(i) + '.cnf'):
-                print('Could not find config file /conf/node' + str(i) + '.cnf')
-                exit(1)
-            initialize_node = self.basedir + '/bin/mysqld --no-defaults --initialize-insecure --datadir=' \
-                              + self.workdir + '/node' + str(i) + ' > ' + self.workdir \
-                              + '/log/startup' + str(i) + '.log 2>&1'
+        if os.path.exists(self.workdir + '/psnode'):
+            os.system('rm -rf ' + self.workdir + '/psnode >/dev/null 2>&1')
+        if not os.path.isfile(self.workdir + '/conf/ps.cnf'):
+            print('Could not find config file /conf/ps.cnf')
+            exit(1)
+        initialize_node = self.basedir + '/bin/mysqld --no-defaults --initialize-insecure --datadir=' \
+                          + self.workdir + '/psnode > ' + self.workdir \
+                          + '/log/ps_startup.log 2>&1'
 
-            run_query = subprocess.call(initialize_node, shell=True, stderr=subprocess.DEVNULL)
-            result = ("{}".format(run_query))
-
+        run_query = subprocess.call(initialize_node, shell=True, stderr=subprocess.DEVNULL)
+        result = ("{}".format(run_query))
         return int(result)
 
     def start_server(self):
         """ Method to start the cluster nodes. This method
             will also check the startup status.
         """
-        for i in range(1, self.node + 1):
-            if i == 1:
-                startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
-                          '.cnf --datadir=' + self.workdir + '/node' + str(i) + ' --basedir=' + self.basedir + \
-                          ' --wsrep-provider=' + self.basedir + \
-                          '/lib/libgalera_smm.so --wsrep-new-cluster --log-error=' + self.workdir +\
-                          '/log/node' + str(i) + '.err > ' + self.workdir + '/log/node' + str(i) + '.err 2>&1 &'
-            else:
-                startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
-                          '.cnf --datadir=' + self.workdir + '/node' + str(i) + ' --basedir=' + self.basedir + \
-                          ' --wsrep-provider=' + self.basedir + \
-                          '/lib/libgalera_smm.so --log-error=' + self.workdir + '/log/node' + str(i) + '.err > ' \
-                          + self.workdir + '/log/node' + str(i) + '.err 2>&1 &'
+        startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + \
+            '/conf/ps.cnf --datadir=' + self.workdir + '/psnode --basedir=' + self.basedir + \
+            ' --log-error=' + self.workdir + '/log/psnode.err > ' + self.workdir + \
+            '/log/psnode.err 2>&1 &'
 
-            run_cmd = subprocess.call(startup, shell=True, stderr=subprocess.DEVNULL)
-            result = ("{}".format(run_cmd))
-            ping_query = self.basedir + '/bin/mysqladmin --user=root --socket=/tmp/node' + str(i) \
-                          + '.sock ping > /dev/null 2>&1'
-            for startup_timer in range(120):
-                time.sleep(1)
-                ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
-                ping_status = ("{}".format(ping_check))
-                if int(ping_status) == 0:
-                    break  # break the loop if mysqld is running
+        run_cmd = subprocess.call(startup, shell=True, stderr=subprocess.DEVNULL)
+        result = ("{}".format(run_cmd))
+        ping_query = self.basedir + '/bin/mysqladmin --user=root ' \
+                                    '--socket=/tmp/psnode.sock ping > /dev/null 2>&1'
+        for startup_timer in range(120):
+            time.sleep(1)
+            ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
+            ping_status = ("{}".format(ping_check))
+            if int(ping_status) == 0:
+                break  # break the loop if mysqld is running
 
         return int(ping_status)
 

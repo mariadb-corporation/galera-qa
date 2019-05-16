@@ -4,8 +4,6 @@
 
 import argparse
 import os
-import unittest
-import pxc_startup
 
 cwd = os.getcwd()
 parser = argparse.ArgumentParser(prog='PXC QA Framework', usage='%(prog)s [options]')
