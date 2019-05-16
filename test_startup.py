@@ -1,7 +1,7 @@
 import configparser
 import unittest
 import pxc_startup
-import db_connection
+from util import db_connection
 
 config = configparser.ConfigParser()
 config.read('config.ini')

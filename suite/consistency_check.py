@@ -1,5 +1,5 @@
 import os
-import time
+import subprocess
 
 
 class ConsistencyCheck:
@@ -93,7 +93,8 @@ class ConsistencyCheck:
             str(port) + ",u=pt_user,p=test -d" + self.database + \
             " --recursion-method dsn=h=127.0.0.1,P=" + str(port) + \
             ",u=pt_user,p=test,D=percona,t=dsns >" + self.workdir + "/log/pt-table-checksum.log 2>&1"
-        checksumstatus = os.system(run_checksum)
+        proc = subprocess.call(run_checksum, shell=True, stderr=subprocess.DEVNULL)
+        checksumstatus = ("{}".format(proc))
         if int(checksumstatus) != 0:
             return 1
             print("ERROR!: Could not execute pt-table-checksum")

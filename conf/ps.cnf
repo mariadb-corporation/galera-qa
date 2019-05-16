@@ -1,12 +1,10 @@
 [mysqld]
-wsrep_node_incoming_address=127.0.0.1
-wsrep_node_address=127.0.0.1
+!include ./conf/custom.cnf
 innodb_file_per_table
 innodb_autoinc_lock_mode=2
 innodb_flush_log_at_trx_commit=0
-wsrep_sst_method=xtrabackup-v2
+server-id=101
 log-bin=mysql-bin
 binlog_format=ROW
 core-file
 log-output=none
-wsrep_slave_threads=8

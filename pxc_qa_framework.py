@@ -5,10 +5,10 @@
 import configparser
 import os
 import pxc_startup
-import db_connection
-import sysbench_run
+from util import db_connection
+from util import sysbench_run
 import argparse
-import consistency_check
+from suite import consistency_check
 from datetime import datetime
 
 
@@ -23,6 +23,27 @@ def check_testcase(result,testcase):
     else:
         printit(testcase, "Failed")
 
+
+def pxc_initialization(scriptdir, workdir,
+                       basedir, node, user,
+                       node1_socket):
+
+    dbconnection_check = db_connection.DbConnection(user, node1_socket)
+    cluster = pxc_startup.StartCluster(scriptdir, workdir, basedir, int(node))
+    result = cluster.sanitycheck()
+    check_testcase(result, "Sanity check")
+
+    result = cluster.createconfig()
+    check_testcase(result, "PXC configuration file creation")
+
+    result = cluster.initializecluster()
+    check_testcase(result, "PXC database initialization")
+
+    startup_check = cluster.startcluster()
+    check_testcase(startup_check, "Cluster startup")
+
+    result = dbconnection_check.connectioncheck()
+    check_testcase(result, "Database connection")
 
 def sysbenchtest(basedir, workdir,
                  sysbench_user, sysbench_pass, node1_socket,
@@ -50,9 +71,11 @@ def sysbenchtest(basedir, workdir,
     result = sysbench.sysbench_oltp_write_only()
     check_testcase(result, "sysbench oltp write only run")
 
+
 def checksumtest(basedir, workdir, sysbench_user,
                  sysbench_pass, node1_socket,
                  pt_basedir, sysbench_db, node):
+
     checksum = consistency_check.ConsistencyCheck(basedir, workdir,
                                                   sysbench_user, sysbench_pass, node1_socket,
                                                   pt_basedir, sysbench_db, int(node))
@@ -72,6 +95,7 @@ def main():
                                                               'table count will be based on this value')
     parser.add_argument('--sysbench_table_size', default=1000, help='Specify sysbench table size')
     parser.add_argument('--sysbench_run_time', default=10, help='Specify sysbench oltp run time (in sec)')
+
     args = parser.parse_args()
     testname = args.testname
     sysbench_threads = args.sysbench_threads
@@ -90,34 +114,26 @@ def main():
     sysbench_pass = config['sysbench']['sysbench_pass']
     sysbench_db = config['sysbench']['sysbench_db']
 
-    dbconnection_check = db_connection.DbConnection(user, node1_socket)
-    cluster = pxc_startup.StartCluster(scriptdir, workdir, basedir, int(node))
-    result = cluster.sanitycheck()
-    check_testcase(result, "Sanity check")
-
-    result = cluster.createconfig()
-    check_testcase(result, "PXC configuration file creation")
-
-    result = cluster.initializecluster()
-    check_testcase(result, "PXC database initialization")
-
-    startup_check = cluster.startcluster()
-    check_testcase(startup_check, "Cluster startup")
-
-    result = dbconnection_check.connectioncheck()
-    check_testcase(result, "Database connection")
-
     if testname == 'sysbench':
+        pxc_initialization(scriptdir, workdir,
+                              basedir, node, user,
+                              node1_socket)
+
         sysbenchtest(basedir, workdir,
                      sysbench_user, sysbench_pass, node1_socket,
                      sysbench_db, sysbench_threads,
                      sysbench_table_size, sysbench_run_time)
 
     elif testname == 'correctness':
+        pxc_initialization(scriptdir, workdir,
+                           basedir, node, user,
+                           node1_socket)
+
         sysbenchtest(basedir, workdir,
                      sysbench_user, sysbench_pass, node1_socket,
                      sysbench_db, sysbench_threads,
                      sysbench_table_size, sysbench_run_time)
+
         checksumtest(basedir, workdir,
                      sysbench_user, sysbench_pass, node1_socket,
                      pt_basedir, sysbench_db, int(node))

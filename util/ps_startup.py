@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Created by Ramesh Sivaraman, Percona LLC.
-# This will help us to start Percona XtraDB Cluster
+# This will help us to start Percona Server
 
 import os
 import subprocess
@@ -9,23 +9,21 @@ import shutil
 import time
 
 
-class start_cluster:
+class StartPerconaServer:
 
-    def __init__(self, scriptdir, workdir, basedir, node):
+    def __init__(self, scriptdir, workdir, basedir):
         self.scriptdir = scriptdir
         self.workdir = workdir
         self.basedir = basedir
-        self.node = node
 
-    def sanity_check(self):
+    def sanitycheck(self):
         """ Sanity check method will remove existing
-            cluster data directories and forcefully kill
-            running mysqld processes. This will also check
+            data directory and forcefully kill
+            running PS mysqld processes. This will also check 
             the availability of mysqld binary file.
         """
-        # kill existing mysqld process
-        os.system("ps -ef | grep 'node[0-9]' | grep -v grep | "
-                  "awk '{print $2}' | xargs kill -9 >/dev/null 2>&1")
+        #kill existing mysqld process
+        os.system("ps -ef | grep 'node[0-9]' | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1")
         if not os.path.exists(self.workdir + '/log'):
             os.mkdir(self.workdir + '/log')
 
@@ -38,60 +36,61 @@ class start_cluster:
             print('mysqld is missing in basedir')
             return 1
             exit(1)
+
         return 0
 
-    # This method will help us to check PXC version
+    # This method will help us to check PS version
     def version_check(self):
         version_info = os.popen(self.basedir +
-                                "/bin/mysqld --version 2>&1 "
-                                "| grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1").read()
+                                "/bin/mysqld --version 2>&1 | grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1").read()
         version = "{:02d}{:02d}{:02d}".format(int(version_info.split('.')[0]),
                                               int(version_info.split('.')[1]),
                                               int(version_info.split('.')[2]))
         return version
 
-    def createconfig(self):
-        """ Method to create cluster configuration file
+    def create_config(self):
+        """ Method to create cluster configuration file 
             based on the node count. To create configuration
             file it will take default values from conf/pxc.cnf.
-            For customised configuration please add your values
+            For customised configuration please add your values 
             in conf/custom.conf.
         """
         port = random.randint(10, 50) * 1000
-        port_list = []
-        addr_list = ''
-        for j in range(1, self.node + 1):
-            port_list += [port + (j * 100)]
-            addr_list = addr_list + '127.0.0.1:' + str(port + (j * 100) + 8) + ','
-        if not os.path.isfile(self.scriptdir + '/conf/pxc.cnf'):
+        if not os.path.isfile(self.scriptdir + '/conf/ps.cnf'):
             print('Default pxc.cnf is missing in ' + self.scriptdir + '/conf')
             return 1
             exit(1)
         else:
             shutil.copy(self.scriptdir + '/conf/custom.cnf', self.workdir + '/conf/custom.cnf')
+            shutil.copy(self.scriptdir + '/conf/ps.cnf', self.workdir + '/conf/ps.cnf')
+            cnf_name = open(self.workdir + '/conf/ps.cnf', 'a+')
+            cnf_name.write('port=' + str(port) + '\n')
+            cnf_name.write('socket=/tmp/psnode.sock\n')
+            cnf_name.close()
+
         for i in range(1, self.node + 1):
-            shutil.copy(self.scriptdir + '/conf/pxc.cnf',
-                        self.workdir + '/conf/node' + str(i) + '.cnf')
+            shutil.copy(self.scriptdir + '/conf/pxc.cnf', self.workdir + '/conf/node' + str(i) + '.cnf')
             cnf_name = open(self.workdir + '/conf/node' + str(i) + '.cnf', 'a+')
-            cnf_name.write('wsrep_cluster_address=gcomm://' + addr_list + '\n')
+            cnf_name.write('wsrep_cluster_address=gcomm://' + raddr_list + '\n')
+
             """ Calling version check method to compare the version to 
                 add wsrep_sst_auth variable. This variable does not 
                 required starting from PXC-8.x 
             """
-            version = self.versioncheck()
+            version = self.version_check()
             if int(version) < int("080000"):
                 cnf_name.write('wsrep_sst_auth=root:\n')
-            cnf_name.write('port=' + str(port_list[i - 1]) + '\n')
+            cnf_name.write('port=' + str(rport_list[i - 1]) + '\n')
             cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
-                          + str(port_list[i - 1] + 8) + "'\n")
+                          + str(rport_list[i - 1] + 8) + "'\n")
             cnf_name.write('socket=/tmp/node' + str(i) + '.sock\n')
             cnf_name.close()
         return 0
 
-    def initializecluster(self):
-        """ Method to initialize the cluster database
-            directories. This will initialize the cluster
-            using --initialize-insecure option for
+    def initialize_cluster(self):
+        """ Method to initialize the cluster database 
+            directories. This will initialize the cluster 
+            using --initialize-insecure option for 
             passwordless authentication.
         """
         for i in range(1, self.node + 1):
@@ -109,7 +108,7 @@ class start_cluster:
 
         return int(result)
 
-    def start_cluster(self):
+    def start_server(self):
         """ Method to start the cluster nodes. This method
             will also check the startup status.
         """
@@ -127,8 +126,8 @@ class start_cluster:
                           '/lib/libgalera_smm.so --log-error=' + self.workdir + '/log/node' + str(i) + '.err > ' \
                           + self.workdir + '/log/node' + str(i) + '.err 2>&1 &'
 
-            run_query = subprocess.call(startup, shell=True, stderr=subprocess.DEVNULL)
-            result = ("{}".format(run_query))
+            run_cmd = subprocess.call(startup, shell=True, stderr=subprocess.DEVNULL)
+            result = ("{}".format(run_cmd))
             ping_query = self.basedir + '/bin/mysqladmin --user=root --socket=/tmp/node' + str(i) \
                           + '.sock ping > /dev/null 2>&1'
             for startup_timer in range(120):
