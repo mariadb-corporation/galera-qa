@@ -9,13 +9,13 @@ import shutil
 import time
 
 
-class start_cluster:
-
-    def __init__(self, scriptdir, workdir, basedir, node):
+class StartCluster:
+    def __init__(self, scriptdir, workdir, basedir, node, myextra_config):
         self.scriptdir = scriptdir
         self.workdir = workdir
         self.basedir = basedir
         self.node = node
+        self.myextra_config = myextra_config
 
     def sanity_check(self):
         """ Sanity check method will remove existing
@@ -50,7 +50,7 @@ class start_cluster:
                                               int(version_info.split('.')[2]))
         return version
 
-    def createconfig(self):
+    def create_config(self):
         """ Method to create cluster configuration file
             based on the node count. To create configuration
             file it will take default values from conf/pxc.cnf.
@@ -88,7 +88,13 @@ class start_cluster:
             cnf_name.close()
         return 0
 
-    def initializecluster(self):
+    def add_myextra_configuration(self, config_file):
+        config_file = config_file
+        cnf_name = open(self.workdir + '/conf/custom.cnf', 'a+')
+        cnf_name.write('!include ' + config_file + '\n')
+        cnf_name.close()
+
+    def initialize_cluster(self):
         """ Method to initialize the cluster database
             directories. This will initialize the cluster
             using --initialize-insecure option for

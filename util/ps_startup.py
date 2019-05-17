@@ -19,7 +19,7 @@ class StartPerconaServer:
     def sanitycheck(self):
         """ Sanity check method will remove existing
             data directory and forcefully kill
-            running PS mysqld processes. This will also check 
+            running PS mysqld processes. This will also check
             the availability of mysqld binary file.
         """
         #kill existing mysqld process
@@ -49,10 +49,10 @@ class StartPerconaServer:
         return version
 
     def create_config(self):
-        """ Method to create cluster configuration file 
+        """ Method to create cluster configuration file
             based on the node count. To create configuration
             file it will take default values from conf/pxc.cnf.
-            For customised configuration please add your values 
+            For customised configuration please add your values
             in conf/custom.conf.
         """
         port = random.randint(10, 50) * 1000
@@ -70,9 +70,9 @@ class StartPerconaServer:
         return 0
 
     def initialize_cluster(self):
-        """ Method to initialize the cluster database 
-            directories. This will initialize the cluster 
-            using --initialize-insecure option for 
+        """ Method to initialize the cluster database
+            directories. This will initialize the cluster
+            using --initialize-insecure option for
             passwordless authentication.
         """
         if os.path.exists(self.workdir + '/psnode'):
@@ -109,4 +109,3 @@ class StartPerconaServer:
                 break  # break the loop if mysqld is running
 
         return int(ping_status)
-

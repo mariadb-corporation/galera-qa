@@ -26,6 +26,3 @@ class DbConnection:
             # closing database connection.
             if connection.is_connected():
                 connection.close()
-
-
-

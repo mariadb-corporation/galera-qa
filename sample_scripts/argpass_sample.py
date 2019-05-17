@@ -18,5 +18,3 @@ testname = args.testname
 sysbench_threads = args.sysbench_threads
 sysbench_table_size = args.sysbench_table_size
 print(args)
-
-

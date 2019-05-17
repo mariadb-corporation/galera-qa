@@ -1,0 +1,8 @@
+[mysqld]
+gtid_mode=ON
+enforce_gtid_consistency=ON
+log_slave_updates=ON
+log_bin=binlog
+binlog_format=ROW
+master_info_repository=TABLE
+relay_log_info_repository=TABLE

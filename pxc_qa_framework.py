@@ -4,11 +4,11 @@
 
 import configparser
 import os
-import pxc_startup
+import argparse
+from util import pxc_startup
 from util import db_connection
 from util import sysbench_run
-import argparse
-from suite import consistency_check
+from suite.correctness import consistency_check
 from datetime import datetime
 
 
