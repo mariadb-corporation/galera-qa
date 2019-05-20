@@ -8,14 +8,12 @@ import random
 import shutil
 import time
 
-
 class StartCluster:
-    def __init__(self, scriptdir, workdir, basedir, node, myextra_config):
+    def __init__(self, scriptdir, workdir, basedir, node):
         self.scriptdir = scriptdir
         self.workdir = workdir
         self.basedir = basedir
         self.node = node
-        self.myextra_config = myextra_config
 
     def sanity_check(self):
         """ Sanity check method will remove existing
@@ -34,8 +32,6 @@ class StartCluster:
 
         if not os.path.isfile(self.basedir + '/bin/mysqld'):
             print(self.basedir + '/bin/mysqld does not exist')
-        else:
-            print('mysqld is missing in basedir')
             return 1
             exit(1)
         return 0
@@ -74,25 +70,37 @@ class StartCluster:
                         self.workdir + '/conf/node' + str(i) + '.cnf')
             cnf_name = open(self.workdir + '/conf/node' + str(i) + '.cnf', 'a+')
             cnf_name.write('wsrep_cluster_address=gcomm://' + addr_list + '\n')
+
             """ Calling version check method to compare the version to 
                 add wsrep_sst_auth variable. This variable does not 
                 required starting from PXC-8.x 
             """
-            version = self.versioncheck()
+            version = self.version_check()
             if int(version) < int("080000"):
                 cnf_name.write('wsrep_sst_auth=root:\n')
             cnf_name.write('port=' + str(port_list[i - 1]) + '\n')
             cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
-                          + str(port_list[i - 1] + 8) + "'\n")
+                           + str(port_list[i - 1] + 8) + "'\n")
             cnf_name.write('socket=/tmp/node' + str(i) + '.sock\n')
+            cnf_name.write('server_id=' + str(10 + i) + '\n')
+            cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
             cnf_name.close()
         return 0
 
     def add_myextra_configuration(self, config_file):
+        """ Adding extra configurations
+            based on the testcase
+        """
+        if not os.path.isfile(config_file):
+            print('Custom config ' + config_file + ' is missing')
+            return 1
+            exit(1)
         config_file = config_file
         cnf_name = open(self.workdir + '/conf/custom.cnf', 'a+')
+        cnf_name.write('\n')
         cnf_name.write('!include ' + config_file + '\n')
         cnf_name.close()
+        return 0
 
     def initialize_cluster(self):
         """ Method to initialize the cluster database

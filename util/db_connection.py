@@ -7,7 +7,7 @@ class DbConnection:
         self.user = user
         self.socket = socket
 
-    def connectioncheck(self):
+    def connection_check(self):
         """ Method to test the cluster database connection.
             Since we are initializing the cluster using
             --initialize-insecure option we can login

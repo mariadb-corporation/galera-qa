@@ -16,14 +16,14 @@ class StartPerconaServer:
         self.workdir = workdir
         self.basedir = basedir
 
-    def sanitycheck(self):
+    def sanity_check(self):
         """ Sanity check method will remove existing
             data directory and forcefully kill
             running PS mysqld processes. This will also check
             the availability of mysqld binary file.
         """
         #kill existing mysqld process
-        os.system("ps -ef | grep 'node[0-9]' | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1")
+        os.system("ps -ef | grep 'psnode' | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1")
         if not os.path.exists(self.workdir + '/log'):
             os.mkdir(self.workdir + '/log')
 
@@ -32,8 +32,6 @@ class StartPerconaServer:
 
         if not os.path.isfile(self.basedir + '/bin/mysqld'):
             print(self.basedir + '/bin/mysqld does not exist')
-        else:
-            print('mysqld is missing in basedir')
             return 1
             exit(1)
 
@@ -66,7 +64,24 @@ class StartPerconaServer:
             cnf_name = open(self.workdir + '/conf/ps.cnf', 'a+')
             cnf_name.write('port=' + str(port) + '\n')
             cnf_name.write('socket=/tmp/psnode.sock\n')
+            cnf_name.write('server_id=100\n')
+            cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
             cnf_name.close()
+        return 0
+
+    def add_myextra_configuration(self, config_file):
+        """ Adding extra configurations
+            based on the testcase
+        """
+        if not os.path.isfile(config_file):
+            print('Custom config ' + config_file + ' is missing')
+            return 1
+            exit(1)
+        config_file = config_file
+        cnf_name = open(self.workdir + '/conf/custom.cnf', 'a+')
+        cnf_name.write('\n')
+        cnf_name.write('!include ' + config_file + '\n')
+        cnf_name.close()
         return 0
 
     def initialize_cluster(self):
