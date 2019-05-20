@@ -30,7 +30,7 @@ If we need to start Percona XtraDB Cluster with custom configuration we should a
 Initializing framework
 --------------------------------------------
 
-`python3.7 pxc_qa_framework.py --testname=sysbench --sysbench_threads=20 --sysbench_table_size=55 --sysbench_run_time=30`
+`python3.7 pxc_qa_framework.py --testname=suite/replication/replication.py`
 
 Script usage info
 ```$ python3.7 pxc_qa_framework.py --help
@@ -38,8 +38,10 @@ usage: PXC QA Framework [options]
 
 optional arguments:
   -h, --help            show this help message and exit
-  -t {sysbench,replication,correctness,all}, --testname {sysbench,replication,correctness,all}
-                        Specify test name
+  -t TESTNAME, --testname TESTNAME
+                        Specify test file location
+  -s {loadtest,replication,correctness,all}, --suite {loadtest,replication,correctness,all}
+                        Specify suite name
   --sysbench_threads SYSBENCH_THREADS
                         Specify sysbench threads. sysbench table count will be
                         based on this value
@@ -47,21 +49,48 @@ optional arguments:
                         Specify sysbench table size
   --sysbench_run_time SYSBENCH_RUN_TIME
                         Specify sysbench oltp run time (in sec)
-$
 ```
 
 Example output
 ```
-$ python3.7 pxc_qa_framework.py --testname=sysbench --sysbench_threads=20 --sysbench_table_size=55 --sysbench_run_time=30
-10:40:47  Sanity check                                                [ Passed ]
-10:40:47  PXC configuration file creation                             [ Passed ]
-10:41:03  PXC database initialization                                 [ Passed ]
-10:41:22  Cluster startup                                             [ Passed ]
-10:41:22  Database connection                                         [ Passed ]
-10:41:22  sysbench sanity check                                       [ Passed ]
-10:41:22  sysbench data load check                                    [ Passed ]
-10:41:52  sysbench oltp read only run                                 [ Passed ]
-10:42:22  sysbench oltp read write run                                [ Passed ]
-10:42:52  sysbench oltp write only run                                [ Passed ]
+$ python3.7 pxc_qa_framework.py --testname=suite/replication/replication.py
+PXC Node as Master and PS node as Slave
+---------------------------------------
+
+09:12:29  PXC: Startup sanity check                                   [ ✔ ]
+09:12:29  PXC: Configuration file creation                            [ ✔ ]
+09:12:29  PXC: Adding custom configuration                            [ ✔ ]
+09:12:44  PXC: Initializing cluster                                   [ ✔ ]
+09:13:03  PXC: Cluster startup                                        [ ✔ ]
+09:13:03  PXC: Database connection                                    [ ✔ ]
+09:13:03  PS: Startup sanity check                                    [ ✔ ]
+09:13:03  PS: Configuration file creation                             [ ✔ ]
+09:13:03  PS: Adding custom configuration                             [ ✔ ]
+09:13:11  PS: Initializing cluster                                    [ ✔ ]
+09:13:12  PS: Cluster startup                                         [ ✔ ]
+09:13:12  PS: Database connection                                     [ ✔ ]
+09:13:12  PS: Slave started                                           [ ✔ ]
+09:13:12  PXC: sysbench run sanity check                              [ ✔ ]
+09:13:12  PXC: sysbench data load check                               [ ✔ ]
+09:13:12  PS: Slave status after data load                            [ ✔ ]
+PXC Node as Slave and PS node as Master
+---------------------------------------
+
+09:13:12  PXC: Startup sanity check                                   [ ✔ ]
+09:13:12  PXC: Configuration file creation                            [ ✔ ]
+09:13:12  PXC: Adding custom configuration                            [ ✔ ]
+09:13:28  PXC: Initializing cluster                                   [ ✔ ]
+09:13:47  PXC: Cluster startup                                        [ ✔ ]
+09:13:47  PXC: Database connection                                    [ ✔ ]
+09:13:47  PS: Startup sanity check                                    [ ✔ ]
+09:13:47  PS: Configuration file creation                             [ ✔ ]
+09:13:47  PS: Adding custom configuration                             [ ✔ ]
+09:13:55  PS: Initializing cluster                                    [ ✔ ]
+09:13:56  PS: Cluster startup                                         [ ✔ ]
+09:13:56  PS: Database connection                                     [ ✔ ]
+09:13:56  PS: Slave started                                           [ ✔ ]
+09:13:56  PXC: sysbench run sanity check                              [ ✔ ]
+09:13:56  PXC: sysbench data load check                               [ ✔ ]
+09:13:56  PS: Slave status after data load                            [ ✔ ]
 $
 ```
