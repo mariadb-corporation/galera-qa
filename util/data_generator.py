@@ -48,8 +48,7 @@ else:
     LINE_COUNT = lines
 
 OUTFILE = "/tmp/" + outfile
-
-generate_sql = createsql.GenerateSQL(OUTFILE, lines)
+generate_sql = createsql.GenerateSQL(OUTFILE, LINE_COUNT)
 generate_sql.OutFile()
 generate_sql.CreateTable()
 generate_sql.DropTable()

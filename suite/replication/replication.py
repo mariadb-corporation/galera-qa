@@ -112,6 +112,18 @@ class SetupReplication:
         result = sysbench.sysbench_load()
         utility_cmd.check_testcase(result, "PXC: sysbench data load check")
 
+    def data_load(self, socket):
+        if os.path.isfile(parent_dir + '/util/data_generator.py'):
+            os.system(parent_dir + '/util/data_generator.py --lines=1000  --outfile=dataload.sql')
+            create_db = self.basedir + "/bin/mysql --user=root --socket=" + \
+                socket + '-Bse"drop database if exists sample_db;create database sample_db" 2>&1'
+            result = os.system(create_db)
+            utility_cmd.check_testcase(result, "Replication sample DB creation")
+            data_load_query = self.basedir + "/bin/mysql --user=root --socket=" + \
+                socket + 'sample_db < /tmp/dataload.sql 2>&1'
+            result = os.system(data_load_query)
+            utility_cmd.check_testcase(result, "Replication sample data load")
+
     def replication_status(self, socket):
         check_slave_status = self.basedir + "/bin/mysql --user=root --socket=" + \
             socket + ' -Bse"SELECT SERVICE_STATE ' \
@@ -132,6 +144,7 @@ replication_run.start_pxc()
 replication_run.start_ps()
 replication_run.start_replication('/tmp/node1.sock', '/tmp/psnode.sock')
 replication_run.sysbench_run('/tmp/node1.sock', 'pxcdb')
+replication_run.data_load('/tmp/node1.sock')
 replication_run.replication_status('/tmp/psnode.sock')
 print("\nPXC Node as Slave and PS node as Master")
 print("---------------------------------------")
@@ -139,6 +152,7 @@ replication_run.start_pxc()
 replication_run.start_ps()
 replication_run.start_replication('/tmp/psnode.sock', '/tmp/node1.sock')
 replication_run.sysbench_run('/tmp/psnode.sock', 'psdb')
+replication_run.data_load('/tmp/psnode.sock')
 replication_run.replication_status('/tmp/node1.sock')
 print("\nPXC/PS Node as master and Slave")
 print("---------------------------------------")
@@ -147,6 +161,8 @@ replication_run.start_ps()
 replication_run.start_replication('/tmp/psnode.sock', '/tmp/node1.sock')
 replication_run.start_replication('/tmp/node1.sock', '/tmp/psnode.sock')
 replication_run.sysbench_run('/tmp/psnode.sock', 'psdb')
+replication_run.data_load('/tmp/psnode.sock')
 replication_run.sysbench_run('/tmp/node1.sock', 'pxcdb')
+replication_run.data_load('/tmp/node1.sock')
 replication_run.replication_status('/tmp/node1.sock')
 replication_run.replication_status('/tmp/psnode.sock')
