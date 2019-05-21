@@ -12,7 +12,7 @@ def main():
     parser.add_argument('-t', '--testname', help='Specify test file location')
     parser.add_argument('-s', '--suite', default='all',
                         choices=['loadtest', 'replication', 'correctness', 'all'],
-                        help='Specify test name')
+                        help='Specify suite name')
     parser.add_argument('--sysbench_threads', default=2, help='Specify sysbench threads. sysbench '
                                                               'table count will be based on this value')
     parser.add_argument('--sysbench_table_size', default=1000, help='Specify sysbench table size')

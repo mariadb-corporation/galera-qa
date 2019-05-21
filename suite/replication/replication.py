@@ -27,7 +27,8 @@ sysbench_table_size = 1000
 sysbench_run_time = 10
 utility_cmd = utility.Utility()
 
-class SetupReplication():
+
+class SetupReplication:
     def __init__(self, basedir, workdir, node):
         self.basedir = basedir
         self.workdir = workdir
@@ -99,11 +100,11 @@ class SetupReplication():
         else:
             utility_cmd.check_testcase(0, "PS: Slave started")
 
-    def sysbench_run(self, socket):
+    def sysbench_run(self, socket, db):
         sysbench = sysbench_run.SysbenchRun(basedir, workdir,
                                             sysbench_user, sysbench_pass,
                                             socket, sysbench_threads,
-                                            sysbench_table_size, sysbench_db,
+                                            sysbench_table_size, db,
                                             sysbench_threads, sysbench_run_time)
 
         result = sysbench.sanity_check()
@@ -125,17 +126,27 @@ class SetupReplication():
 
 
 replication_run = SetupReplication(basedir, workdir, node)
-print("PXC Node as Master and PS node as Slave")
-print("---------------------------------------\n")
+print("\nPXC Node as Master and PS node as Slave")
+print("---------------------------------------")
 replication_run.start_pxc()
 replication_run.start_ps()
 replication_run.start_replication('/tmp/node1.sock', '/tmp/psnode.sock')
-replication_run.sysbench_run('/tmp/node1.sock')
+replication_run.sysbench_run('/tmp/node1.sock', 'pxcdb')
 replication_run.replication_status('/tmp/psnode.sock')
-print("PXC Node as Slave and PS node as Master")
-print("---------------------------------------\n")
+print("\nPXC Node as Slave and PS node as Master")
+print("---------------------------------------")
 replication_run.start_pxc()
 replication_run.start_ps()
 replication_run.start_replication('/tmp/psnode.sock', '/tmp/node1.sock')
-replication_run.sysbench_run('/tmp/psnode.sock')
+replication_run.sysbench_run('/tmp/psnode.sock', 'psdb')
 replication_run.replication_status('/tmp/node1.sock')
+print("\nPXC/PS Node as master and Slave")
+print("---------------------------------------")
+replication_run.start_pxc()
+replication_run.start_ps()
+replication_run.start_replication('/tmp/psnode.sock', '/tmp/node1.sock')
+replication_run.start_replication('/tmp/node1.sock', '/tmp/psnode.sock')
+replication_run.sysbench_run('/tmp/psnode.sock', 'psdb')
+replication_run.sysbench_run('/tmp/node1.sock', 'pxcdb')
+replication_run.replication_status('/tmp/node1.sock')
+replication_run.replication_status('/tmp/psnode.sock')

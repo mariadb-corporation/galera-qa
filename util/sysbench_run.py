@@ -1,8 +1,8 @@
 import os
 import subprocess
 
-class SysbenchRun:
 
+class SysbenchRun:
     def __init__(self, basedir, workdir, user, password, socket, tables, table_size, db, threads, time):
         self.basedir = basedir
         self.workdir = workdir
