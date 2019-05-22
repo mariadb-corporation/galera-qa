@@ -44,7 +44,7 @@ class SetupReplication:
         utility_cmd.check_testcase(result, "PXC: Startup sanity check")
         result = server_startup.create_config()
         utility_cmd.check_testcase(result, "PXC: Configuration file creation")
-        result = server_startup.add_myextra_configuration(script_dir + '/replication.cnf')
+        result = server_startup.add_myextra_configuration(script_dir + '/gtid_replication.cnf')
         utility_cmd.check_testcase(result, "PXC: Adding custom configuration")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "PXC: Initializing cluster")
@@ -84,7 +84,7 @@ class SetupReplication:
         invoke_slave = self.basedir + "/bin/mysql --user=root --socket=" + \
             slave_socket + ' -Bse"CHANGE MASTER TO MASTER_HOST=' + \
             "'127.0.0.1', MASTER_PORT=" + master_port + ", MASTER_USER='root'" + \
-            ", MASTER_AUTO_POSITION=1; START SLAVE; 2>&1"
+            ', MASTER_AUTO_POSITION=1; START SLAVE;" 2>&1'
         os.system(invoke_slave)
         check_slave_status = self.basedir + "/bin/mysql --user=root --socket=" + \
             slave_socket + ' -Bse"SELECT SERVICE_STATE ' \
