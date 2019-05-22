@@ -62,7 +62,7 @@ class SetupReplication:
         utility_cmd.check_testcase(result, "PS: Startup sanity check")
         result = server_startup.create_config()
         utility_cmd.check_testcase(result, "PS: Configuration file creation")
-        result = server_startup.add_myextra_configuration(script_dir + '/replication.cnf')
+        result = server_startup.add_myextra_configuration(script_dir + '/gtid_replication.cnf')
         utility_cmd.check_testcase(result, "PS: Adding custom configuration")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "PS: Initializing cluster")
@@ -77,10 +77,6 @@ class SetupReplication:
             master_socket + \
             ' -Bse"flush logs" 2>&1'
         os.system(flush_log)
-        master_log_file = self.basedir + "/bin/mysql --user=root --socket=" + \
-            master_socket + \
-            " -Bse'show master logs' | awk '{print $1}' | tail -1 2>&1"
-        master_log_file = os.popen(master_log_file).read().rstrip()
         master_port = self.basedir + "/bin/mysql --user=root --socket=" + \
             master_socket + \
             ' -Bse"select @@port" 2>&1'
@@ -88,8 +84,7 @@ class SetupReplication:
         invoke_slave = self.basedir + "/bin/mysql --user=root --socket=" + \
             slave_socket + ' -Bse"CHANGE MASTER TO MASTER_HOST=' + \
             "'127.0.0.1', MASTER_PORT=" + master_port + ", MASTER_USER='root'" + \
-            ", MASTER_LOG_FILE='" + master_log_file + "'" + \
-            ', MASTER_LOG_POS=4; START SLAVE;" 2>&1'
+            ", MASTER_AUTO_POSITION=1; START SLAVE; 2>&1"
         os.system(invoke_slave)
         check_slave_status = self.basedir + "/bin/mysql --user=root --socket=" + \
             slave_socket + ' -Bse"SELECT SERVICE_STATE ' \
