@@ -62,7 +62,7 @@ class StartPerconaServer:
             shutil.copy(self.scriptdir + '/conf/custom.cnf', self.workdir + '/conf/custom.cnf')
             shutil.copy(self.scriptdir + '/conf/ps.cnf', self.workdir + '/conf/ps.cnf')
             cnf_name = open(self.workdir + '/conf/ps.cnf', 'a+')
-            cnf_name.write('port=' + str(port) + '\n')
+            cnf_name.write('\nport=' + str(port) + '\n')
             cnf_name.write('socket=/tmp/psnode.sock\n')
             cnf_name.write('server_id=100\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')

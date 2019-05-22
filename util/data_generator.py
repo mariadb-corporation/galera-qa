@@ -1,7 +1,6 @@
+#!/usr/bin/env python3.7
 import getopt
 import sys
-import os
-import random
 import createsql
 
 

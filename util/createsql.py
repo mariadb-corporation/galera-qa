@@ -1,9 +1,9 @@
 import random
-import datagen
+from util import datagen
 import sys
 
 # data_type List
-data_type = ['int', 'bigint', 'char', 'varchar', 'date', 'float', 'text', 'time', 'timestamp']
+data_type = ['int', 'bigint', 'char', 'varchar', 'date', 'float', 'double', 'text', 'time', 'timestamp']
 # CREATE TABLE extra options list
 key_type = ['pk', 'uk']
 # Table name List
@@ -11,7 +11,7 @@ table_names = ['t1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9', 't10']
 # Column name list
 column_names = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10']
 # Char count list
-char_count = [1, 2, 4, 16, 32, 64, 126, 256, 1024]
+varchar_count = [32, 64, 126, 256, 1024]
 
 
 class GenerateSQL:
@@ -36,21 +36,24 @@ class GenerateSQL:
     def CreateTable(self):
         for i in range(self.table_count):
             data_types = ""
-            indexed_columns = ""
+            index_length = ""
             typearray = []
             table_name = table_names[i]
-            index_type = self.OptSelection(random.choice(key_type))
             for j in range(self.column_count):
                 column_description = random.choice(data_type)
                 typearray.append(column_description)
-                if column_description == "char" or column_description == "varchar":
-                    column_description = column_description + " (" + format(random.choice(char_count)) + ")"
+                if j == 0:
+                    if column_description == "text":
+                        index_length = "(10)"
+                if column_description == "char":
+                    column_description = column_description + " (1)"
+                if column_description == "varchar":
+                    column_description = column_description + " (" + format(random.choice(varchar_count)) + ")"
+                if column_description == "timestamp":
+                    column_description = column_description + " DEFAULT CURRENT_TIMESTAMP "
                 data_types += column_names[j] + " " + column_description + ", "
-            for k in range(random.randint(1, self.column_count)):
-                indexed_columns += column_names[k] + ","
-            indexed_columns = indexed_columns[:-1]
             print("CREATE TABLE IF NOT EXISTS " + table_name + "( " + data_types + 
-                  " " + index_type + " (" + indexed_columns + ") );")
+                  " primary key (c1" + index_length + ") );")
             for j in range(self.insert_sql_count):
                 data_value = ""
                 for column_description in typearray:
