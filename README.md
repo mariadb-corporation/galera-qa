@@ -51,46 +51,76 @@ optional arguments:
                         Specify sysbench oltp run time (in sec)
 ```
 
-Example output
+Example output (Replication suite)
 ```
-$ python3.7 pxc_qa_framework.py --testname=suite/replication/replication.py
-PXC Node as Master and PS node as Slave
----------------------------------------
+$ python3.7 pxc_qa_framework.py --suite=replication
 
-09:12:29  PXC: Startup sanity check                                   [ ✔ ]
-09:12:29  PXC: Configuration file creation                            [ ✔ ]
-09:12:29  PXC: Adding custom configuration                            [ ✔ ]
-09:12:44  PXC: Initializing cluster                                   [ ✔ ]
-09:13:03  PXC: Cluster startup                                        [ ✔ ]
-09:13:03  PXC: Database connection                                    [ ✔ ]
-09:13:03  PS: Startup sanity check                                    [ ✔ ]
-09:13:03  PS: Configuration file creation                             [ ✔ ]
-09:13:03  PS: Adding custom configuration                             [ ✔ ]
-09:13:11  PS: Initializing cluster                                    [ ✔ ]
-09:13:12  PS: Cluster startup                                         [ ✔ ]
-09:13:12  PS: Database connection                                     [ ✔ ]
-09:13:12  PS: Slave started                                           [ ✔ ]
-09:13:12  PXC: sysbench run sanity check                              [ ✔ ]
-09:13:12  PXC: sysbench data load check                               [ ✔ ]
-09:13:12  PS: Slave status after data load                            [ ✔ ]
-PXC Node as Slave and PS node as Master
+NON-GTID PXC Node as Master and PS node as Slave
 ---------------------------------------
+01:40:09  PXC: Startup sanity check                                   [ ✔ ]
+01:40:09  PXC: Configuration file creation                            [ ✔ ]
+01:40:09  PXC: Adding custom configuration                            [ ✔ ]
+01:40:25  PXC: Initializing cluster                                   [ ✔ ]
+01:40:44  PXC: Cluster startup                                        [ ✔ ]
+01:40:44  PXC: Database connection                                    [ ✔ ]
+01:40:44  PS: Startup sanity check                                    [ ✔ ]
+01:40:44  PS: Configuration file creation                             [ ✔ ]
+01:40:44  PS: Adding custom configuration                             [ ✔ ]
+01:40:52  PS: Initializing cluster                                    [ ✔ ]
+01:40:53  PS: Cluster startup                                         [ ✔ ]
+01:40:53  PS: Database connection                                     [ ✔ ]
+01:40:53  PS: Slave started                                           [ ✔ ]
+01:40:53  PXC: Replication QA sysbench run sanity check               [ ✔ ]
+01:40:53  PXC: Replication QA sysbench data load                      [ ✔ ]
+01:40:53  PXC: Replication QA sample DB creation                      [ ✔ ]
+01:40:53  PXC: Replication QA sample data load                        [ ✔ ]
+01:40:53  PS: Slave status after data load                            [ ✔ ]
 
-09:13:12  PXC: Startup sanity check                                   [ ✔ ]
-09:13:12  PXC: Configuration file creation                            [ ✔ ]
-09:13:12  PXC: Adding custom configuration                            [ ✔ ]
-09:13:28  PXC: Initializing cluster                                   [ ✔ ]
-09:13:47  PXC: Cluster startup                                        [ ✔ ]
-09:13:47  PXC: Database connection                                    [ ✔ ]
-09:13:47  PS: Startup sanity check                                    [ ✔ ]
-09:13:47  PS: Configuration file creation                             [ ✔ ]
-09:13:47  PS: Adding custom configuration                             [ ✔ ]
-09:13:55  PS: Initializing cluster                                    [ ✔ ]
-09:13:56  PS: Cluster startup                                         [ ✔ ]
-09:13:56  PS: Database connection                                     [ ✔ ]
-09:13:56  PS: Slave started                                           [ ✔ ]
-09:13:56  PXC: sysbench run sanity check                              [ ✔ ]
-09:13:56  PXC: sysbench data load check                               [ ✔ ]
-09:13:56  PS: Slave status after data load                            [ ✔ ]
+NON-GTID PXC Node as Slave and PS node as Master
+---------------------------------------
+01:40:53  PXC: Startup sanity check                                   [ ✔ ]
+[..]
+
+GTID PXC/PS Node as master and Slave
+---------------------------------------
+01:43:48  PXC: Startup sanity check                                   [ ✔ ]
+01:43:48  PXC: Configuration file creation                            [ ✔ ]
+01:43:48  PXC: Adding custom configuration                            [ ✔ ]
+01:44:03  PXC: Initializing cluster                                   [ ✔ ]
+01:44:21  PXC: Cluster startup                                        [ ✔ ]
+01:44:21  PXC: Database connection                                    [ ✔ ]
+01:44:21  PS: Startup sanity check                                    [ ✔ ]
+01:44:21  PS: Configuration file creation                             [ ✔ ]
+01:44:21  PS: Adding custom configuration                             [ ✔ ]
+01:44:29  PS: Initializing cluster                                    [ ✔ ]
+01:44:30  PS: Cluster startup                                         [ ✔ ]
+01:44:30  PS: Database connection                                     [ ✔ ]
+01:44:30  PS: Slave started                                           [ ✔ ]
+01:44:30  PS: Slave started                                           [ ✔ ]
+01:44:30  PS: Replication QA sysbench run sanity check                [ ✔ ]
+01:44:31  PS: Replication QA sysbench data load                       [ ✔ ]
+01:44:31  PS: Replication QA sample DB creation                       [ ✔ ]
+01:44:31  PS: Replication QA sample data load                         [ ✔ ]
+01:44:31  PXC: Replication QA sysbench run sanity check               [ ✔ ]
+01:44:31  PXC: Replication QA sysbench data load                      [ ✔ ]
+01:44:31  PXC: Replication QA sample DB creation                      [ ✔ ]
+01:44:31  PXC: Replication QA sample data load                        [ ✔ ]
+01:44:31  PS: Slave status after data load                            [ ✔ ]
+01:44:31  PS: Slave status after data load                            [ ✔ ]
+$
+```
+Example output (Correctness)
+```
+$ python3.7 pxc_qa_framework.py --suite=correctness 
+05:48:24  Startup sanity check                                        [ ✔ ]
+05:48:24  Configuration file creation                                 [ ✔ ]
+05:48:39  Initializing cluster                                        [ ✔ ]
+05:48:57  Cluster startup                                             [ ✔ ]
+05:48:57  Database connection                                         [ ✔ ]
+05:48:57  Replication QA sysbench run sanity check                    [ ✔ ]
+05:48:58  Replication QA sysbench data load                           [ ✔ ]
+05:48:58  Sample DB creation                                          [ ✔ ]
+05:48:58  Sample data load                                            [ ✔ ]
+05:48:58  pt-table-checksum run                                       [ ✔ ]
 $
 ```
