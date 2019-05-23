@@ -26,6 +26,7 @@ sysbench_db = config['sysbench']['sysbench_db']
 sysbench_threads = 10
 sysbench_table_size = 1000
 sysbench_run_time = 10
+
 utility_cmd = utility.Utility()
 
 
