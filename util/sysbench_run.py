@@ -48,14 +48,14 @@ class SysbenchRun:
 
     def sysbench_load(self):
         query_status = os.system("sysbench /usr/share/sysbench/oltp_insert.lua"
-                                " --table-size=" + str(self.table_size) +
-                                " --tables=" + str(self.tables) +
-                                " --mysql-db=" + self.db +
-                                " --mysql-user=" + self.user +
-                                " --mysql-password=" + self.password +
-                                " --mysql-socket=" + self.socket +
-                                " --db-driver=mysql prepare >" +
-                                self.workdir + "/log/sysbench_prepare.log")
+                                 " --table-size=" + str(self.table_size) +
+                                 " --tables=" + str(self.tables) +
+                                 " --mysql-db=" + self.db +
+                                 " --mysql-user=" + self.user +
+                                 " --mysql-password=" + self.password +
+                                 " --mysql-socket=" + self.socket +
+                                 " --db-driver=mysql prepare >" +
+                                 self.workdir + "/log/sysbench_prepare.log")
         if int(query_status) != 0:
             return 1
             print("ERROR!: sysbench data load run is failed")
@@ -65,15 +65,15 @@ class SysbenchRun:
 
     def sysbench_oltp_read_write(self):
         query_status = os.system("sysbench /usr/share/sysbench/oltp_read_write.lua"
-                                " --table-size=" + str(self.table_size) +
-                                " --tables=" + str(self.tables) +
-                                " --mysql-db=" + self.db +
-                                " --mysql-user=" + self.user +
-                                " --mysql-password=" + self.password +
-                                " --mysql-socket=" + self.socket +
-                                " --time=" + str(self.time) +
-                                " --db-driver=mysql --db-ps-mode=disable run >" +
-                                self.workdir + "/log/sysbench_read_write.log")
+                                 " --table-size=" + str(self.table_size) +
+                                 " --tables=" + str(self.tables) +
+                                 " --mysql-db=" + self.db +
+                                 " --mysql-user=" + self.user +
+                                 " --mysql-password=" + self.password +
+                                 " --mysql-socket=" + self.socket +
+                                 " --time=" + str(self.time) +
+                                 " --db-driver=mysql --db-ps-mode=disable run >" +
+                                 self.workdir + "/log/sysbench_read_write.log")
         if int(query_status) != 0:
             return 1
             print("ERROR!: sysbench read write run is failed")
@@ -83,14 +83,14 @@ class SysbenchRun:
 
     def sysbench_oltp_read_only(self):
         query_status = os.system("sysbench /usr/share/sysbench/oltp_read_only.lua"
-                                " --table-size=" + str(self.table_size) +
-                                " --tables=" + str(self.tables) +
-                                " --mysql-db=" + self.db +
-                                " --mysql-user=" + self.user +
-                                " --mysql-password=" + self.password +
-                                " --mysql-socket=" + self.socket +
-                                " --time=" + str(self.time) +
-                                " --db-driver=mysql --db-ps-mode=disable run >" +
+                                 " --table-size=" + str(self.table_size) +
+                                 " --tables=" + str(self.tables) +
+                                 " --mysql-db=" + self.db +
+                                 " --mysql-user=" + self.user +
+                                 " --mysql-password=" + self.password +
+                                 " --mysql-socket=" + self.socket +
+                                 " --time=" + str(self.time) +
+                                 " --db-driver=mysql --db-ps-mode=disable run >" +
                                 self.workdir + "/log/sysbench_read_only.log")
         if int(query_status) != 0:
             return 1
@@ -101,15 +101,15 @@ class SysbenchRun:
 
     def sysbench_oltp_write_only(self):
         query_status = os.system("sysbench /usr/share/sysbench/oltp_write_only.lua"
-                                " --table-size=" + str(self.table_size) +
-                                " --tables=" + str(self.tables) +
-                                " --mysql-db=" + self.db +
-                                " --mysql-user=" + self.user +
-                                " --mysql-password=" + self.password +
-                                " --mysql-socket=" + self.socket +
-                                " --time=" + str(self.time) +
-                                " --db-driver=mysql --db-ps-mode=disable run >" +
-                                self.workdir + "/log/sysbench_write_only.log")
+                                 " --table-size=" + str(self.table_size) +
+                                 " --tables=" + str(self.tables) +
+                                 " --mysql-db=" + self.db +
+                                 " --mysql-user=" + self.user +
+                                 " --mysql-password=" + self.password +
+                                 " --mysql-socket=" + self.socket +
+                                 " --time=" + str(self.time) +
+                                 " --db-driver=mysql --db-ps-mode=disable run >" +
+                                 self.workdir + "/log/sysbench_write_only.log")
         if int(query_status) != 0:
             return 1
             print("ERROR!: sysbench write only run is failed")

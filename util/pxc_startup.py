@@ -46,7 +46,7 @@ class StartCluster:
                                               int(version_info.split('.')[2]))
         return version
 
-    def create_config(self):
+    def create_config(self, wsrep_extra):
         """ Method to create cluster configuration file
             based on the node count. To create configuration
             file it will take default values from conf/pxc.cnf.
@@ -70,7 +70,6 @@ class StartCluster:
                         self.workdir + '/conf/node' + str(i) + '.cnf')
             cnf_name = open(self.workdir + '/conf/node' + str(i) + '.cnf', 'a+')
             cnf_name.write('wsrep_cluster_address=gcomm://' + addr_list + '\n')
-
             """ Calling version check method to compare the version to 
                 add wsrep_sst_auth variable. This variable does not 
                 required starting from PXC-8.x 
@@ -79,11 +78,20 @@ class StartCluster:
             if int(version) < int("080000"):
                 cnf_name.write('wsrep_sst_auth=root:\n')
             cnf_name.write('port=' + str(port_list[i - 1]) + '\n')
-            cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
-                           + str(port_list[i - 1] + 8) + "'\n")
+            if wsrep_extra == "ssl":
+                cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
+                               + str(port_list[i - 1] + 8) + ';socket.ssl_key='
+                               + self.workdir + '/cert/server-key.pem;socket.ssl_cert='
+                               + self.workdir + '/cert/server-cert.pem;socket.ssl_ca='
+                               + self.workdir + "/cert/ca.pem'\n")
+            else:
+                cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
+                               + str(port_list[i - 1] + 8) + "'\n")
             cnf_name.write('socket=/tmp/node' + str(i) + '.sock\n')
             cnf_name.write('server_id=' + str(10 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
+            if wsrep_extra == "ssl":
+                cnf_name.write('!include ' + self.workdir + '/conf/ssl.cnf\n')
             cnf_name.close()
         return 0
 

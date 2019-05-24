@@ -52,7 +52,7 @@ class ConsistencyCheck:
         server_startup = pxc_startup.StartCluster(parent_dir, workdir, basedir, int(node))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
-        result = server_startup.create_config()
+        result = server_startup.create_config('none')
         utility_cmd.check_testcase(result, "Configuration file creation")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "Initializing cluster")
@@ -114,6 +114,7 @@ class ConsistencyCheck:
         return 0
 
     def sysbench_run(self, socket, db):
+        # Sysbench dataload for consistency test
         sysbench = sysbench_run.SysbenchRun(basedir, workdir,
                                             sysbench_user, sysbench_pass,
                                             socket, sysbench_threads,
@@ -126,6 +127,7 @@ class ConsistencyCheck:
         utility_cmd.check_testcase(result, "Replication QA sysbench data load")
 
     def data_load(self, db, socket ):
+        # Random dataload for consistency test
         if os.path.isfile(parent_dir + '/util/createsql.py'):
             generate_sql = createsql.GenerateSQL('/tmp/dataload.sql', 1000)
             generate_sql.OutFile()
