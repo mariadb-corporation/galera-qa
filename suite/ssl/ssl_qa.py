@@ -96,5 +96,4 @@ ssl_run = SSLCheck(basedir, workdir, user, socket, pt_basedir, node)
 ssl_run.start_pxc()
 ssl_run.sysbench_run(socket, 'test')
 ssl_run.data_load('pxc_dataload_db', socket)
-consistency_run = consistency_check.ConsistencyCheck(basedir, workdir, user, socket, pt_basedir, node)
-consistency_run.data_consistency('test,pxc_dataload_db')
+
