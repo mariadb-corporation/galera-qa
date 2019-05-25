@@ -16,9 +16,10 @@ config = configparser.ConfigParser()
 config.read(parent_dir + '/config.ini')
 workdir = config['config']['workdir']
 basedir = config['config']['basedir']
-node = config['config']['node']
 user = config['config']['user']
-socket = config['config']['node1_socket']
+node = config['config']['node']
+node1_socket = config['config']['node1_socket']
+node2_socket = config['config']['node2_socket']
 pt_basedir = config['config']['pt_basedir']
 sysbench_user = config['sysbench']['sysbench_user']
 sysbench_pass = config['sysbench']['sysbench_pass']
@@ -30,12 +31,11 @@ utility_cmd = utility.Utility()
 
 
 class SSLCheck:
-    def __init__(self, basedir, workdir, user, socket, pt_basedir, node):
+    def __init__(self, basedir, workdir, user, socket, node):
         self.workdir = workdir
         self.basedir = basedir
         self.user = user
         self.socket = socket
-        self.pt_basedir = pt_basedir
         self.node = node
 
     def run_query(self, query):
@@ -48,7 +48,7 @@ class SSLCheck:
 
     def start_pxc(self):
         # Start PXC cluster for replication test
-        dbconnection_check = db_connection.DbConnection(user, '/tmp/node1.sock')
+        dbconnection_check = db_connection.DbConnection(user, self.socket)
         server_startup = pxc_startup.StartCluster(parent_dir, workdir, basedir, int(node))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
@@ -92,8 +92,9 @@ class SSLCheck:
             utility_cmd.check_testcase(result, "SSL QA sample data load")
 
 
-ssl_run = SSLCheck(basedir, workdir, user, socket, pt_basedir, node)
+ssl_run = SSLCheck(basedir, workdir, user, node1_socket, node)
 ssl_run.start_pxc()
-ssl_run.sysbench_run(socket, 'test')
-ssl_run.data_load('pxc_dataload_db', socket)
-
+ssl_run.sysbench_run(node1_socket, 'test')
+ssl_run.data_load('pxc_dataload_db', node1_socket)
+result = utility_cmd.check_table_count(basedir, 'test', 'sbtest1', node1_socket, node2_socket)
+utility_cmd.check_testcase(result, "SSL QA table checksum between nodes")

@@ -70,3 +70,16 @@ class Utility:
         os.chdir(cwd)
         return 0
 
+    def check_table_count(self, basedir, db, table, socket1, socket2):
+        query = basedir + '/bin/mysql -uroot --socket=' + \
+            socket1 + ' -Bse"checksum table ' + \
+            db + '.' + table + ';"'
+        table_count_node1 = os.popen(query).read().rstrip()
+        query = basedir + '/bin/mysql -uroot --socket=' + \
+            socket2 + ' -Bse"checksum table ' + \
+            db + '.' + table + ';"'
+        table_count_node2 = os.popen(query).read().rstrip()
+        if table_count_node1 == table_count_node2:
+            return 0
+        else:
+            return 1
