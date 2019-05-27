@@ -9,6 +9,7 @@ from util import db_connection
 from util import sysbench_run
 from util import utility
 from util import createsql
+from util import table_checksum
 import configparser
 
 # Reading initial configuration
@@ -61,58 +62,6 @@ class ConsistencyCheck:
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")
 
-    def sanity_check(self):
-        """ Sanity check method will check
-            the availability of pt-table-checksum
-            binary file.
-        """
-
-        if os.path.isfile(self.pt_basedir + '/bin/pt-table-checksum'):
-            pt_binary = self.pt_basedir + '/bin/pt-table-checksum'
-        else:
-            print('pt-table-checksum is missing in percona toolkit basedir')
-            return 1
-            exit(1)
-
-        # Creating pt_user for database consistency check
-        query = self.basedir + "/bin/mysql --user=root --socket=" + \
-            self.socket + ' -e"create user if not exists' \
-            " pt_user@'%' identified with " \
-            " mysql_native_password by 'test';" \
-            "grant all on *.* to pt_user@'%'" \
-            ';" > /dev/null 2>&1'
-        self.run_query(query)
-
-        # Creating percona db for cluster data checksum
-        query = self.basedir + "/bin/mysql --user=root --socket=" + \
-            self.socket + ' -e"drop database if exists percona;' \
-            'create database percona;' \
-            'drop table if exists percona.dsns;' \
-            'create table percona.dsns(id int,' \
-            'parent_id int,dsn varchar(100), ' \
-            'primary key(id));" > /dev/null 2>&1'
-        self.run_query(query)
-
-        for i in range(1, int(self.node) + 1):
-            port = self.basedir + "/bin/mysql --user=root --socket=" + \
-                "/tmp/node" + str(i) + ".sock" + \
-                ' -Bse"select @@port" 2>&1'
-            port = os.popen(port).read().rstrip()
-
-            insert_query = self.basedir + "/bin/mysql --user=root --socket=" + \
-                "/tmp/node" + str(i) + ".sock" + \
-                ' -e"insert into percona.dsns (id,dsn) values (' + \
-                str(i) + ",'h=127.0.0.1,P=" + str(port) + \
-                ",u=pt_user,p=test');" \
-                '"> /dev/null 2>&1'
-
-            query_status = os.system(insert_query)
-            if int(query_status) != 0:
-                return 1
-                print("ERROR!: Could not create percona toolkit user : pt_user")
-                exit(1)
-        return 0
-
     def sysbench_run(self, socket, db):
         # Sysbench dataload for consistency test
         sysbench = sysbench_run.SysbenchRun(basedir, workdir,
@@ -143,37 +92,11 @@ class ConsistencyCheck:
             result = os.system(data_load_query)
             utility_cmd.check_testcase(result, "Sample data load")
 
-    def data_consistency(self, database):
-        """ Data consistency check
-            method will compare the
-            data between cluster nodes
-        """
-        port = self.basedir + "/bin/mysql --user=root --socket=" + \
-            self.socket + ' -Bse"select @@port" 2>&1'
-
-        port = os.popen(port).read().rstrip()
-
-        query = self.basedir + "/bin/mysql --user=root --socket=" + \
-            self.socket + ' -e"set global pxc_strict_mode=DISABLED;" > /dev/null 2>&1'
-
-        self.run_query(query)
-
-        run_checksum = self.pt_basedir + "/bin/pt-table-checksum h=127.0.0.1,P=" + \
-            str(port) + ",u=pt_user,p=test -d" + database + \
-            " --recursion-method dsn=h=127.0.0.1,P=" + str(port) + \
-            ",u=pt_user,p=test,D=percona,t=dsns >" + self.workdir + "/log/pt-table-checksum.log 2>&1"
-        checksum_status = os.system(run_checksum)
-        print("")
-        utility_cmd.check_testcase(checksum_status, "pt-table-checksum run")
-        query = self.basedir + "/bin/mysql --user=root --socket=" + \
-            self.socket + ' -e"set global pxc_strict_mode=ENFORCING;" > /dev/null 2>&1'
-        self.run_query(query)
-        return 0
-
 
 consistency_run = ConsistencyCheck(basedir, workdir, user, socket, pt_basedir, node)
 consistency_run.start_pxc()
 consistency_run.sysbench_run(socket, 'test')
-consistency_run.sanity_check()
 consistency_run.data_load('pxc_dataload_db', socket)
-consistency_run.data_consistency('test,pxc_dataload_db')
+checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, node1_socket)
+checksum.sanity_check()
+checksum.data_consistency('test,pxc_dataload_db')

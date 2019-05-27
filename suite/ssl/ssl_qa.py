@@ -9,6 +9,8 @@ from util import db_connection
 from util import sysbench_run
 from util import utility
 from util import createsql
+from util import rqg_datagen
+from util import table_checksum
 import configparser
 
 # Reading initial configuration
@@ -96,6 +98,11 @@ ssl_run = SSLCheck(basedir, workdir, user, node1_socket, node)
 ssl_run.start_pxc()
 ssl_run.sysbench_run(node1_socket, 'test')
 ssl_run.data_load('pxc_dataload_db', node1_socket)
+rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir, 'examples', user, node1_socket, 'test')
+rqg_dataload.initiate_rqg()
 result = utility_cmd.check_table_count(basedir, 'test', 'sbtest1', node1_socket, node2_socket)
 utility_cmd.check_testcase(result, "SSL QA table test.sbtest1 checksum between nodes")
 utility_cmd.check_testcase(result, "SSL QA table pxc_dataload_db.t1 checksum between nodes")
+checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, node1_socket)
+checksum.sanity_check()
+checksum.data_consistency('test,pxc_dataload_db')
