@@ -35,9 +35,9 @@ def main():
         if not os.path.exists(scriptdir + '/suite/correctness'):
             print('Suite ' + suite + '(' + scriptdir + '/suite/correctness) does not exist')
             exit(1)
-        for file in os.listdir(scriptdir + '/suite/correctness'):
+        for file in os.listdir(scriptdir + '/suite/replication'):
             if file.endswith(".py"):
-                os.system(scriptdir + '/suite/correctness/' + file)
+                os.system(scriptdir + '/suite/replication/' + file)
 
     if test_name is not None:
         if not os.path.isfile(test_name):
