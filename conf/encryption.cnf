@@ -1,0 +1,6 @@
+[mysqld]
+encrypt_tmp_files = ON
+innodb_temp_tablespace_encrypt = ON
+pxc_encrypt_cluster_traffic = ON
+early-plugin-load = keyring_file.so
+keyring_file_data = keyring

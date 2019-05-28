@@ -49,8 +49,8 @@ class Utility:
                     "3600 -CA ca.pem -CAkey ca-key.pem " \
                     "-set_serial 01 -out client-cert.pem "
         subprocess.call(key_query, shell=True, stderr=subprocess.DEVNULL)
-        if os.path.isfile(workdir + '/cert/ssl.cnf'):
-            os.remove(workdir + '/cert/ssl.cnf')
+        if os.path.isfile(workdir + '/conf/ssl.cnf'):
+            os.remove(workdir + '/conf/ssl.cnf')
         cnf_name = open(workdir + '/conf/ssl.cnf', 'a+')
         cnf_name.write('\n')
         cnf_name.write('[mysqld]\n')

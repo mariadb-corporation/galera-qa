@@ -8,6 +8,7 @@ import random
 import shutil
 import time
 
+
 class StartCluster:
     def __init__(self, scriptdir, workdir, basedir, node):
         self.scriptdir = scriptdir
@@ -78,7 +79,7 @@ class StartCluster:
             if int(version) < int("080000"):
                 cnf_name.write('wsrep_sst_auth=root:\n')
             cnf_name.write('port=' + str(port_list[i - 1]) + '\n')
-            if wsrep_extra == "ssl":
+            if wsrep_extra == "ssl" or wsrep_extra == "encryption":
                 cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
                                + str(port_list[i - 1] + 8) + ';socket.ssl_key='
                                + self.workdir + '/cert/server-key.pem;socket.ssl_cert='
@@ -91,6 +92,11 @@ class StartCluster:
             cnf_name.write('server_id=' + str(10 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
             if wsrep_extra == "ssl":
+                # shutil.copy(self.scriptdir + '/conf/ssl.cnf', self.workdir + '/conf/ssl.cnf')
+                cnf_name.write('!include ' + self.workdir + '/conf/ssl.cnf\n')
+            elif wsrep_extra == 'encryption':
+                shutil.copy(self.scriptdir + '/conf/encryption.cnf', self.workdir + '/conf/encryption.cnf')
+                cnf_name.write('!include ' + self.workdir + '/conf/encryption.cnf\n')
                 cnf_name.write('!include ' + self.workdir + '/conf/ssl.cnf\n')
             cnf_name.close()
         return 0
@@ -116,16 +122,19 @@ class StartCluster:
             using --initialize-insecure option for
             passwordless authentication.
         """
+        # This is for encryption testing. Encryption features are not fully supported
+        # if wsrep_extra == "encryption":
+        #    init_opt = '--innodb_undo_tablespaces=2 '
         for i in range(1, self.node + 1):
             if os.path.exists(self.workdir + '/node' + str(i)):
                 os.system('rm -rf ' + self.workdir + '/node' + str(i) + '>/dev/null 2>&1')
             if not os.path.isfile(self.workdir + '/conf/node' + str(i) + '.cnf'):
                 print('Could not find config file /conf/node' + str(i) + '.cnf')
                 exit(1)
-            initialize_node = self.basedir + '/bin/mysqld --no-defaults --initialize-insecure --datadir=' \
-                              + self.workdir + '/node' + str(i) + ' > ' + self.workdir \
-                              + '/log/startup' + str(i) + '.log 2>&1'
-
+            initialize_node = self.basedir + '/bin/mysqld --no-defaults ' \
+                '--initialize-insecure --datadir=' + \
+                self.workdir + '/node' + str(i) + ' > ' + \
+                self.workdir + '/log/startup' + str(i) + '.log 2>&1'
             run_query = subprocess.call(initialize_node, shell=True, stderr=subprocess.DEVNULL)
             result = ("{}".format(run_query))
 

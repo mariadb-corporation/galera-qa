@@ -1,6 +1,8 @@
 #!/usr/bin/env python3.7
 import os
 import sys
+import configparser
+import argparse
 cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
@@ -11,7 +13,17 @@ from util import ps_startup
 from util import utility
 from util import createsql
 from util import rqg_datagen
-import configparser
+
+# Read argument
+parser = argparse.ArgumentParser(prog='PXC replication test', usage='%(prog)s [options]')
+parser.add_argument('-e', '--encryption-run', action='store_true',
+                    help='This option will enable encryption options')
+args = parser.parse_args()
+if args.encryption_run is True:
+    encryption = 'YES'
+else:
+    encryption = 'NO'
+
 
 # Reading initial configuration
 config = configparser.ConfigParser()
@@ -46,12 +58,18 @@ class SetupReplication:
         server_startup = pxc_startup.StartCluster(parent_dir, workdir, basedir, int(node))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "PXC: Startup sanity check")
-        result = server_startup.create_config('none')
-        utility_cmd.check_testcase(result, "PXC: Configuration file creation")
-        result = server_startup.add_myextra_configuration(script_dir + '/replication.cnf')
-        utility_cmd.check_testcase(result, "PXC: Adding custom configuration")
+        if encryption == 'YES':
+            result = utility_cmd.create_ssl_certificate(workdir)
+            utility_cmd.check_testcase(result, "PXC: SSL Configuration")
+            result = server_startup.create_config('encryption')
+            utility_cmd.check_testcase(result, "PXC: Configuration file creation")
+        else:
+            result = server_startup.create_config('none')
+            utility_cmd.check_testcase(result, "PXC: Configuration file creation")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "PXC: Initializing cluster")
+        result = server_startup.add_myextra_configuration(script_dir + '/replication.cnf')
+        utility_cmd.check_testcase(result, "PXC: Adding custom configuration")
         result = server_startup.start_cluster()
         utility_cmd.check_testcase(result, "PXC: Cluster startup")
         result = dbconnection_check.connection_check()
@@ -133,17 +151,17 @@ class SetupReplication:
             result = os.system(data_load_query)
             utility_cmd.check_testcase(result, node + ": Replication QA sample data load")
 
-    def replication_status(self, socket):
+    def replication_status(self, socket, node):
         check_slave_status = self.basedir + "/bin/mysql --user=root --socket=" + \
             socket + ' -Bse"SELECT SERVICE_STATE ' \
             'FROM performance_schema.replication_connection_status" 2>&1'
         check_slave_status = os.popen(check_slave_status).read().rstrip()
         if check_slave_status != 'ON':
             print("ERROR!: Slave is not running" + check_slave_status)
-            utility_cmd.check_testcase(1, "PS: Slave status after data load")
+            utility_cmd.check_testcase(1, node + ": Slave status after data load")
             exit(1)
         else:
-            utility_cmd.check_testcase(0, "PS: Slave status after data load")
+            utility_cmd.check_testcase(0, node + ": Slave status after data load")
 
 
 replication_run = SetupReplication(basedir, workdir, node)
@@ -156,7 +174,7 @@ replication_run.start_replication(node1_socket, ps_socket)
 replication_run.sysbench_run(node1_socket, 'pxcdb', 'PXC')
 replication_run.data_load('pxc_dataload_db', node1_socket, 'PXC')
 rqg_dataload.initiate_rqg()
-replication_run.replication_status(ps_socket)
+replication_run.replication_status(ps_socket, 'PS')
 print("\nNON-GTID PXC Node as Slave and PS node as Master")
 print("---------------------------------------")
 rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir, 'replication', user, ps_socket, 'rqg_test')
@@ -166,7 +184,7 @@ replication_run.start_replication(ps_socket, node1_socket)
 replication_run.sysbench_run(ps_socket, 'psdb', 'PS')
 replication_run.data_load('ps_dataload_db', ps_socket, 'PS')
 rqg_dataload.initiate_rqg()
-replication_run.replication_status(node1_socket)
+replication_run.replication_status(node1_socket, 'PXC')
 print("\nNON-GTID PXC/PS Node as master and Slave")
 print("---------------------------------------")
 replication_run.start_pxc()
@@ -178,5 +196,5 @@ replication_run.data_load('ps_dataload_db', ps_socket, 'PS')
 rqg_dataload.initiate_rqg()
 replication_run.sysbench_run(node1_socket, 'pxcdb', 'PXC')
 replication_run.data_load('pxc_dataload_db', node1_socket, 'PXC')
-replication_run.replication_status(node1_socket)
-replication_run.replication_status(ps_socket)
+replication_run.replication_status(node1_socket, 'PXC')
+replication_run.replication_status(ps_socket, 'PS')
