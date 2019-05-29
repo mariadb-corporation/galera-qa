@@ -54,7 +54,7 @@ class StartCluster:
             For customised configuration please add your values
             in conf/custom.conf.
         """
-        port = random.randint(10, 50) * 1000
+        port = random.randint(10, 19) * 1000
         port_list = []
         addr_list = ''
         for j in range(1, self.node + 1):

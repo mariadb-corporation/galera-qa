@@ -10,11 +10,11 @@ import time
 
 
 class StartPerconaServer:
-
-    def __init__(self, scriptdir, workdir, basedir):
+    def __init__(self, scriptdir, workdir, basedir, node):
         self.scriptdir = scriptdir
         self.workdir = workdir
         self.basedir = basedir
+        self.node = node
 
     def sanity_check(self):
         """ Sanity check method will remove existing
@@ -22,7 +22,7 @@ class StartPerconaServer:
             running PS mysqld processes. This will also check
             the availability of mysqld binary file.
         """
-        #kill existing mysqld process
+        # kill existing mysqld process
         os.system("ps -ef | grep 'psnode' | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1")
         if not os.path.exists(self.workdir + '/log'):
             os.mkdir(self.workdir + '/log')
@@ -53,20 +53,25 @@ class StartPerconaServer:
             For customised configuration please add your values
             in conf/custom.conf.
         """
-        port = random.randint(10, 50) * 1000
+        port = random.randint(21, 30) * 1000
+        port_list = []
+        for j in range(1, self.node + 1):
+            port_list += [port + (j * 100)]
         if not os.path.isfile(self.scriptdir + '/conf/ps.cnf'):
             print('Default pxc.cnf is missing in ' + self.scriptdir + '/conf')
             return 1
             exit(1)
         else:
             shutil.copy(self.scriptdir + '/conf/custom.cnf', self.workdir + '/conf/custom.cnf')
-            shutil.copy(self.scriptdir + '/conf/ps.cnf', self.workdir + '/conf/ps.cnf')
-            cnf_name = open(self.workdir + '/conf/ps.cnf', 'a+')
-            cnf_name.write('\nport=' + str(port) + '\n')
-            cnf_name.write('socket=/tmp/psnode.sock\n')
-            cnf_name.write('server_id=100\n')
+        for i in range(1, self.node + 1):
+            shutil.copy(self.scriptdir + '/conf/ps.cnf', self.workdir + '/conf/ps' + str(i) + '.cnf')
+            cnf_name = open(self.workdir + '/conf/ps' + str(i) + '.cnf', 'a+')
+            cnf_name.write('\nport=' + str(port_list[i - 1]) + '\n')
+            cnf_name.write('socket=/tmp/psnode' + str(i) + '.sock\n')
+            cnf_name.write('server_id=' + str(100 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
             cnf_name.close()
+
         return 0
 
     def add_myextra_configuration(self, config_file):
@@ -90,37 +95,41 @@ class StartPerconaServer:
             using --initialize-insecure option for
             passwordless authentication.
         """
-        if os.path.exists(self.workdir + '/psnode'):
-            os.system('rm -rf ' + self.workdir + '/psnode >/dev/null 2>&1')
-        if not os.path.isfile(self.workdir + '/conf/ps.cnf'):
-            print('Could not find config file /conf/ps.cnf')
-            exit(1)
-        initialize_node = self.basedir + '/bin/mysqld --no-defaults --initialize-insecure --datadir=' \
-                          + self.workdir + '/psnode > ' + self.workdir \
-                          + '/log/ps_startup.log 2>&1'
+        for i in range(1, self.node + 1):
+            if os.path.exists(self.workdir + '/psnode' + str(i)):
+                os.system('rm -rf ' + self.workdir + '/psnode' + str(i) + ' >/dev/null 2>&1')
+            if not os.path.isfile(self.workdir + '/conf/ps' + str(i) + '.cnf'):
+                print('Could not find config file /conf/ps' + str(i) + '.cnf')
+                exit(1)
+            initialize_node = self.basedir + '/bin/mysqld --no-defaults --initialize-insecure --datadir=' \
+                              + self.workdir + '/psnode' + str(i) + ' > ' + self.workdir \
+                              + '/log/ps_startup' + str(i) + '.log 2>&1'
 
-        run_query = subprocess.call(initialize_node, shell=True, stderr=subprocess.DEVNULL)
-        result = ("{}".format(run_query))
+            run_query = subprocess.call(initialize_node, shell=True, stderr=subprocess.DEVNULL)
+            result = ("{}".format(run_query))
         return int(result)
 
     def start_server(self):
         """ Method to start the cluster nodes. This method
             will also check the startup status.
         """
-        startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + \
-            '/conf/ps.cnf --datadir=' + self.workdir + '/psnode --basedir=' + self.basedir + \
-            ' --log-error=' + self.workdir + '/log/psnode.err > ' + self.workdir + \
-            '/log/psnode.err 2>&1 &'
+        for i in range(1, self.node + 1):
+            startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + \
+                '/conf/ps' + str(i) + '.cnf --datadir=' + self.workdir + '/psnode' + str(i) + \
+                ' --basedir=' + self.basedir + ' --log-error=' + self.workdir + \
+                '/log/psnode' + str(i) + '.err > ' + self.workdir + \
+                '/log/psnode' + str(i) + '.err 2>&1 &'
 
-        run_cmd = subprocess.call(startup, shell=True, stderr=subprocess.DEVNULL)
-        result = ("{}".format(run_cmd))
-        ping_query = self.basedir + '/bin/mysqladmin --user=root ' \
-                                    '--socket=/tmp/psnode.sock ping > /dev/null 2>&1'
-        for startup_timer in range(120):
-            time.sleep(1)
-            ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
-            ping_status = ("{}".format(ping_check))
-            if int(ping_status) == 0:
-                break  # break the loop if mysqld is running
+            run_cmd = subprocess.call(startup, shell=True, stderr=subprocess.DEVNULL)
+            result = ("{}".format(run_cmd))
+            ping_query = self.basedir + '/bin/mysqladmin --user=root ' \
+                                        '--socket=/tmp/psnode' + str(i) + \
+                                        '.sock ping > /dev/null 2>&1'
+            for startup_timer in range(120):
+                time.sleep(1)
+                ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
+                ping_status = ("{}".format(ping_check))
+                if int(ping_status) == 0:
+                    break  # break the loop if mysqld is running
 
         return int(ping_status)

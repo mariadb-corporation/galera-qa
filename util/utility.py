@@ -83,3 +83,52 @@ class Utility:
             return 0
         else:
             return 1
+
+    def replication_io_status(self, basedir, socket, node, channel):
+        check_slave_status = basedir + "/bin/mysql --user=root --socket=" + \
+            socket + ' -Bse"SELECT SERVICE_STATE ' \
+            'FROM performance_schema.replication_connection_status' \
+            " where channel_name='" + channel + "'" + '" 2>&1'
+        check_slave_status = os.popen(check_slave_status).read().rstrip()
+        if check_slave_status != 'ON':
+            self.check_testcase(1, node + ": IO thread slave status")
+            print("\tERROR!: Slave IO thread is not running, check slave status")
+            exit(1)
+        else:
+            self.check_testcase(0, node + ": IO thread slave status")
+
+    def replication_sql_status(self, basedir, socket, node, channel):
+        check_slave_status = basedir + "/bin/mysql --user=root --socket=" + \
+            socket + ' -Bse"SELECT SERVICE_STATE ' \
+            'FROM performance_schema.replication_applier_status' \
+            " where channel_name='" + channel + "'" + '" 2>&1'
+        check_slave_status = os.popen(check_slave_status).read().rstrip()
+        if check_slave_status != 'ON':
+            self.check_testcase(1, node + ": SQL thread slave status")
+            print("\tERROR!: Slave SQL thread is not running, check slave status")
+            exit(1)
+        else:
+            self.check_testcase(0, node + ": SQL thread slave status")
+
+    def invoke_replication(self, basedir, master_socket, slave_socket, comment):
+        # Setup async replication
+        flush_log = basedir + "/bin/mysql --user=root --socket=" + \
+            master_socket + \
+            ' -Bse"flush logs" 2>&1'
+        os.system(flush_log)
+        master_log_file = basedir + "/bin/mysql --user=root --socket=" + \
+            master_socket + \
+            " -Bse'show master logs' | awk '{print $1}' | tail -1 2>&1"
+        master_log_file = os.popen(master_log_file).read().rstrip()
+        master_port = basedir + "/bin/mysql --user=root --socket=" + \
+            master_socket + \
+            ' -Bse"select @@port" 2>&1'
+        master_port = os.popen(master_port).read().rstrip()
+        invoke_slave = basedir + "/bin/mysql --user=root --socket=" + \
+            slave_socket + ' -Bse"CHANGE MASTER TO MASTER_HOST=' + \
+            "'127.0.0.1', MASTER_PORT=" + master_port + ", MASTER_USER='root'" + \
+            ", MASTER_LOG_FILE='" + master_log_file + "'" + \
+            ', MASTER_LOG_POS=4 ' + comment + ' ; START SLAVE;" 2>&1'
+        result = os.system(invoke_slave)
+        self.check_testcase(result, "Initiated replication")
+
