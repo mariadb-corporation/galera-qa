@@ -1,6 +1,8 @@
 #!/usr/bin/env python3.7
 import os
 import sys
+import configparser
+import argparse
 cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
@@ -11,7 +13,16 @@ from util import utility
 from util import createsql
 from util import rqg_datagen
 from util import table_checksum
-import configparser
+
+# Read argument
+parser = argparse.ArgumentParser(prog='PXC replication test', usage='%(prog)s [options]')
+parser.add_argument('-e', '--encryption-run', action='store_true',
+                    help='This option will enable encryption options')
+args = parser.parse_args()
+if args.encryption_run is True:
+    encryption = 'YES'
+else:
+    encryption = 'NO'
 
 # Reading initial configuration
 config = configparser.ConfigParser()
@@ -54,10 +65,14 @@ class SSLCheck:
         server_startup = pxc_startup.StartCluster(parent_dir, workdir, basedir, int(node))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
-        result = server_startup.create_config('ssl')
-        utility_cmd.check_testcase(result, "Configuration file creation")
-        result = utility_cmd.create_ssl_certificate(workdir)
-        utility_cmd.check_testcase(result, "SSL Configuration")
+        if encryption == 'YES':
+            result = utility_cmd.create_ssl_certificate(workdir)
+            utility_cmd.check_testcase(result, "SSL Configuration")
+            result = server_startup.create_config('encryption')
+            utility_cmd.check_testcase(result, "Configuration file creation")
+        else:
+            result = server_startup.create_config('ssl')
+            utility_cmd.check_testcase(result, "Configuration file creation")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "Initializing cluster")
         result = server_startup.start_cluster()
