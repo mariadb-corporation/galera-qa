@@ -109,14 +109,17 @@ class StartPerconaServer:
             result = ("{}".format(run_query))
         return int(result)
 
-    def start_server(self):
+    def start_server(self, my_extra=None):
         """ Method to start the cluster nodes. This method
             will also check the startup status.
         """
+        if my_extra is None:
+            my_extra = ''
         for i in range(1, self.node + 1):
             startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + \
                 '/conf/ps' + str(i) + '.cnf --datadir=' + self.workdir + '/psnode' + str(i) + \
-                ' --basedir=' + self.basedir + ' --log-error=' + self.workdir + \
+                ' --basedir=' + self.basedir + ' ' + my_extra + \
+                ' --log-error=' + self.workdir + \
                 '/log/psnode' + str(i) + '.err > ' + self.workdir + \
                 '/log/psnode' + str(i) + '.err 2>&1 &'
 

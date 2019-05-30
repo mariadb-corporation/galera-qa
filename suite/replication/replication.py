@@ -24,17 +24,16 @@ if args.encryption_run is True:
 else:
     encryption = 'NO'
 
-
 # Reading initial configuration
 config = configparser.ConfigParser()
 config.read(parent_dir + '/config.ini')
 workdir = config['config']['workdir']
 basedir = config['config']['basedir']
 node = config['config']['node']
+user = config['config']['user']
 node1_socket = config['config']['node1_socket']
 ps1_socket = config['config']['ps1_socket']
 ps2_socket = config['config']['ps2_socket']
-user = config['config']['user']
 pt_basedir = config['config']['pt_basedir']
 sysbench_user = config['sysbench']['sysbench_user']
 sysbench_pass = config['sysbench']['sysbench_pass']
@@ -42,7 +41,6 @@ sysbench_db = config['sysbench']['sysbench_db']
 sysbench_threads = 10
 sysbench_table_size = 1000
 sysbench_run_time = 10
-
 utility_cmd = utility.Utility()
 
 
@@ -52,8 +50,10 @@ class SetupReplication:
         self.workdir = workdir
         self.node = node
 
-    def start_pxc(self):
+    def start_pxc(self, my_extra=None):
         # Start PXC cluster for replication test
+        if my_extra is None:
+            my_extra = ''
         script_dir = os.path.dirname(os.path.realpath(__file__))
         dbconnection_check = db_connection.DbConnection(user, node1_socket)
         server_startup = pxc_startup.StartCluster(parent_dir, workdir, basedir, int(self.node))
@@ -71,12 +71,14 @@ class SetupReplication:
         utility_cmd.check_testcase(result, "PXC: Initializing cluster")
         result = server_startup.add_myextra_configuration(script_dir + '/replication.cnf')
         utility_cmd.check_testcase(result, "PXC: Adding custom configuration")
-        result = server_startup.start_cluster()
+        result = server_startup.start_cluster(my_extra)
         utility_cmd.check_testcase(result, "PXC: Cluster startup")
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "PXC: Database connection")
 
-    def start_ps(self, node):
+    def start_ps(self, node, my_extra=None):
+        if my_extra is None:
+            my_extra = ''
         # Start PXC cluster for replication test
         script_dir = os.path.dirname(os.path.realpath(__file__))
         dbconnection_check = db_connection.DbConnection(user, ps1_socket)
@@ -89,40 +91,10 @@ class SetupReplication:
         utility_cmd.check_testcase(result, "PS: Adding custom configuration")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "PS: Initializing cluster")
-        result = server_startup.start_server()
+        result = server_startup.start_server(my_extra)
         utility_cmd.check_testcase(result, "PS: Cluster startup")
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "PS: Database connection")
-
-    def start_replication(self, master_socket, slave_socket):
-        # Setup async replication
-        flush_log = self.basedir + "/bin/mysql --user=root --socket=" + \
-            master_socket + \
-            ' -Bse"flush logs" 2>&1'
-        os.system(flush_log)
-        master_log_file = self.basedir + "/bin/mysql --user=root --socket=" + \
-            master_socket + \
-            " -Bse'show master logs' | awk '{print $1}' | tail -1 2>&1"
-        master_log_file = os.popen(master_log_file).read().rstrip()
-        master_port = self.basedir + "/bin/mysql --user=root --socket=" + \
-            master_socket + \
-            ' -Bse"select @@port" 2>&1'
-        master_port = os.popen(master_port).read().rstrip()
-        invoke_slave = self.basedir + "/bin/mysql --user=root --socket=" + \
-            slave_socket + ' -Bse"CHANGE MASTER TO MASTER_HOST=' + \
-            "'127.0.0.1', MASTER_PORT=" + master_port + ", MASTER_USER='root'" + \
-            ", MASTER_LOG_FILE='" + master_log_file + "'" + \
-            ', MASTER_LOG_POS=4; START SLAVE;" 2>&1'
-        os.system(invoke_slave)
-        check_slave_status = self.basedir + "/bin/mysql --user=root --socket=" + \
-            slave_socket + ' -Bse"SELECT SERVICE_STATE ' \
-            'FROM performance_schema.replication_connection_status" 2>&1'
-        check_slave_status = os.popen(check_slave_status).read().rstrip()
-        if check_slave_status != 'ON':
-            print("ERROR!: Slave is not running" + check_slave_status)
-            exit(1)
-        else:
-            utility_cmd.check_testcase(0, "PS: Slave started")
 
     def sysbench_run(self, socket, db, node):
         sysbench = sysbench_run.SysbenchRun(basedir, workdir,
@@ -154,35 +126,39 @@ class SetupReplication:
 
 
 replication_run = SetupReplication(basedir, workdir, node)
-rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir, 'replication', user, node1_socket, 'rqg_test')
+rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir, 'replication',
+                                      user, node1_socket, 'rqg_test')
 
 print("\nNON-GTID PXC Node as Master and PS node as Slave")
-print("--------------------------------------------------")
+print("----------------------------------------------")
 replication_run.start_pxc()
 replication_run.start_ps('1')
-utility_cmd.invoke_replication(basedir, node1_socket, ps1_socket, "")
+utility_cmd.invoke_replication(basedir, node1_socket, ps1_socket, 'NONGTID', 'none')
 replication_run.sysbench_run(node1_socket, 'pxcdb', 'PXC')
 replication_run.data_load('pxc_dataload_db', node1_socket, 'PXC')
 rqg_dataload.initiate_rqg()
-utility_cmd.replication_io_status(basedir, ps1_socket, 'PS', '')
-utility_cmd.replication_sql_status(basedir, ps1_socket, 'PS', '')
+utility_cmd.replication_io_status(basedir, ps1_socket, 'PS', 'none')
+utility_cmd.replication_sql_status(basedir, ps1_socket, 'PS', 'none')
 print("\nNON-GTID PXC Node as Slave and PS node as Master")
-print("--------------------------------------------------")
-rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir, 'galera', user, ps1_socket, 'rqg_test')
+print("----------------------------------------------")
+rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir, 'galera',
+                                      user, ps1_socket, 'rqg_test')
 replication_run.start_pxc()
 replication_run.start_ps('1')
-utility_cmd.invoke_replication(basedir, ps1_socket, node1_socket, "")
+utility_cmd.invoke_replication(basedir, ps1_socket, node1_socket, 'NONGTID', 'none')
 replication_run.sysbench_run(ps1_socket, 'psdb', 'PS')
 replication_run.data_load('ps_dataload_db', ps1_socket, 'PS')
 rqg_dataload.initiate_rqg()
-utility_cmd.replication_io_status(basedir, node1_socket, 'PXC', '')
-utility_cmd.replication_sql_status(basedir, node1_socket, 'PXC', '')
+utility_cmd.replication_io_status(basedir, node1_socket, 'PXC', 'none')
+utility_cmd.replication_sql_status(basedir, node1_socket, 'PXC', 'none')
 print("\nNON-GTID PXC multi source replication")
-print("---------------------------------------")
+print("-----------------------------------")
 replication_run.start_pxc()
 replication_run.start_ps('2')
-utility_cmd.invoke_replication(basedir, ps1_socket, node1_socket, "for channel 'master1'")
-utility_cmd.invoke_replication(basedir, ps2_socket, node1_socket, "for channel 'master2'")
+utility_cmd.invoke_replication(basedir, ps1_socket,
+                               node1_socket, 'NONGTID', "for channel 'master1'")
+utility_cmd.invoke_replication(basedir, ps2_socket,
+                               node1_socket, 'NONGTID', "for channel 'master2'")
 replication_run.sysbench_run(node1_socket, 'pxcdb', 'PXC')
 replication_run.data_load('pxc_dataload_db', node1_socket, 'PXC')
 rqg_dataload.initiate_rqg()
@@ -190,3 +166,14 @@ utility_cmd.replication_io_status(basedir, node1_socket, 'PXC', 'master1')
 utility_cmd.replication_sql_status(basedir, node1_socket, 'PXC', 'master1')
 utility_cmd.replication_io_status(basedir, node1_socket, 'PXC', 'master2')
 utility_cmd.replication_sql_status(basedir, node1_socket, 'PXC', 'master2')
+print("\nNON-GTID PXC multi thread replication")
+print("-----------------------------------")
+replication_run.start_pxc('--slave-parallel-workers=5')
+replication_run.start_ps('1', '--slave-parallel-workers=5')
+utility_cmd.invoke_replication(basedir, ps1_socket,
+                               node1_socket, 'NONGTID', 'none')
+replication_run.sysbench_run(node1_socket, 'pxcdb', 'PXC')
+replication_run.data_load('pxc_dataload_db', node1_socket, 'PXC')
+rqg_dataload.initiate_rqg()
+utility_cmd.replication_io_status(basedir, node1_socket, 'PXC', 'none')
+utility_cmd.replication_sql_status(basedir, node1_socket, 'PXC', 'none')

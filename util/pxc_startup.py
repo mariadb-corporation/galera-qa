@@ -140,20 +140,24 @@ class StartCluster:
 
         return int(result)
 
-    def start_cluster(self):
+    def start_cluster(self, my_extra=None):
         """ Method to start the cluster nodes. This method
             will also check the startup status.
         """
+        if my_extra is None:
+            my_extra = ''
         for i in range(1, self.node + 1):
             if i == 1:
                 startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
-                          '.cnf --datadir=' + self.workdir + '/node' + str(i) + ' --basedir=' + self.basedir + \
+                          '.cnf --datadir=' + self.workdir + '/node' + str(i) + \
+                          ' --basedir=' + self.basedir + ' ' + my_extra + \
                           ' --wsrep-provider=' + self.basedir + \
                           '/lib/libgalera_smm.so --wsrep-new-cluster --log-error=' + self.workdir +\
                           '/log/node' + str(i) + '.err > ' + self.workdir + '/log/node' + str(i) + '.err 2>&1 &'
             else:
                 startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
-                          '.cnf --datadir=' + self.workdir + '/node' + str(i) + ' --basedir=' + self.basedir + \
+                          '.cnf --datadir=' + self.workdir + '/node' + str(i) + \
+                          ' --basedir=' + self.basedir + ' ' + my_extra + \
                           ' --wsrep-provider=' + self.basedir + \
                           '/lib/libgalera_smm.so --log-error=' + self.workdir + '/log/node' + str(i) + '.err > ' \
                           + self.workdir + '/log/node' + str(i) + '.err 2>&1 &'
