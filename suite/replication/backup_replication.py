@@ -3,6 +3,7 @@ import os
 import sys
 import configparser
 import argparse
+import shutil
 cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
@@ -69,14 +70,20 @@ class SetupReplication:
             utility_cmd.check_testcase(result, "PXC: Configuration file creation")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "PXC: Initializing cluster")
-        result = server_startup.add_myextra_configuration(script_dir + '/gtid_replication.cnf')
+        result = server_startup.add_myextra_configuration(script_dir + '/replication.cnf')
         utility_cmd.check_testcase(result, "PXC: Adding custom configuration")
         result = server_startup.start_cluster(my_extra)
         utility_cmd.check_testcase(result, "PXC: Cluster startup")
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "PXC: Database connection")
 
-    def start_ps(self, node, my_extra=None):
+    def backup_pxc_node(self):
+        utility_cmd.pxb_sanity_check(workdir)
+        if os.path.exists(workdir + '/psnode1'):
+            shutil.rmtree(workdir + '/psnode1')
+        utility_cmd.pxb_backup(workdir, workdir + '/node1', node1_socket, workdir + '/psnode1')
+
+    def start_slave(self, node, my_extra=None):
         if my_extra is None:
             my_extra = ''
         # Start PXC cluster for replication test
@@ -87,10 +94,8 @@ class SetupReplication:
         utility_cmd.check_testcase(result, "PS: Startup sanity check")
         result = server_startup.create_config()
         utility_cmd.check_testcase(result, "PS: Configuration file creation")
-        result = server_startup.add_myextra_configuration(script_dir + '/gtid_replication.cnf')
+        result = server_startup.add_myextra_configuration(script_dir + 'replication.cnf')
         utility_cmd.check_testcase(result, "PS: Adding custom configuration")
-        result = server_startup.initialize_cluster()
-        utility_cmd.check_testcase(result, "PS: Initializing cluster")
         result = server_startup.start_server(my_extra)
         utility_cmd.check_testcase(result, "PS: Cluster startup")
         result = dbconnection_check.connection_check()
@@ -129,51 +134,13 @@ replication_run = SetupReplication(basedir, workdir, node)
 rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir, 'replication',
                                       user, node1_socket, 'rqg_test')
 
-print("\nGTID PXC Node as Master and PS node as Slave")
-print("----------------------------------------------")
+print("\nSetup replication using Percona Xtrabackup")
+print("------------------------------------------")
 replication_run.start_pxc()
-replication_run.start_ps('1')
-utility_cmd.invoke_replication(basedir, node1_socket, ps1_socket, 'GTID', 'none')
 replication_run.sysbench_run(node1_socket, 'pxcdb', 'PXC')
 replication_run.data_load('pxc_dataload_db', node1_socket, 'PXC')
-rqg_dataload.initiate_rqg()
+replication_run.backup_pxc_node()
+replication_run.start_slave('1')
+utility_cmd.invoke_replication(basedir, node1_socket, ps1_socket, 'backup_slave', 'none')
 utility_cmd.replication_io_status(basedir, ps1_socket, 'PS', 'none')
 utility_cmd.replication_sql_status(basedir, ps1_socket, 'PS', 'none')
-print("\nGTID PXC Node as Slave and PS node as Master")
-print("----------------------------------------------")
-rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir, 'galera',
-                                      user, ps1_socket, 'rqg_test')
-replication_run.start_pxc()
-replication_run.start_ps('1')
-utility_cmd.invoke_replication(basedir, ps1_socket, node1_socket, 'GTID', 'none')
-replication_run.sysbench_run(ps1_socket, 'psdb', 'PS')
-replication_run.data_load('ps_dataload_db', ps1_socket, 'PS')
-rqg_dataload.initiate_rqg()
-utility_cmd.replication_io_status(basedir, node1_socket, 'PXC', 'none')
-utility_cmd.replication_sql_status(basedir, node1_socket, 'PXC', 'none')
-print("\nGTID PXC multi source replication")
-print("-----------------------------------")
-replication_run.start_pxc()
-replication_run.start_ps('2')
-utility_cmd.invoke_replication(basedir, ps1_socket,
-                               node1_socket, 'GTID', "for channel 'master1'")
-utility_cmd.invoke_replication(basedir, ps2_socket,
-                               node1_socket, 'GTID', "for channel 'master2'")
-replication_run.sysbench_run(node1_socket, 'pxcdb', 'PXC')
-replication_run.data_load('pxc_dataload_db', node1_socket, 'PXC')
-rqg_dataload.initiate_rqg()
-utility_cmd.replication_io_status(basedir, node1_socket, 'PXC', 'master1')
-utility_cmd.replication_sql_status(basedir, node1_socket, 'PXC', 'master1')
-utility_cmd.replication_io_status(basedir, node1_socket, 'PXC', 'master2')
-utility_cmd.replication_sql_status(basedir, node1_socket, 'PXC', 'master2')
-print("\nGTID PXC multi thread replication")
-print("-----------------------------------")
-replication_run.start_pxc('--slave-parallel-workers=5')
-replication_run.start_ps('1', '--slave-parallel-workers=5')
-utility_cmd.invoke_replication(basedir, ps1_socket,
-                               node1_socket, 'GTID', 'none')
-replication_run.sysbench_run(node1_socket, 'pxcdb', 'PXC')
-replication_run.data_load('pxc_dataload_db', node1_socket, 'PXC')
-rqg_dataload.initiate_rqg()
-utility_cmd.replication_io_status(basedir, node1_socket, 'PXC', 'none')
-utility_cmd.replication_sql_status(basedir, node1_socket, 'PXC', 'none')

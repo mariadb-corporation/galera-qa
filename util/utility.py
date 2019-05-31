@@ -2,6 +2,7 @@ from datetime import datetime
 import os
 import shutil
 import subprocess
+from distutils.spawn import find_executable
 
 
 class Utility:
@@ -84,7 +85,43 @@ class Utility:
         else:
             return 1
 
+    def pxb_sanity_check(self, workdir):
+        """ This method will check pxb installation and
+            cleanup backup directory
+        """
+        if find_executable('xtrabackup') is None:
+            print('\tERROR! Percona Xtrabackup is not installed.')
+            exit(1)
+        if os.path.exists(workdir + '/backup'):
+            shutil.rmtree(workdir + '/backup')
+            os.mkdir(workdir + '/backup')
+        else:
+            os.mkdir(workdir + '/backup')
+
+    def pxb_backup(self, workdir, source_datadir, socket, dest_datadir=None):
+        """ This method will backup PXB/PS data directory
+            with the help of xtrabackup.
+        """
+        backup_cmd = "xtrabackup --user=root --password='' --backup " \
+                     "--target-dir=" + workdir + "/backup -S " + \
+                     socket + " --datadir=" + source_datadir + " --lock-ddl >" + \
+                     workdir + "/log/xb_backup.log 2>&1"
+        os.system(backup_cmd)
+        prepare_backup = "xtrabackup --prepare --target_dir=" + \
+                         workdir + "/backup --lock-ddl >" + \
+                         workdir + "/log/xb_backup_prepare.log 2>&1"
+        os.system(prepare_backup)
+        if dest_datadir is not None:
+            copy_backup = "xtrabackup --copy-back --target-dir=" + \
+                          workdir + "/backup --datadir=" + \
+                          dest_datadir + " --lock-ddl >" + \
+                          workdir + "/log/copy_backup.log 2>&1"
+            os.system(copy_backup)
+
     def replication_io_status(self, basedir, socket, node, channel):
+        """ This will check replication IO thread
+            running status
+        """
         if channel == 'none':
             channel = ""
         check_slave_status = basedir + "/bin/mysql --user=root --socket=" + \
@@ -100,6 +137,9 @@ class Utility:
             self.check_testcase(0, node + ": IO thread slave status")
 
     def replication_sql_status(self, basedir, socket, node, channel):
+        """ This will check replication SQL thread
+            running status
+        """
         if channel == 'none':
             channel = ""
         check_slave_status = basedir + "/bin/mysql --user=root --socket=" + \
@@ -115,34 +155,56 @@ class Utility:
             self.check_testcase(0, node + ": SQL thread slave status")
 
     def invoke_replication(self, basedir, master_socket, slave_socket, repl_mode, comment):
+        """ This method will invoke replication.
+        :param basedir: PXC/PS base directory
+        :param master_socket: Master Server socket
+        :param slave_socket: Slave server socket
+        :param repl_mode: Three mode will support now
+                          GTID : GTID replication
+                          NON-GTID : Non GTID replication
+                          backup_slave : This will start replication
+                                         from XB backup and it uses
+                                         non-gtid replication
+        :param comment: Replication channel details
+        """
         if comment == 'none':
             comment = ""
         # Setup async replication
         flush_log = basedir + "/bin/mysql --user=root --socket=" + \
             master_socket + \
-            ' -Bse"flush logs" 2>&1'
+            ' -Bse "flush logs" 2>&1'
         os.system(flush_log)
-        master_log_file = basedir + "/bin/mysql --user=root --socket=" + \
-            master_socket + \
-            " -Bse'show master logs' | awk '{print $1}' | tail -1 2>&1"
-        master_log_file = os.popen(master_log_file).read().rstrip()
+        if repl_mode == 'backup_slave':
+            data_dir = basedir + "/bin/mysql --user=root --socket=" + \
+                slave_socket + " -Bse 'select @@datadir';"
+            data_dir = os.popen(data_dir).read().rstrip()
+            query = "cat " + data_dir + "xtrabackup_binlog_pos_innodb | awk '{print $1}'"
+            master_log_file = os.popen(query).read().rstrip()
+            query = "cat " + data_dir + "xtrabackup_binlog_pos_innodb | awk '{print $2}'"
+            master_log_pos = os.popen(query).read().rstrip()
+        else:
+            master_log_file = basedir + "/bin/mysql --user=root --socket=" + \
+                master_socket + \
+                " -Bse 'show master logs' | awk '{print $1}' | tail -1 2>&1"
+            master_log_file = os.popen(master_log_file).read().rstrip()
+            master_log_pos = 4
+
         master_port = basedir + "/bin/mysql --user=root --socket=" + \
             master_socket + \
-            ' -Bse"select @@port" 2>&1'
+            ' -Bse "select @@port" 2>&1'
         master_port = os.popen(master_port).read().rstrip()
         if repl_mode == 'GTID':
             invoke_slave = basedir + "/bin/mysql --user=root --socket=" + \
-                           slave_socket + ' -Bse"CHANGE MASTER TO MASTER_HOST=' + \
-                           "'127.0.0.1', MASTER_PORT=" + master_port + ", MASTER_USER='root'" + \
-                           ", MASTER_AUTO_POSITION=1 " + comment + ' ; START SLAVE;" 2>&1'
+                slave_socket + ' -Bse"CHANGE MASTER TO MASTER_HOST=' + \
+                "'127.0.0.1', MASTER_PORT=" + master_port + ", MASTER_USER='root'" + \
+                ", MASTER_AUTO_POSITION=1 " + comment + ' ; START SLAVE;" 2>&1'
         else:
             invoke_slave = basedir + "/bin/mysql --user=root --socket=" + \
-                           slave_socket + ' -Bse"CHANGE MASTER TO MASTER_HOST=' + \
-                           "'127.0.0.1', MASTER_PORT=" + master_port + ", MASTER_USER='root'" + \
-                           ", MASTER_LOG_FILE='" + master_log_file + "'" + \
-                           ', MASTER_LOG_POS=4 ' + comment + ' ; START SLAVE;" 2>&1'
-
-
+                slave_socket + ' -Bse"CHANGE MASTER TO MASTER_HOST=' + \
+                "'127.0.0.1', MASTER_PORT=" + master_port + ", MASTER_USER='root'" + \
+                ", MASTER_LOG_FILE='" + master_log_file + "'" + \
+                ', MASTER_LOG_POS=' + str(master_log_pos) + ' ' \
+                + comment + ';START SLAVE;" 2>&1'
         result = os.system(invoke_slave)
         self.check_testcase(result, "Initiated replication")
 
