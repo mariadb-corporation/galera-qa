@@ -16,6 +16,7 @@ class SysbenchRun:
         self.time = time
 
     def sanity_check(self):
+        # Sanity check for sysbench run
         check_sybench = os.system('which sysbench >/dev/null 2>&1')
         if check_sybench != 0:
             return 1
@@ -47,6 +48,7 @@ class SysbenchRun:
         return 0
 
     def sysbench_load(self):
+        # Sysbench data load
         query_status = os.system("sysbench /usr/share/sysbench/oltp_insert.lua"
                                  " --table-size=" + str(self.table_size) +
                                  " --tables=" + str(self.tables) +
@@ -64,6 +66,7 @@ class SysbenchRun:
         return 0
 
     def sysbench_oltp_read_write(self):
+        # Sysbench OLTP read write run
         query_status = os.system("sysbench /usr/share/sysbench/oltp_read_write.lua"
                                  " --table-size=" + str(self.table_size) +
                                  " --tables=" + str(self.tables) +
@@ -82,6 +85,7 @@ class SysbenchRun:
         return 0
 
     def sysbench_oltp_read_only(self):
+        # Sysbench OLTP read only run
         query_status = os.system("sysbench /usr/share/sysbench/oltp_read_only.lua"
                                  " --table-size=" + str(self.table_size) +
                                  " --tables=" + str(self.tables) +
@@ -100,6 +104,7 @@ class SysbenchRun:
         return 0
 
     def sysbench_oltp_write_only(self):
+        # Sysbench OLTP write only run
         query_status = os.system("sysbench /usr/share/sysbench/oltp_write_only.lua"
                                  " --table-size=" + str(self.table_size) +
                                  " --tables=" + str(self.tables) +

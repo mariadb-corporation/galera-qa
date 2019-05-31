@@ -51,6 +51,11 @@ class SetupReplication:
         self.node = node
 
     def start_pxc(self, my_extra=None):
+        """ Start Percona XtraDB Cluster. This method will
+            perform sanity checks for cluster startup
+            :param my_extra: We can pass extra PXC startup option
+                             with this parameter
+        """
         # Start PXC cluster for replication test
         if my_extra is None:
             my_extra = ''
@@ -77,6 +82,11 @@ class SetupReplication:
         utility_cmd.check_testcase(result, "PXC: Database connection")
 
     def start_ps(self, node, my_extra=None):
+        """ Start Percona Server. This method will
+            perform sanity checks for PS startup
+            :param my_extra: We can pass extra PS startup
+                             option with this parameter
+        """
         if my_extra is None:
             my_extra = ''
         # Start PXC cluster for replication test
@@ -97,6 +107,7 @@ class SetupReplication:
         utility_cmd.check_testcase(result, "PS: Database connection")
 
     def sysbench_run(self, socket, db, node):
+        # Sysbench data load
         sysbench = sysbench_run.SysbenchRun(basedir, workdir,
                                             sysbench_user, sysbench_pass,
                                             socket, sysbench_threads,
@@ -109,6 +120,7 @@ class SetupReplication:
         utility_cmd.check_testcase(result, node + ": Replication QA sysbench data load")
 
     def data_load(self, db, socket, node):
+        # Random data load
         if os.path.isfile(parent_dir + '/util/createsql.py'):
             generate_sql = createsql.GenerateSQL('/tmp/dataload.sql', 1000)
             generate_sql.OutFile()

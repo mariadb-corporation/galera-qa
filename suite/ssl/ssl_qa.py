@@ -54,9 +54,8 @@ class SSLCheck:
     def run_query(self, query):
         query_status = os.system(query)
         if int(query_status) != 0:
-            return 1
             print("ERROR! Query execution failed: " + query)
-            exit(1)
+            return 1
         return 0
 
     def start_pxc(self):

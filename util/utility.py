@@ -17,6 +17,9 @@ class Utility:
             self.printit(testcase, u'\u2718')
 
     def create_ssl_certificate(self, workdir):
+        """ This will create SSL certificate
+            to test SSL and encryption features
+        """
         if os.path.exists(workdir + '/cert'):
             shutil.rmtree(workdir + '/cert')
             os.mkdir(workdir + '/cert')
@@ -72,6 +75,9 @@ class Utility:
         return 0
 
     def check_table_count(self, basedir, db, table, socket1, socket2):
+        """ This method will compare the table
+            count between two nodes
+        """
         query = basedir + '/bin/mysql -uroot --socket=' + \
             socket1 + ' -Bse"checksum table ' + \
             db + '.' + table + ';"'

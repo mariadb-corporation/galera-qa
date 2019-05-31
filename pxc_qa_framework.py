@@ -8,6 +8,10 @@ import argparse
 
 
 def main():
+    """ This function will help us to run PXC QA scripts.
+        We can initiate complete test suite or individual
+        testcase using this function.
+    """
     scriptdir = os.path.dirname(os.path.realpath(__file__))
     parser = argparse.ArgumentParser(prog='PXC QA Framework', usage='%(prog)s [options]')
     parser.add_argument('-t', '--testname', help='Specify test file location')

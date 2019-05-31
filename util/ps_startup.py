@@ -39,6 +39,7 @@ class StartPerconaServer:
 
     # This method will help us to check PS version
     def version_check(self):
+        # Database version check
         version_info = os.popen(self.basedir +
                                 "/bin/mysqld --version 2>&1 | grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1").read()
         version = "{:02d}{:02d}{:02d}".format(int(version_info.split('.')[0]),

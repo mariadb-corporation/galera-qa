@@ -12,13 +12,13 @@ class CreateCNF:
         self.workdir = workdir
         self.basedir = basedir
 
-    """ Method to create cluster configuration file
-        based on the node count. To create configuration
-        file it will take default values from conf/pxc.cnf.
-        For customised configuration please add your values
-        in conf/custom.conf.
-    """
     def createconfig(self):
+        """ Method to create cluster configuration file
+            based on the node count. To create configuration
+            file it will take default values from conf/pxc.cnf.
+            For customised configuration please add your values
+            in conf/custom.conf.
+        """
         port = random.randint(10, 50) * 1000
         port_list = []
         addr_list = ''
