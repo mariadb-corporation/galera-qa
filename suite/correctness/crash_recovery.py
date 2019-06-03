@@ -95,6 +95,9 @@ class CrashRecovery:
         utility_cmd.check_testcase(result, "Initiated sysbench oltp run")
 
     def startup_check(self, cluster_node):
+        """ This method will check the node recovery
+            startup status.
+        """
         recovery_startup = "bash " + self.workdir + \
                            '/log/startup' + str(cluster_node) + '.sh'
         os.system(recovery_startup)
@@ -109,6 +112,14 @@ class CrashRecovery:
                 break  # break the loop if mysqld is running
 
     def crash_recovery(self, test_name):
+        """ This method will help us to test crash
+            recovery using following test methods.
+            1) Forceful mysqld termination
+            2) Normal restart while active data load in
+                primary node
+            3) Abnormal restart (multiple restart)
+                while active data load in primary node
+        """
         self.sysbench_run(self.socket, 'test')
         query = 'pidof sysbench'
         sysbench_pid = os.popen(query).read().rstrip()
