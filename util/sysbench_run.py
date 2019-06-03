@@ -76,7 +76,7 @@ class SysbenchRun:
                                  " --mysql-socket=" + self.socket +
                                  " --time=" + str(self.time) +
                                  " --db-driver=mysql --db-ps-mode=disable run >" +
-                                 self.workdir + "/log/sysbench_read_write.log")
+                                 self.workdir + "/log/sysbench_read_write.log &")
         if int(query_status) != 0:
             return 1
             print("ERROR!: sysbench read write run is failed")
@@ -95,7 +95,7 @@ class SysbenchRun:
                                  " --mysql-socket=" + self.socket +
                                  " --time=" + str(self.time) +
                                  " --db-driver=mysql --db-ps-mode=disable run >" +
-                                self.workdir + "/log/sysbench_read_only.log")
+                                self.workdir + "/log/sysbench_read_only.log &")
         if int(query_status) != 0:
             return 1
             print("ERROR!: sysbench read only run is failed")
@@ -114,7 +114,7 @@ class SysbenchRun:
                                  " --mysql-socket=" + self.socket +
                                  " --time=" + str(self.time) +
                                  " --db-driver=mysql --db-ps-mode=disable run >" +
-                                 self.workdir + "/log/sysbench_write_only.log")
+                                 self.workdir + "/log/sysbench_write_only.log &")
         if int(query_status) != 0:
             return 1
             print("ERROR!: sysbench write only run is failed")

@@ -12,6 +12,7 @@ from util import sysbench_run
 from util import utility
 from util import createsql
 from util import table_checksum
+from util import rqg_datagen
 
 # Read argument
 parser = argparse.ArgumentParser(prog='PXC replication test', usage='%(prog)s [options]')
@@ -53,9 +54,8 @@ class ConsistencyCheck:
     def run_query(self, query):
         query_status = os.system(query)
         if int(query_status) != 0:
-            return 1
             print("ERROR! Query execution failed: " + query)
-            exit(1)
+            return 1
         return 0
 
     def start_pxc(self):
@@ -111,9 +111,12 @@ class ConsistencyCheck:
 
 
 consistency_run = ConsistencyCheck(basedir, workdir, user, socket, pt_basedir, node)
+rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir, 'galera',
+                                      user, socket, 'rqg_test')
 consistency_run.start_pxc()
 consistency_run.sysbench_run(socket, 'test')
 consistency_run.data_load('pxc_dataload_db', socket)
+rqg_dataload.initiate_rqg()
 checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, socket)
 checksum.sanity_check()
-checksum.data_consistency('test,pxc_dataload_db')
+checksum.data_consistency('test,pxc_dataload_db,rqg_test')

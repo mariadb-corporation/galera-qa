@@ -162,11 +162,12 @@ class StartCluster:
                           ' --wsrep-provider=' + self.basedir + \
                           '/lib/libgalera_smm.so --log-error=' + self.workdir + '/log/node' + str(i) + '.err > ' \
                           + self.workdir + '/log/node' + str(i) + '.err 2>&1 &'
-
-            run_query = subprocess.call(startup, shell=True, stderr=subprocess.DEVNULL)
-            result = ("{}".format(run_query))
-            ping_query = self.basedir + '/bin/mysqladmin --user=root --socket=/tmp/node' + str(i) \
-                          + '.sock ping > /dev/null 2>&1'
+            save_startup = 'echo "' + startup + '" > ' + self.workdir + \
+                           '/log/startup' + str(i) + '.sh'
+            os.system(save_startup)
+            subprocess.call(startup, shell=True, stderr=subprocess.DEVNULL)
+            ping_query = self.basedir + '/bin/mysqladmin --user=root --socket=/tmp/node' + str(i) + \
+                '.sock ping > /dev/null 2>&1'
             for startup_timer in range(120):
                 time.sleep(1)
                 ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
