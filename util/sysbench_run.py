@@ -52,6 +52,7 @@ class SysbenchRun:
         query_status = os.system("sysbench /usr/share/sysbench/oltp_insert.lua"
                                  " --table-size=" + str(self.table_size) +
                                  " --tables=" + str(self.tables) +
+                                 " --threads=" + str(self.threads) +
                                  " --mysql-db=" + self.db +
                                  " --mysql-user=" + self.user +
                                  " --mysql-password=" + self.password +
@@ -65,11 +66,31 @@ class SysbenchRun:
 
         return 0
 
+    def sysbench_cleanup(self):
+        # Sysbench data cleanup
+        query_status = os.system("sysbench /usr/share/sysbench/oltp_insert.lua"
+                                 " --table-size=" + str(self.table_size) +
+                                 " --tables=" + str(self.tables) +
+                                 " --threads=" + str(self.threads) +
+                                 " --mysql-db=" + self.db +
+                                 " --mysql-user=" + self.user +
+                                 " --mysql-password=" + self.password +
+                                 " --mysql-socket=" + self.socket +
+                                 " --db-driver=mysql cleanup >" +
+                                 self.workdir + "/log/sysbench_cleanup.log")
+        if int(query_status) != 0:
+            return 1
+            print("ERROR!: sysbench cleanup run is failed")
+            exit(1)
+
+        return 0
+
     def sysbench_oltp_read_write(self):
         # Sysbench OLTP read write run
         query_status = os.system("sysbench /usr/share/sysbench/oltp_read_write.lua"
                                  " --table-size=" + str(self.table_size) +
                                  " --tables=" + str(self.tables) +
+                                 " --threads=" + str(self.threads) +
                                  " --mysql-db=" + self.db +
                                  " --mysql-user=" + self.user +
                                  " --mysql-password=" + self.password +
@@ -89,6 +110,7 @@ class SysbenchRun:
         query_status = os.system("sysbench /usr/share/sysbench/oltp_read_only.lua"
                                  " --table-size=" + str(self.table_size) +
                                  " --tables=" + str(self.tables) +
+                                 " --threads=" + str(self.threads) +
                                  " --mysql-db=" + self.db +
                                  " --mysql-user=" + self.user +
                                  " --mysql-password=" + self.password +
@@ -108,6 +130,7 @@ class SysbenchRun:
         query_status = os.system("sysbench /usr/share/sysbench/oltp_write_only.lua"
                                  " --table-size=" + str(self.table_size) +
                                  " --tables=" + str(self.tables) +
+                                 " --threads=" + str(self.threads) +
                                  " --mysql-db=" + self.db +
                                  " --mysql-user=" + self.user +
                                  " --mysql-password=" + self.password +
