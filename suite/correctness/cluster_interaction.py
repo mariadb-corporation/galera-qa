@@ -42,7 +42,7 @@ sysbench_run_time = 1000
 utility_cmd = utility.Utility()
 
 
-class CrashRecovery:
+class ClusterInteraction:
     def __init__(self, basedir, workdir, user, socket, pt_basedir, node):
         self.workdir = workdir
         self.basedir = basedir
@@ -111,78 +111,37 @@ class CrashRecovery:
                 utility_cmd.check_testcase(int(ping_status), "Cluster recovery is successful")
                 break  # break the loop if mysqld is running
 
-    def crash_recovery(self, test_name):
-        """ This method will help us to test crash
-            recovery using following test methods.
-            1) Forceful mysqld termination
-            2) Normal restart while active data load in
-                primary node
-            3) Abnormal restart (multiple restart)
-                while active data load in primary node
+    def flow_control_qa(self, test_name):
+        """ This method will help us to test cluster
+            interaction using following test methods.
+            1) Flow control
         """
         self.sysbench_run(self.socket, 'test')
         query = 'pidof sysbench'
         sysbench_pid = os.popen(query).read().rstrip()
         pid_list = []
-        if test_name == "with_force_kill":
-            for j in range(1, int(self.node) + 1):
-                query = 'cat `' + self.basedir + '/bin/mysql ' \
-                        ' --user=root --socket=/tmp/node' + str(j) \
-                        + '.sock -Bse"select @@pid_file"  2>&1`'
-                pid_list += [os.popen(query).read().rstrip()]
-            time.sleep(10)
-            kill_mysqld = "kill -9 " + pid_list[j - 1]
-            result = os.system(kill_mysqld)
-            utility_cmd.check_testcase(result, "Killed cluster node for crash recovery")
-            time.sleep(5)
-            kill_sysbench = "kill -9 " + sysbench_pid
-            os.system(kill_sysbench)
-            self.startup_check(self.node)
-        elif test_name == "single_restart":
-            shutdown_node = self.basedir + '/bin/mysqladmin --user=root --socket=/tmp/node' + self.node + \
-                '.sock shutdown > /dev/null 2>&1'
-            result = os.system(shutdown_node)
-            utility_cmd.check_testcase(result, "Restarted cluster node for crash recovery")
-            time.sleep(5)
-            kill_sysbench = "kill -9 " + sysbench_pid
-            os.system(kill_sysbench)
-            self.startup_check(self.node)
-        elif test_name == "multi_restart":
-            for j in range(1, 3):
-                shutdown_node = self.basedir + '/bin/mysqladmin --user=root --socket=/tmp/node' + self.node + \
-                                '.sock shutdown > /dev/null 2>&1'
-                result = os.system(shutdown_node)
-                utility_cmd.check_testcase(result, "Restarted cluster node for crash recovery")
-                time.sleep(5)
-                self.startup_check(self.node)
-                query = 'pidof sysbench'
-                sysbench_pid = os.popen(query).read().rstrip()
-                if not sysbench_pid:
-                    self.sysbench_run(self.socket, 'test')
-                    query = 'pidof sysbench'
+        for j in range(1, int(self.node) + 1):
+            query = self.basedir + '/bin/mysql ' \
+                    ' --user=root --socket=/tmp/node' + str(j) \
+                    + '.sock -Bse"flush table sbtest1 with read lock;' \
+                    'select sleep(60);unlock tables"  2>&1 &'
+            pid_list += [os.popen(query).read().rstrip()]
+        time.sleep(10)
+        kill_mysqld = "kill -9 " + pid_list[j - 1]
+        result = os.system(kill_mysqld)
+        utility_cmd.check_testcase(result, "Killed cluster node for crash recovery")
+        time.sleep(5)
+        kill_sysbench = "kill -9 " + sysbench_pid
+        os.system(kill_sysbench)
+        self.startup_check(self.node)
 
 
-crash_recovery_run = CrashRecovery(basedir, workdir, user, socket, pt_basedir, node)
+cluster_interaction = ClusterInteraction(basedir, workdir, user, socket, pt_basedir, node)
 checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, socket)
-print('---------------------------------------------------')
-print('Crash recovery QA using forceful mysqld termination')
-print('---------------------------------------------------')
-crash_recovery_run.start_pxc()
-crash_recovery_run.crash_recovery('with_force_kill')
+print('----------------------------------------------')
+print('Cluster interaction QA using flow control test')
+print('----------------------------------------------')
+cluster_interaction.start_pxc()
+cluster_interaction.flow_control_qa('with_force_kill')
 checksum.sanity_check()
 checksum.data_consistency('test')
-print('-------------------------------')
-print('Crash recovery QA using single restart')
-print('-------------------------------')
-crash_recovery_run.start_pxc()
-crash_recovery_run.crash_recovery('single_restart')
-checksum.sanity_check()
-checksum.data_consistency('test')
-print('----------------------------------------')
-print('Crash recovery QA using multiple restart')
-print('----------------------------------------')
-crash_recovery_run.start_pxc()
-crash_recovery_run.crash_recovery('multi_restart')
-checksum.sanity_check()
-checksum.data_consistency('test')
-

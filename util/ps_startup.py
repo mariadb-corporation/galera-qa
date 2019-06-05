@@ -102,10 +102,19 @@ class StartPerconaServer:
             if not os.path.isfile(self.workdir + '/conf/ps' + str(i) + '.cnf'):
                 print('Could not find config file /conf/ps' + str(i) + '.cnf')
                 exit(1)
-            initialize_node = self.basedir + '/bin/mysqld --no-defaults --initialize-insecure --datadir=' \
-                              + self.workdir + '/psnode' + str(i) + ' > ' + self.workdir \
-                              + '/log/ps_startup' + str(i) + '.log 2>&1'
 
+            version = self.version_check()
+            if int(version) < int("050700"):
+                os.mkdir(self.workdir + '/psnode' + str(i))
+                initialize_node = self.basedir + '/scripts/mysql_install_db --no-defaults ' \
+                    '--basedir=' + self.basedir + ' --datadir=' + \
+                    self.workdir + '/psnode' + str(i) + ' > ' + \
+                    self.workdir + '/log/ps_startup' + str(i) + '.log 2>&1'
+            else:
+                initialize_node = self.basedir + '/bin/mysqld --no-defaults ' \
+                    '--initialize-insecure --basedir=' + self.basedir + \
+                    '--datadir=' + self.workdir + '/psnode' + str(i) + ' > ' + \
+                    self.workdir + '/log/ps_startup' + str(i) + '.log 2>&1'
             run_query = subprocess.call(initialize_node, shell=True, stderr=subprocess.DEVNULL)
             result = ("{}".format(run_query))
         return int(result)

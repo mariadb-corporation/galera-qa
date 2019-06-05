@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.7
+#!/usr/bin/env python3
 import os
 import sys
 import configparser
@@ -35,8 +35,9 @@ pt_basedir = config['config']['pt_basedir']
 sysbench_user = config['sysbench']['sysbench_user']
 sysbench_pass = config['sysbench']['sysbench_pass']
 sysbench_db = config['sysbench']['sysbench_db']
-sysbench_table_size = 10000
+sysbench_table_size = 100000
 sysbench_run_time = 1000
+
 
 class SysbenchLoadTest:
     def start_pxc(self):
@@ -63,6 +64,8 @@ class SysbenchLoadTest:
     def sysbench_run(self, socket, db):
         # Sysbench load test
         threads = [32, 64, 128, 256, 1024]
+        checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, socket)
+        checksum.sanity_check()
         for thread in threads:
             sysbench = sysbench_run.SysbenchRun(basedir, workdir,
                                                 sysbench_user, sysbench_pass,
@@ -76,6 +79,7 @@ class SysbenchLoadTest:
             utility_cmd.check_testcase(result, "Sysbench data cleanup (threads : " + str(thread) + ")")
             result = sysbench.sysbench_load()
             utility_cmd.check_testcase(result, "Sysbench data load (threads : " + str(thread) + ")")
+            checksum.data_consistency('test')
 
 
 sysbench_loadtest = SysbenchLoadTest()
