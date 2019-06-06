@@ -82,6 +82,8 @@ class SysbenchLoadTest:
             checksum.data_consistency('test')
 
 
+print("\nPXC sysbench load test")
+print("------------------------")
 sysbench_loadtest = SysbenchLoadTest()
 sysbench_loadtest.start_pxc()
 sysbench_loadtest.sysbench_run(socket, 'test')

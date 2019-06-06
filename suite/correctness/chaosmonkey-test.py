@@ -56,5 +56,7 @@ class ChaosMonkeyQA:
         utility_cmd.check_testcase(result, "Database connection")
 
 
+print("\nPXC ChaosMonkey Style test")
+print("----------------------------")
 chaosmonkey_qa = ChaosMonkeyQA()
 chaosmonkey_qa.startup()

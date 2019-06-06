@@ -108,6 +108,8 @@ class SSLCheck:
             utility_cmd.check_testcase(result, "SSL QA sample data load")
 
 
+print("\nPXC SSL test")
+print("--------------")
 ssl_run = SSLCheck(basedir, workdir, user, node1_socket, node)
 ssl_run.start_pxc()
 ssl_run.sysbench_run(node1_socket, 'test')

@@ -110,13 +110,15 @@ class ConsistencyCheck:
             utility_cmd.check_testcase(result, "Sample data load")
 
 
+print("\nPXC data consistency test between nodes")
+print("----------------------------------------")
 consistency_run = ConsistencyCheck(basedir, workdir, user, socket, pt_basedir, node)
-rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir, 'galera',
-                                      user, socket, 'rqg_test')
+rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir,
+                                      'galera', user)
 consistency_run.start_pxc()
 consistency_run.sysbench_run(socket, 'test')
 consistency_run.data_load('pxc_dataload_db', socket)
-rqg_dataload.initiate_rqg()
+rqg_dataload.initiate_rqg('rqg_test', socket)
 checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, socket)
 checksum.sanity_check()
 checksum.data_consistency('test,pxc_dataload_db,rqg_test')
