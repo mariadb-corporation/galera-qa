@@ -148,8 +148,8 @@ class SetupReplication:
 
 
 replication_run = SetupReplication(basedir, workdir, node)
-rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir, 'replication',
-                                      user, node1_socket, 'rqg_test')
+rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir,
+                                      'replication', user)
 
 print("\nSetup replication using Percona Xtrabackup")
 print("------------------------------------------")
