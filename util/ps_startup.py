@@ -112,8 +112,8 @@ class StartPerconaServer:
                     self.workdir + '/log/ps_startup' + str(i) + '.log 2>&1'
             else:
                 initialize_node = self.basedir + '/bin/mysqld --no-defaults ' \
-                    '--initialize-insecure --basedir=' + self.basedir + \
-                    '--datadir=' + self.workdir + '/psnode' + str(i) + ' > ' + \
+                    ' --initialize-insecure --basedir=' + self.basedir + \
+                    ' --datadir=' + self.workdir + '/psnode' + str(i) + ' > ' + \
                     self.workdir + '/log/ps_startup' + str(i) + '.log 2>&1'
             run_query = subprocess.call(initialize_node, shell=True, stderr=subprocess.DEVNULL)
             result = ("{}".format(run_query))

@@ -1,6 +1,6 @@
 import os
-import subprocess
-
+from util import utility
+utility_cmd = utility.Utility()
 
 class SysbenchRun:
     def __init__(self, basedir, workdir, user, password, socket, tables, table_size, db, threads, time):
@@ -19,9 +19,8 @@ class SysbenchRun:
         # Sanity check for sysbench run
         check_sybench = os.system('which sysbench >/dev/null 2>&1')
         if check_sybench != 0:
-            return 1
             print("ERROR!: sysbench package is not installed")
-            exit(1)
+            return 1
 
         query = self.basedir + "/bin/mysql --user=root --socket=" + \
             self.socket + " -e'drop database if exists " + \
@@ -32,19 +31,23 @@ class SysbenchRun:
             #return 1
             print("ERROR!: Could not create sysbench test database(sbtest)")
             exit(1)
-
-        create_user = self.basedir + "/bin/mysql --user=root --socket=" + \
-            self.socket + ' -e"create user if not exists ' + \
-            self.user + "@'%' identified with  mysql_native_password by '" + \
-            self.password + "';grant all on *.* to " + self.user + "@'%'" \
-            ';" > /dev/null 2>&1'
-
+        version = utility_cmd.version_check(self.basedir)
+        if int(version) < int("050700"):
+            create_user = self.basedir + "/bin/mysql --user=root " \
+                "--socket=" + self.socket + ' -e"create user ' + \
+                self.user + "@'%' identified by '" + self.password + \
+                "';grant all on *.* to " + self.user + "@'%'" \
+                ';" > /dev/null 2>&1'
+        else:
+            create_user = self.basedir + "/bin/mysql --user=root --socket=" + \
+                self.socket + ' -e"create user if not exists ' + \
+                self.user + "@'%' identified with  mysql_native_password by '" + \
+                self.password + "';grant all on *.* to " + self.user + "@'%'" \
+                ';" > /dev/null 2>&1'
         query_status = os.system(create_user)
         if int(query_status) != 0:
-            return 1
             print("ERROR!: Could not create sysbench user : sysbench")
-            exit(1)
-
+            return 1
         return 0
 
     def sysbench_load(self):
@@ -60,10 +63,8 @@ class SysbenchRun:
                                  " --db-driver=mysql prepare >" +
                                  self.workdir + "/log/sysbench_prepare.log")
         if int(query_status) != 0:
-            return 1
             print("ERROR!: sysbench data load run is failed")
-            exit(1)
-
+            return 1
         return 0
 
     def sysbench_cleanup(self):
@@ -79,10 +80,8 @@ class SysbenchRun:
                                  " --db-driver=mysql cleanup >" +
                                  self.workdir + "/log/sysbench_cleanup.log")
         if int(query_status) != 0:
-            return 1
             print("ERROR!: sysbench cleanup run is failed")
-            exit(1)
-
+            return 1
         return 0
 
     def sysbench_oltp_read_write(self):
@@ -99,10 +98,8 @@ class SysbenchRun:
                                  " --db-driver=mysql --db-ps-mode=disable run >" +
                                  self.workdir + "/log/sysbench_read_write.log &")
         if int(query_status) != 0:
-            return 1
             print("ERROR!: sysbench read write run is failed")
-            exit(1)
-
+            return 1
         return 0
 
     def sysbench_oltp_read_only(self):
@@ -119,10 +116,8 @@ class SysbenchRun:
                                  " --db-driver=mysql --db-ps-mode=disable run >" +
                                 self.workdir + "/log/sysbench_read_only.log &")
         if int(query_status) != 0:
-            return 1
             print("ERROR!: sysbench read only run is failed")
-            exit(1)
-
+            return 1
         return 0
 
     def sysbench_oltp_write_only(self):
@@ -139,8 +134,7 @@ class SysbenchRun:
                                  " --db-driver=mysql --db-ps-mode=disable run >" +
                                  self.workdir + "/log/sysbench_write_only.log &")
         if int(query_status) != 0:
-            return 1
             print("ERROR!: sysbench write only run is failed")
-            exit(1)
-
+            return 1
         return 0
+

@@ -16,6 +16,16 @@ class Utility:
         else:
             self.printit(testcase, u'\u2718')
 
+    def version_check(self, basedir):
+        # Get database version number
+        version_info = os.popen(basedir +
+                                "/bin/mysqld --version 2>&1 "
+                                "| grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1").read()
+        version = "{:02d}{:02d}{:02d}".format(int(version_info.split('.')[0]),
+                                              int(version_info.split('.')[1]),
+                                              int(version_info.split('.')[2]))
+        return version
+
     def create_ssl_certificate(self, workdir):
         """ This will create SSL certificate
             to test SSL and encryption features
@@ -130,11 +140,23 @@ class Utility:
         """
         if channel == 'none':
             channel = ""
-        check_slave_status = basedir + "/bin/mysql --user=root --socket=" + \
-            socket + ' -Bse"SELECT SERVICE_STATE ' \
-            'FROM performance_schema.replication_connection_status' \
-            " where channel_name='" + channel + "'" + '" 2>&1'
-        check_slave_status = os.popen(check_slave_status).read().rstrip()
+        version = self.version_check(basedir)
+        if int(version) < int("050700"):
+            io_status = basedir + "/bin/mysql --user=root --socket=" + \
+                         socket + ' -Bse"SHOW SLAVE STATUS\G" 2>&1 ' \
+                                  '| grep "Slave_IO_Running:" ' \
+                                  "| awk '{ print $2 }'"
+            io_status = os.popen(io_status).read().rstrip()
+            if io_status == "Yes":
+                check_slave_status = 'ON'
+            else:
+                check_slave_status = 'OFF'
+        else:
+            check_slave_status = basedir + "/bin/mysql --user=root --socket=" + \
+                                 socket + ' -Bse"SELECT SERVICE_STATE ' \
+                                          'FROM performance_schema.replication_connection_status' \
+                                          " where channel_name='" + channel + "'" + '" 2>&1'
+            check_slave_status = os.popen(check_slave_status).read().rstrip()
         if check_slave_status != 'ON':
             self.check_testcase(1, node + ": IO thread slave status")
             print("\tERROR!: Slave IO thread is not running, check slave status")
@@ -148,11 +170,23 @@ class Utility:
         """
         if channel == 'none':
             channel = ""
-        check_slave_status = basedir + "/bin/mysql --user=root --socket=" + \
-            socket + ' -Bse"SELECT SERVICE_STATE ' \
-            'FROM performance_schema.replication_applier_status' \
-            " where channel_name='" + channel + "'" + '" 2>&1'
-        check_slave_status = os.popen(check_slave_status).read().rstrip()
+        version = self.version_check(basedir)
+        if int(version) < int("050700"):
+            sql_status = basedir + "/bin/mysql --user=root --socket=" + \
+                                 socket + ' -Bse"SHOW SLAVE STATUS\G" 2>&1 ' \
+                                 '| grep "Slave_SQL_Running:" ' \
+                                 "| awk '{ print $2 }'"
+            sql_status = os.popen(sql_status).read().rstrip()
+            if sql_status == "Yes":
+                check_slave_status = 'ON'
+            else:
+                check_slave_status = 'OFF'
+        else:
+            check_slave_status = basedir + "/bin/mysql --user=root --socket=" + \
+                                 socket + ' -Bse"SELECT SERVICE_STATE ' \
+                                          'FROM performance_schema.replication_applier_status' \
+                                          " where channel_name='" + channel + "'" + '" 2>&1'
+            check_slave_status = os.popen(check_slave_status).read().rstrip()
         if check_slave_status != 'ON':
             self.check_testcase(1, node + ": SQL thread slave status")
             print("\tERROR!: Slave SQL thread is not running, check slave status")

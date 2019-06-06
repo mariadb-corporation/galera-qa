@@ -7,6 +7,8 @@ import subprocess
 import random
 import shutil
 import time
+from util import utility
+utility_cmd = utility.Utility()
 
 
 class StartCluster:
@@ -37,17 +39,6 @@ class StartCluster:
             exit(1)
         return 0
 
-    # This method will help us to check PXC version
-    def version_check(self):
-        # Database version check
-        version_info = os.popen(self.basedir +
-                                "/bin/mysqld --version 2>&1 "
-                                "| grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1").read()
-        version = "{:02d}{:02d}{:02d}".format(int(version_info.split('.')[0]),
-                                              int(version_info.split('.')[1]),
-                                              int(version_info.split('.')[2]))
-        return version
-
     def create_config(self, wsrep_extra):
         """ Method to create cluster configuration file
             based on the node count. To create configuration
@@ -76,7 +67,7 @@ class StartCluster:
                 add wsrep_sst_auth variable. This variable does not 
                 required starting from PXC-8.x 
             """
-            version = self.version_check()
+            version = utility_cmd.version_check(self.basedir)
             if int(version) < int("080000"):
                 cnf_name.write('wsrep_sst_auth=root:\n')
             cnf_name.write('port=' + str(port_list[i - 1]) + '\n')
@@ -109,7 +100,6 @@ class StartCluster:
         if not os.path.isfile(config_file):
             print('Custom config ' + config_file + ' is missing')
             return 1
-            exit(1)
         config_file = config_file
         cnf_name = open(self.workdir + '/conf/custom.cnf', 'a+')
         cnf_name.write('\n')
@@ -132,7 +122,7 @@ class StartCluster:
             if not os.path.isfile(self.workdir + '/conf/node' + str(i) + '.cnf'):
                 print('Could not find config file /conf/node' + str(i) + '.cnf')
                 exit(1)
-            version = self.version_check()
+            version = utility_cmd.version_check(self.basedir)
             if int(version) < int("050700"):
                 os.mkdir(self.workdir + '/node' + str(i))
                 initialize_node = self.basedir + '/scripts/mysql_install_db --no-defaults ' \
@@ -141,13 +131,11 @@ class StartCluster:
                     self.workdir + '/log/startup' + str(i) + '.log 2>&1'
             else:
                 initialize_node = self.basedir + '/bin/mysqld --no-defaults ' \
-                    '--initialize-insecure --basedir=' + self.basedir + \
-                    '--datadir=' + self.workdir + '/node' + str(i) + ' > ' + \
+                    ' --initialize-insecure --basedir=' + self.basedir + \
+                    ' --datadir=' + self.workdir + '/node' + str(i) + ' > ' + \
                     self.workdir + '/log/startup' + str(i) + '.log 2>&1'
-
             run_query = subprocess.call(initialize_node, shell=True, stderr=subprocess.DEVNULL)
             result = ("{}".format(run_query))
-
         return int(result)
 
     def start_cluster(self, my_extra=None):
@@ -182,6 +170,11 @@ class StartCluster:
                 ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
                 ping_status = ("{}".format(ping_check))
                 if int(ping_status) == 0:
+                    query = self.basedir + '/bin/mysql --user=root ' \
+                        '--socket=/tmp/node' + str(i) + '.sock -Bse"' \
+                        "delete from mysql.user where user='';" \
+                        '" > /dev/null 2>&1'
+                    os.system(query)
                     break  # break the loop if mysqld is running
 
         return int(ping_status)
