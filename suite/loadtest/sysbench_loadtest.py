@@ -72,9 +72,9 @@ class SysbenchLoadTest:
                                                 socket, thread,
                                                 sysbench_table_size, db,
                                                 thread, sysbench_run_time)
-
-            result = sysbench.sanity_check()
-            utility_cmd.check_testcase(result, "Sysbench run sanity check")
+            if thread == 32:
+                result = sysbench.sanity_check()
+                utility_cmd.check_testcase(result, "Sysbench run sanity check")
             result = sysbench.sysbench_cleanup()
             utility_cmd.check_testcase(result, "Sysbench data cleanup (threads : " + str(thread) + ")")
             result = sysbench.sysbench_load()

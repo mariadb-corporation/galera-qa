@@ -14,9 +14,8 @@ class TableChecksum:
     def run_query(self, query):
         query_status = os.system(query)
         if int(query_status) != 0:
-            return 1
             print("ERROR! Query execution failed: " + query)
-            exit(1)
+            return 1
         return 0
 
     def sanity_check(self):
@@ -27,17 +26,23 @@ class TableChecksum:
         if not os.path.isfile(self.pt_basedir + '/bin/pt-table-checksum'):
             print('pt-table-checksum is missing in percona toolkit basedir')
             return 1
-            exit(1)
 
+        version = utility_cmd.version_check(self.basedir)
         # Creating pt_user for database consistency check
-        query = self.basedir + "/bin/mysql --user=root --socket=" + \
-            self.socket + ' -e"create user if not exists' \
-            " pt_user@'%' identified with " \
-            " mysql_native_password by 'test';" \
-            "grant all on *.* to pt_user@'%'" \
-            ';" > /dev/null 2>&1'
+        if int(version) < int("050700"):
+            query = self.basedir + "/bin/mysql --user=root --socket=" + \
+                self.socket + ' -e"create user ' \
+                " pt_user@'localhost' identified by 'test';" \
+                "grant all on *.* to pt_user@'localhost'" \
+                ';" > /dev/null 2>&1'
+        else:
+            query = self.basedir + "/bin/mysql --user=root --socket=" + \
+                self.socket + ' -e"create user if not exists' \
+                " pt_user@'localhost' identified with " \
+                " mysql_native_password by 'test';" \
+                "grant all on *.* to pt_user@'%'" \
+                ';" > /dev/null 2>&1'
         self.run_query(query)
-
         # Creating percona db for cluster data checksum
         query = self.basedir + "/bin/mysql --user=root --socket=" + \
             self.socket + ' -e"drop database if exists percona;' \
@@ -63,9 +68,8 @@ class TableChecksum:
 
             query_status = os.system(insert_query)
             if int(query_status) != 0:
-                return 1
                 print("ERROR!: Could not create percona toolkit user : pt_user")
-                exit(1)
+                return 1
         return 0
 
     def data_consistency(self, database):
