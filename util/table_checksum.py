@@ -80,10 +80,12 @@ class TableChecksum:
         port = self.basedir + "/bin/mysql --user=root --socket=" + \
             self.socket + ' -Bse"select @@port" 2>&1'
         port = os.popen(port).read().rstrip()
-        query = self.basedir + "/bin/mysql --user=root --socket=" + \
-            self.socket + ' -e"set global pxc_strict_mode=DISABLED;' \
-                          'set global binlog_format=STATEMENT;" > /dev/null 2>&1'
-        self.run_query(query)
+        version = utility_cmd.version_check(self.basedir)
+        if int(version) > int("050700"):
+            query = self.basedir + "/bin/mysql --user=root --socket=" + \
+                self.socket + ' -e"set global pxc_strict_mode=DISABLED;' \
+                'set global binlog_format=STATEMENT;" > /dev/null 2>&1'
+            self.run_query(query)
 
         run_checksum = self.pt_basedir + "/bin/pt-table-checksum h=127.0.0.1,P=" + \
             str(port) + ",u=pt_user,p=test -d" + database + \
@@ -93,8 +95,9 @@ class TableChecksum:
         print(checksum_status)
 
         utility_cmd.check_testcase(checksum_status, "pt-table-checksum run")
-        query = self.basedir + "/bin/mysql --user=root --socket=" + \
-            self.socket + ' -e"set global pxc_strict_mode=ENFORCING;' \
-                          'set global binlog_format=ROW;" > /dev/null 2>&1'
-        self.run_query(query)
+        if int(version) > int("050700"):
+            query = self.basedir + "/bin/mysql --user=root --socket=" + \
+                self.socket + ' -e"set global pxc_strict_mode=ENFORCING;' \
+                'set global binlog_format=ROW;" > /dev/null 2>&1'
+            self.run_query(query)
         return 0
