@@ -56,6 +56,13 @@ def main():
         for file in os.listdir(scriptdir + '/suite/ssl'):
             if file.endswith(".py"):
                 os.system(scriptdir + '/suite/ssl/' + file + ' ' + encryption)
+    elif suite == 'loadtest':
+        if not os.path.exists(scriptdir + '/suite/loadtest'):
+            print('Suite ' + suite + '(' + scriptdir + '/suite/loadtest) does not exist')
+            exit(1)
+        for file in os.listdir(scriptdir + '/suite/loadtest'):
+            if file.endswith(".py"):
+                os.system(scriptdir + '/suite/loadtest/' + file + ' ' + encryption)
 
     if test_name is not None:
         if not os.path.isfile(test_name):
