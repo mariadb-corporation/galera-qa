@@ -67,9 +67,6 @@ class TableChecksum:
                 '"> /dev/null 2>&1'
 
             query_status = os.system(insert_query)
-            if int(query_status) != 0:
-                print("ERROR!: Could not create percona toolkit user : pt_user")
-                return 1
         return 0
 
     def data_consistency(self, database):

@@ -111,7 +111,7 @@ class ClusterInteraction:
                 utility_cmd.check_testcase(int(ping_status), "Cluster recovery is successful")
                 break  # break the loop if mysqld is running
 
-    def flow_control_qa(self, test_name):
+    def flow_control_qa(self):
         """ This method will help us to test cluster
             interaction using following test methods.
             1) Flow control
@@ -119,21 +119,28 @@ class ClusterInteraction:
         self.sysbench_run(self.socket, 'test')
         query = 'pidof sysbench'
         sysbench_pid = os.popen(query).read().rstrip()
-        pid_list = []
         for j in range(1, int(self.node) + 1):
-            query = self.basedir + '/bin/mysql ' \
-                    ' --user=root --socket=/tmp/node' + str(j) \
-                    + '.sock -Bse"flush table sbtest1 with read lock;' \
-                    'select sleep(60);unlock tables"  2>&1 &'
-            pid_list += [os.popen(query).read().rstrip()]
-        time.sleep(10)
-        kill_mysqld = "kill -9 " + pid_list[j - 1]
-        result = os.system(kill_mysqld)
-        utility_cmd.check_testcase(result, "Killed cluster node for crash recovery")
-        time.sleep(5)
+            query = self.basedir + "/bin/mysql --user=root --socket=" + \
+                    self.socket + ' -e"set global pxc_strict_mode=DISABLED;' \
+                                  '" > /dev/null 2>&1'
+            self.run_query(query)
+            query = self.basedir + \
+                '/bin/mysql ' \
+                ' --user=root --socket=/tmp/node1.sock test' \
+                ' -Bse"flush table sbtest1 with read lock;' \
+                'select sleep(120);unlock tables"  2>&1 &'
+            os.system(query)
+            flow_control_status = 'OFF'
+            while flow_control_status == 'OFF':
+                query = self.basedir + \
+                    '/bin/mysql  --user=root --socket=/tmp/node1.sock' \
+                    ' -Bse"show status like ' \
+                    "'wsrep_flow_control_status';" + '"' \
+                    "| awk '{ print $2 }'  2>&1"
+                flow_control_status = os.system(query)
+                time.sleep(1)
         kill_sysbench = "kill -9 " + sysbench_pid
         os.system(kill_sysbench)
-        self.startup_check(self.node)
 
 
 cluster_interaction = ClusterInteraction(basedir, workdir, user, socket, pt_basedir, node)
@@ -142,6 +149,6 @@ print('----------------------------------------------')
 print('Cluster interaction QA using flow control test')
 print('----------------------------------------------')
 cluster_interaction.start_pxc()
-cluster_interaction.flow_control_qa('with_force_kill')
+cluster_interaction.flow_control_qa()
 checksum.sanity_check()
 checksum.data_consistency('test')
