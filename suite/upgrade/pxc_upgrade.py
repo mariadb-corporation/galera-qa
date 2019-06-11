@@ -131,8 +131,12 @@ class PXCUpgrade:
             self.startup_check(i)
 
 
-print("\nPXC Upgrade test")
-print("----------------------------")
+query = pxc_lower_base + "/bin/mysqld --version 2>&1 | grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1"
+lower_version = os.popen(query).read().rstrip()
+query = pxc_upper_base + "/bin/mysqld --version 2>&1 | grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1"
+upper_version = os.popen(query).read().rstrip()
+print("\nPXC Upgrade test : Upgrading from PXC-" + lower_version + " to PXC-" + upper_version)
+print("------------------------------------------------------------------------------")
 checksum = table_checksum.TableChecksum(pt_basedir, pxc_upper_base, workdir, node, socket)
 upgrade_qa = PXCUpgrade()
 upgrade_qa.startup()
