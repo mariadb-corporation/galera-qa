@@ -16,7 +16,7 @@ def main():
     parser = argparse.ArgumentParser(prog='PXC QA Framework', usage='%(prog)s [options]')
     parser.add_argument('-t', '--testname', help='Specify test file location')
     parser.add_argument('-s', '--suite', default='all',
-                        choices=['loadtest', 'replication', 'correctness', 'ssl', 'all'],
+                        choices=['loadtest', 'replication', 'correctness', 'ssl', 'upgrade', 'all'],
                         help='Specify suite name')
     parser.add_argument('-e', '--encryption-run', action='store_true',
                         help='This option will enable encryption options')
@@ -63,6 +63,13 @@ def main():
         for file in os.listdir(scriptdir + '/suite/loadtest'):
             if file.endswith(".py"):
                 os.system(scriptdir + '/suite/loadtest/' + file + ' ' + encryption)
+    elif suite == 'upgrade':
+        if not os.path.exists(scriptdir + '/suite/upgrade'):
+            print('Suite ' + suite + '(' + scriptdir + '/suite/upgrade) does not exist')
+            exit(1)
+        for file in os.listdir(scriptdir + '/suite/upgrade'):
+            if file.endswith(".py"):
+                os.system(scriptdir + '/suite/upgrade/' + file + ' ' + encryption)
 
     if test_name is not None:
         if not os.path.isfile(test_name):
