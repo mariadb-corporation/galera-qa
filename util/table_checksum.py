@@ -40,7 +40,7 @@ class TableChecksum:
                 self.socket + ' -e"create user if not exists' \
                 " pt_user@'localhost' identified with " \
                 " mysql_native_password by 'test';" \
-                "grant all on *.* to pt_user@'%'" \
+                "grant all on *.* to pt_user@'localhost'" \
                 ';" > /dev/null 2>&1'
         self.run_query(query)
         # Creating percona db for cluster data checksum
@@ -81,7 +81,7 @@ class TableChecksum:
         if int(version) > int("050700"):
             query = self.basedir + "/bin/mysql --user=root --socket=" + \
                 self.socket + ' -e"set global pxc_strict_mode=DISABLED;' \
-                'set global binlog_format=STATEMENT;" > /dev/null 2>&1'
+                '" > /dev/null 2>&1'
             self.run_query(query)
 
         run_checksum = self.pt_basedir + "/bin/pt-table-checksum h=127.0.0.1,P=" + \
@@ -95,6 +95,6 @@ class TableChecksum:
         if int(version) > int("050700"):
             query = self.basedir + "/bin/mysql --user=root --socket=" + \
                 self.socket + ' -e"set global pxc_strict_mode=ENFORCING;' \
-                'set global binlog_format=ROW;" > /dev/null 2>&1'
+                '" > /dev/null 2>&1'
             self.run_query(query)
         return 0

@@ -142,7 +142,7 @@ class CrashRecovery:
             shutdown_node = self.basedir + '/bin/mysqladmin --user=root --socket=/tmp/node' + self.node + \
                 '.sock shutdown > /dev/null 2>&1'
             result = os.system(shutdown_node)
-            utility_cmd.check_testcase(result, "Restarted cluster node for crash recovery")
+            utility_cmd.check_testcase(result, "Shutdown cluster node for crash recovery")
             time.sleep(5)
             kill_sysbench = "kill -9 " + sysbench_pid
             os.system(kill_sysbench)
@@ -160,6 +160,7 @@ class CrashRecovery:
                 if not sysbench_pid:
                     self.sysbench_run(self.socket, 'test')
                     query = 'pidof sysbench'
+                    sysbench_pid = os.popen(query).read().rstrip()
 
 
 crash_recovery_run = CrashRecovery(basedir, workdir, user, socket, pt_basedir, node)
