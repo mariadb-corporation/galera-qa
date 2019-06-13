@@ -27,6 +27,11 @@ pt_basedir = /dev/shm/qa/percona-toolkit-3.0.10
 [sysbench]
 sysbench_user=sysbench
 sysbench_pass=sysbench
+sysbench_db=sbtest
+
+[upgrade]
+pxc_lower_base = /dev/shm/qa/Percona-XtraDB-Cluster-5.6.44-rel86.0-28.34-debug..Linux.x86_64
+pxc_upper_base = /dev/shm/qa/Percona-XtraDB-Cluster-5.7.25-rel28-31.35.1.Linux.x86_64.ssl100
 ```
 
 If we need to start Percona XtraDB Cluster with custom configuration we should add the parameters in [custom.cnf](./conf/custom.cnf)
@@ -37,14 +42,14 @@ Initializing framework
 `python3.7 pxc_qa_framework.py --testname=suite/replication/replication.py`
 
 Script usage info
-```$ python3.7 pxc_qa_framework.py --help
+```$ python3 pxc_qa_framework.py --help
 usage: PXC QA Framework [options]
 
 optional arguments:
   -h, --help            show this help message and exit
   -t TESTNAME, --testname TESTNAME
                         Specify test file location
-  -s {loadtest,replication,correctness,ssl,all}, --suite {loadtest,replication,correctness,ssl,all}
+  -s {loadtest,replication,correctness,ssl,upgrade,all}, --suite {loadtest,replication,correctness,ssl,upgrade,all}
                         Specify suite name
   -e, --encryption-run  This option will enable encryption options
   --sysbench_threads SYSBENCH_THREADS
@@ -54,4 +59,5 @@ optional arguments:
                         Specify sysbench table size
   --sysbench_run_time SYSBENCH_RUN_TIME
                         Specify sysbench oltp run time (in sec)
+
 ```
