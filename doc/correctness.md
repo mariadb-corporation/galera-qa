@@ -1,7 +1,13 @@
 Correctness QA script
 ---------------------
-This script will check data consistency between cluster nodes.
-We can also enable encryption options with the argument `--encryption-run`
+This script will check following testcases.
+
+* Crash Recovery QA
+* Correctness QA
+* ChaosMonkey style QA
+* Cluster Interaction QA
+
+Note : We can also enable encryption options with the argument `--encryption-run`
 
 Correctness QA run log
 ----------------------
@@ -82,5 +88,22 @@ PXC ChaosMonkey Style test
 07:42:38  Restarting Cluster Node3                                                                            [ ✔ ]
 07:42:43  Restarting Cluster Node2                                                                            [ ✔ ]
 07:42:50  pt-table-checksum run status                                                                        [ ✔ ]
+$
+
+$ ./suite/correctness/cluster_interaction.py
+----------------------------------------------
+Cluster interaction QA using flow control test
+----------------------------------------------
+10:51:15  Startup sanity check                                                                                [ ✔ ]
+10:51:15  Configuration file creation                                                                         [ ✔ ]
+10:51:50  Initializing cluster                                                                                [ ✔ ]
+10:52:11  Cluster startup                                                                                     [ ✔ ]
+10:52:11  Database connection                                                                                 [ ✔ ]
+10:52:11  Sysbench run sanity check                                                                           [ ✔ ]
+10:52:13  Sysbench data load                                                                                  [ ✔ ]
+10:52:13  Initiated sysbench oltp run                                                                         [ ✔ ]
+0
+0
+10:54:16  pt-table-checksum run status                                                                        [ ✔ ]
 $
 ```
