@@ -12,6 +12,7 @@ from util import pxc_startup
 from util import db_connection
 from util import sysbench_run
 from util import utility
+from util import rqg_datagen
 from util import table_checksum
 utility_cmd = utility.Utility()
 
@@ -93,6 +94,11 @@ class PXCUpgrade:
                 break  # break the loop if mysqld is running
 
     def upgrade(self):
+        """ This function will upgrade
+            Percona XtraDB Cluster to
+            latest version and perform
+            table checksum.
+        """
         self.sysbench_run(socket, 'test')
         for i in range(int(node), 0, -1):
             shutdown_node = pxc_lower_base + '/bin/mysqladmin --user=root --socket=/tmp/node' + str(i) + \
@@ -120,8 +126,8 @@ class PXCUpgrade:
                 workdir + '/log/upgrade_startup' + str(i) + '.sh'
             os.system(create_startup)
             if i == 1:
-                remove_bootstrap_option = 'sed -i "s#--wsrep-new-cluster##g" ' + workdir + \
-                    '/log/upgrade_startup' + str(i) + '.sh'
+                remove_bootstrap_option = 'sed -i "s#--wsrep-new-cluster##g" ' + \
+                    workdir + '/log/upgrade_startup' + str(i) + '.sh'
                 os.system(remove_bootstrap_option)
             time.sleep(5)
             upgrade_startup = "bash " + workdir + \
@@ -140,6 +146,15 @@ print("-------------------------------------------------------------------------
 checksum = table_checksum.TableChecksum(pt_basedir, pxc_upper_base, workdir, node, socket)
 upgrade_qa = PXCUpgrade()
 upgrade_qa.startup()
+rqg_dataload = rqg_datagen.RQGDataGen(pxc_lower_base, workdir,
+                                      'galera', user)
+rqg_dataload.initiate_rqg('rqg_galera', socket)
+rqg_dataload = rqg_datagen.RQGDataGen(pxc_lower_base, workdir,
+                                      'transactions', user)
+rqg_dataload.initiate_rqg('rqg_transactions', socket)
+rqg_dataload = rqg_datagen.RQGDataGen(pxc_lower_base, workdir,
+                                      'partitioning', user)
+rqg_dataload.initiate_rqg('rqg_partitioning', socket)
 upgrade_qa.upgrade()
 checksum.sanity_check()
-checksum.data_consistency('test')
+checksum.data_consistency('test,rqg_galera,rqg_transactions,rqg_partitioning')

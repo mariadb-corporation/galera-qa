@@ -8,7 +8,7 @@ from distutils.spawn import find_executable
 class Utility:
     def printit(self, text, status):
         now = datetime.now().strftime("%H:%M:%S ")
-        print(now + ' ' + f'{text:60}' + '[ ' + status + ' ]')
+        print(now + ' ' + f'{text:100}' + '[ ' + status + ' ]')
 
     def check_testcase(self, result, testcase):
         if result == 0:

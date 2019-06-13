@@ -69,6 +69,35 @@ class TableChecksum:
             query_status = os.system(insert_query)
         return 0
 
+    def error_status(self, error_code):
+        if error_code == "0":
+            utility_cmd.check_testcase(0, "pt-table-checksum run status")
+        elif error_code == "1":
+            utility_cmd.check_testcase(1, "pt-table-checksum error code "
+                                          ": A non-fatal error occurred")
+        elif error_code == "2":
+            utility_cmd.check_testcase(1, "pt-table-checksum error code "
+                                          ": --pid file exists and the PID is running")
+        elif error_code == "4":
+            utility_cmd.check_testcase(1, "pt-table-checksum error code "
+                                          ": Caught SIGHUP, SIGINT, SIGPIPE, or SIGTERM")
+        elif error_code == "8":
+            utility_cmd.check_testcase(1, "pt-table-checksum error code "
+                                          ": No replicas or cluster nodes were found")
+        elif error_code == "16":
+            utility_cmd.check_testcase(1, "pt-table-checksum error code "
+                                          ": At least one diff was found")
+        elif error_code == "32":
+            utility_cmd.check_testcase(1, "pt-table-checksum error code "
+                                          ": At least one chunk was skipped")
+        elif error_code == "64":
+            utility_cmd.check_testcase(1, "pt-table-checksum error code "
+                                          ": At least one table was skipped")
+        else:
+            utility_cmd.check_testcase(1, "pt-table-checksum error code "
+                                          ": Fatal error occurred. Please"
+                                          "check error log for more info")
+
     def data_consistency(self, database):
         """ Data consistency check
             method will compare the
@@ -87,11 +116,9 @@ class TableChecksum:
         run_checksum = self.pt_basedir + "/bin/pt-table-checksum h=127.0.0.1,P=" + \
             str(port) + ",u=pt_user,p=test -d" + database + \
             " --recursion-method dsn=h=127.0.0.1,P=" + str(port) + \
-            ",u=pt_user,p=test,D=percona,t=dsns >" + self.workdir + "/log/pt-table-checksum.log 2>&1"
-        checksum_status = os.system(run_checksum)
-        print(checksum_status)
-
-        utility_cmd.check_testcase(checksum_status, "pt-table-checksum run")
+            ",u=pt_user,p=test,D=percona,t=dsns >" + self.workdir + "/log/pt-table-checksum.log 2>&1; echo $?"
+        checksum_status = os.popen(run_checksum).read().rstrip()
+        self.error_status(checksum_status)
         if int(version) > int("050700"):
             query = self.basedir + "/bin/mysql --user=root --socket=" + \
                 self.socket + ' -e"set global pxc_strict_mode=ENFORCING;' \
