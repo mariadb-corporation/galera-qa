@@ -7,20 +7,23 @@ We can also enable encryption options with `--encryption-run`
 SSL QA run log
 --------------
 ```
-$ python3.7 pxc_qa_framework.py --suite=ssl
-09:48:10  Startup sanity check                                        [ ✔ ]
-09:48:10  Configuration file creation                                 [ ✔ ]
-09:48:25  Initializing cluster                                        [ ✔ ]
-09:48:43  Cluster startup                                             [ ✔ ]
-09:48:43  Database connection                                         [ ✔ ]
-09:48:43  SSL QA sysbench run sanity check                            [ ✔ ]
-09:48:43  SSL QA sysbench data load                                   [ ✔ ]
-09:48:43  SSL QA sample DB creation                                   [ ✔ ]
-09:48:44  SSL QA sample data load                                     [ ✔ ]
-09:48:44  RQG data load                                               [ ✔ ]
-09:48:44  SSL QA table test.sbtest1 checksum between nodes            [ ✔ ]
-09:48:44  SSL QA table pxc_dataload_db.t1 checksum between nodes      [ ✔ ]
-0
-09:48:44  pt-table-checksum run                                       [ ✔ ]
+$ python3 pxc_qa_framework.py  --suite=ssl
+
+PXC SSL test
+--------------
+07:27:59  Startup sanity check                                                                                [ ✔ ]
+07:27:59  SSL Configuration                                                                                   [ ✔ ]
+07:27:59  Configuration file creation                                                                         [ ✔ ]
+07:28:34  Initializing cluster                                                                                [ ✔ ]
+07:28:55  Cluster startup                                                                                     [ ✔ ]
+07:28:55  Database connection                                                                                 [ ✔ ]
+07:28:55  SSL QA sysbench run sanity check                                                                    [ ✔ ]
+07:28:57  SSL QA sysbench data load                                                                           [ ✔ ]
+07:28:57  SSL QA sample DB creation                                                                           [ ✔ ]
+07:28:59  SSL QA sample data load                                                                             [ ✔ ]
+07:29:04  RQG data load                                                                                       [ ✔ ]
+07:29:04  SSL QA table test.sbtest1 checksum between nodes                                                    [ ✔ ]
+07:29:04  SSL QA table pxc_dataload_db.t1 checksum between nodes                                              [ ✔ ]
+07:29:05  pt-table-checksum run status                                                                        [ ✔ ]
 $
 ```
