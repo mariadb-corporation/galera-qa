@@ -13,6 +13,8 @@ from util import utility
 from util import createsql
 from util import rqg_datagen
 from util import table_checksum
+utility_cmd = utility.Utility()
+utility_cmd.check_python_version()
 
 # Read argument
 parser = argparse.ArgumentParser(prog='PXC replication test', usage='%(prog)s [options]')
@@ -40,7 +42,6 @@ sysbench_db = config['sysbench']['sysbench_db']
 sysbench_threads = 10
 sysbench_table_size = 1000
 sysbench_run_time = 10
-utility_cmd = utility.Utility()
 
 
 class SSLCheck:
@@ -91,7 +92,7 @@ class SSLCheck:
         result = sysbench.sysbench_load()
         utility_cmd.check_testcase(result, "SSL QA sysbench data load")
 
-    def data_load(self, db, socket ):
+    def data_load(self, db, socket):
         if os.path.isfile(parent_dir + '/util/createsql.py'):
             generate_sql = createsql.GenerateSQL('/tmp/dataload.sql', 1000)
             generate_sql.OutFile()

@@ -13,6 +13,8 @@ from util import db_connection
 from util import sysbench_run
 from util import utility
 from util import table_checksum
+utility_cmd = utility.Utility()
+utility_cmd.check_python_version()
 
 # Read argument
 parser = argparse.ArgumentParser(prog='PXC replication test', usage='%(prog)s [options]')
@@ -39,7 +41,6 @@ sysbench_db = config['sysbench']['sysbench_db']
 sysbench_threads = 10
 sysbench_table_size = 1000
 sysbench_run_time = 1000
-utility_cmd = utility.Utility()
 
 
 class CrashRecovery:

@@ -13,6 +13,8 @@ from util import ps_startup
 from util import utility
 from util import createsql
 from util import rqg_datagen
+utility_cmd = utility.Utility()
+utility_cmd.check_python_version()
 
 # Read argument
 parser = argparse.ArgumentParser(prog='PXC replication test', usage='%(prog)s [options]')
@@ -41,7 +43,6 @@ sysbench_db = config['sysbench']['sysbench_db']
 sysbench_threads = 10
 sysbench_table_size = 1000
 sysbench_run_time = 10
-utility_cmd = utility.Utility()
 version = utility_cmd.version_check(basedir)
 
 class SetupReplication:

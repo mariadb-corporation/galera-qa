@@ -15,6 +15,7 @@ from util import utility
 from util import rqg_datagen
 from util import table_checksum
 utility_cmd = utility.Utility()
+utility_cmd.check_python_version()
 
 # Read argument
 parser = argparse.ArgumentParser(prog='PXC replication test', usage='%(prog)s [options]')

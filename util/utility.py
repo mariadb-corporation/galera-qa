@@ -1,5 +1,6 @@
 from datetime import datetime
 import os
+import sys
 import shutil
 import subprocess
 from distutils.spawn import find_executable
@@ -15,6 +16,14 @@ class Utility:
             self.printit(testcase, u'\u2714')
         else:
             self.printit(testcase, u'\u2718')
+
+    def check_python_version(self):
+        """ Check python version. Raise error if the
+            version is 3.7 or greater
+        """
+        if sys.version_info < (3, 7):
+            print("\nError! You should use python 3.7 or greater\n")
+            exit(1)
 
     def version_check(self, basedir):
         # Get database version number
