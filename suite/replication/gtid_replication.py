@@ -156,7 +156,8 @@ class SetupReplication:
 
         replication_run.sysbench_run(master_socket, 'sbtest', master)
         replication_run.data_load('ps_dataload_db', master_socket, master)
-        rqg_dataload.initiate_rqg('rqg_test', master_socket)
+        rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir, user)
+        rqg_dataload.pxc_dataload(master_socket)
 
         if comment == "msr":
             utility_cmd.replication_io_status(basedir, slave_socket, slave, 'master1')
@@ -169,8 +170,7 @@ class SetupReplication:
 
 
 replication_run = SetupReplication(basedir, workdir, node)
-rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir,
-                                      'replication', user)
+
 print("\nGTID PXC Node as Master and PS node as Slave")
 print("----------------------------------------------")
 replication_run.replication_testcase('1', 'PXC', 'PS', 'none', node1_socket, ps1_socket)

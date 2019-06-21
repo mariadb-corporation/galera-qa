@@ -147,15 +147,8 @@ print("-------------------------------------------------------------------------
 checksum = table_checksum.TableChecksum(pt_basedir, pxc_upper_base, workdir, node, socket)
 upgrade_qa = PXCUpgrade()
 upgrade_qa.startup()
-rqg_dataload = rqg_datagen.RQGDataGen(pxc_lower_base, workdir,
-                                      'galera', user)
-rqg_dataload.initiate_rqg('rqg_galera', socket)
-rqg_dataload = rqg_datagen.RQGDataGen(pxc_lower_base, workdir,
-                                      'transactions', user)
-rqg_dataload.initiate_rqg('rqg_transactions', socket)
-rqg_dataload = rqg_datagen.RQGDataGen(pxc_lower_base, workdir,
-                                      'partitioning', user)
-rqg_dataload.initiate_rqg('rqg_partitioning', socket)
+rqg_dataload = rqg_datagen.RQGDataGen(pxc_lower_base, workdir, user)
+rqg_dataload.pxc_dataload(socket)
 upgrade_qa.upgrade()
 checksum.sanity_check()
-checksum.data_consistency('test,rqg_galera,rqg_transactions,rqg_partitioning')
+checksum.data_consistency('test,db_galera,db_transactions,db_partitioning')
