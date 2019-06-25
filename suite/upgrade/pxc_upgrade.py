@@ -44,7 +44,6 @@ sysbench_threads = 10
 sysbench_table_size = 1000
 sysbench_run_time = 1000
 
-
 class PXCUpgrade:
     def startup(self):
         # Start PXC cluster for upgrade test
@@ -79,6 +78,16 @@ class PXCUpgrade:
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
         result = sysbench.sysbench_load()
         utility_cmd.check_testcase(result, "Sysbench data load")
+        version = utility_cmd.version_check(pxc_lower_base)
+        if int(version) > int("050700"):
+            if encryption == 'YES':
+                for i in range(1, sysbench_threads + 1):
+                    encrypt_table = pxc_lower_base + '/bin/mysql --user=root ' \
+                        '--socket=/tmp/node1.sock -e "' \
+                        ' alter table ' + db + '.sbtest' + str(i) + \
+                        " encryption='Y'" \
+                        '"; > /dev/null 2>&1'
+                    os.system(encrypt_table)
 
     def startup_check(self, cluster_node):
         """ This method will check the node

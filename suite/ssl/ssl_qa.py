@@ -91,6 +91,14 @@ class SSLCheck:
         utility_cmd.check_testcase(result, "SSL QA sysbench run sanity check")
         result = sysbench.sysbench_load()
         utility_cmd.check_testcase(result, "SSL QA sysbench data load")
+        if encryption == 'YES':
+            for i in range(1, sysbench_threads + 1):
+                encrypt_table = basedir + '/bin/mysql --user=root ' \
+                    '--socket=/tmp/node1.sock -e "' \
+                    ' alter table ' + db + '.sbtest' + str(i) + \
+                    " encryption='Y'" \
+                    '"; > /dev/null 2>&1'
+                os.system(encrypt_table)
 
     def data_load(self, db, socket):
         if os.path.isfile(parent_dir + '/util/createsql.py'):
@@ -113,7 +121,7 @@ print("\nPXC SSL test")
 print("--------------")
 ssl_run = SSLCheck(basedir, workdir, user, node1_socket, node)
 ssl_run.start_pxc()
-ssl_run.sysbench_run(node1_socket, 'test')
+ssl_run.sysbench_run(node1_socket, 'sbtest')
 ssl_run.data_load('pxc_dataload_db', node1_socket)
 rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir, user)
 rqg_dataload.initiate_rqg('examples', 'test', node1_socket)

@@ -92,6 +92,14 @@ class ConsistencyCheck:
         utility_cmd.check_testcase(result, "Replication QA sysbench run sanity check")
         result = sysbench.sysbench_load()
         utility_cmd.check_testcase(result, "Replication QA sysbench data load")
+        if encryption == 'YES':
+            for i in range(1, sysbench_threads + 1):
+                encrypt_table = basedir + '/bin/mysql --user=root ' \
+                    '--socket=' + socket + ' -e "' \
+                    ' alter table ' + db + '.sbtest' + str(i) + \
+                    " encryption='Y'" \
+                    '"; > /dev/null 2>&1'
+                os.system(encrypt_table)
 
     def data_load(self, db, socket ):
         # Random dataload for consistency test
