@@ -47,7 +47,7 @@ class StartPerconaServer:
                                               int(version_info.split('.')[2]))
         return version
 
-    def create_config(self):
+    def create_config(self, conf_extra=None):
         """ Method to create cluster configuration file
             based on the node count. To create configuration
             file it will take default values from conf/pxc.cnf.
@@ -71,6 +71,10 @@ class StartPerconaServer:
             cnf_name.write('socket=/tmp/psnode' + str(i) + '.sock\n')
             cnf_name.write('server_id=' + str(100 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
+            if conf_extra == 'encryption':
+                shutil.copy(self.scriptdir + '/conf/encryption.cnf',
+                            self.workdir + '/conf/encryption.cnf')
+                cnf_name.write('!include ' + self.workdir + '/conf/encryption.cnf\n')
             cnf_name.close()
 
         return 0

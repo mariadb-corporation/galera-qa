@@ -108,8 +108,12 @@ class SetupReplication:
         server_startup = ps_startup.StartPerconaServer(parent_dir, workdir, basedir, int(node))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "PS: Startup sanity check")
-        result = server_startup.create_config()
-        utility_cmd.check_testcase(result, "PS: Configuration file creation")
+        if encryption == 'YES':
+            result = server_startup.create_config('encryption')
+            utility_cmd.check_testcase(result, "PS: Configuration file creation")
+        else:
+            result = server_startup.create_config()
+            utility_cmd.check_testcase(result, "PS: Configuration file creation")
         result = server_startup.add_myextra_configuration(script_dir + '/replication.cnf')
         utility_cmd.check_testcase(result, "PS: Adding custom configuration")
         result = server_startup.start_server(my_extra)
