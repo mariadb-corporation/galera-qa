@@ -158,6 +158,11 @@ class SetupReplication:
                 socket + ' ' + db + ' -f <  /tmp/dataload.sql >/dev/null 2>&1'
             result = os.system(data_load_query)
             utility_cmd.check_testcase(result, node + ": Replication QA sample data load")
+        # Add prepared statement SQLs
+        create_ps = self.basedir + "/bin/mysql --user=root --socket=" + \
+                    socket + ' < ' + parent_dir + '/util/prepared_statements.sql > /dev/null 2>&1'
+        result = os.system(create_ps)
+        utility_cmd.check_testcase(result, node + ": Replication QA prepared statements dataload")
 
 
 replication_run = SetupReplication(basedir, workdir, node)
