@@ -3,6 +3,7 @@ import os
 import sys
 import shutil
 import subprocess
+import random
 from distutils.spawn import find_executable
 
 
@@ -91,6 +92,18 @@ class Utility:
         cnf_name.write('ssl-key = ' + workdir + '/cert/server-key.pem\n')
         cnf_name.close()
         os.chdir(cwd)
+        return 0
+
+    def create_custom_cnf(self, parent_dir, workdir ):
+        """ Add random mysqld options
+        """
+        with open(parent_dir + '/conf/mysql_options_pxc57.txt') as f:
+            lines = random.sample(f.readlines(), 10)
+        cnf_name = open(workdir + '/conf/custom.cnf', 'a+')
+        cnf_name.write('\n')
+        for x in range(len(lines)):
+            cnf_name.write(lines[x])
+        cnf_name.close()
         return 0
 
     def check_table_count(self, basedir, db, table, socket1, socket2):
