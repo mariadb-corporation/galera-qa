@@ -37,7 +37,7 @@ sysbench_user = config['sysbench']['sysbench_user']
 sysbench_pass = config['sysbench']['sysbench_pass']
 sysbench_db = config['sysbench']['sysbench_db']
 sysbench_table_size = 10000
-sysbench_run_time = 1000
+sysbench_run_time = 100
 
 
 class RandomMySQLDOptionQA:
@@ -75,6 +75,12 @@ class RandomMySQLDOptionQA:
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
         result = sysbench.sysbench_load()
         utility_cmd.check_testcase(result, "Sysbench data load")
+        result = sysbench.sysbench_oltp_read_write()
+        utility_cmd.check_testcase(result, "Sysbench read write run")
+        result = sysbench.sysbench_oltp_write_only()
+        utility_cmd.check_testcase(result, "Sysbench write run")
+        result = sysbench.sysbench_oltp_read_only()
+        utility_cmd.check_testcase(result, "Sysbench read run")
 
         # Add prepared statement SQLs
         create_ps = basedir + "/bin/mysql --user=root --socket=" + \

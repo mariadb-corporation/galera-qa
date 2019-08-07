@@ -115,6 +115,9 @@ class PXCUpgrade:
                 '.sock shutdown > /dev/null 2>&1'
             result = os.system(shutdown_node)
             utility_cmd.check_testcase(result, "Shutdown cluster node" + str(i) + " for upgrade testing")
+            version = utility_cmd.version_check(pxc_upper_base)
+            if int(version) > int("080000"):
+                os.system("sed -i '/wsrep_sst_auth=root:/d' " + workdir + '/conf/node' + str(i) + '.cnf')
             startup_cmd = pxc_upper_base + '/bin/mysqld --defaults-file=' + \
                 workdir + '/conf/node' + str(i) + '.cnf --datadir=' + \
                 workdir + '/node' + str(i) + ' --basedir=' + pxc_upper_base + \
