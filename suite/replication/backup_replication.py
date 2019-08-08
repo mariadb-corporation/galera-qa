@@ -89,7 +89,7 @@ class SetupReplication:
             This method will also do
             sanity check before backup
         """
-        utility_cmd.pxb_sanity_check(workdir)
+        utility_cmd.pxb_sanity_check(basedir, workdir, node1_socket)
         if os.path.exists(workdir + '/psnode1'):
             shutil.rmtree(workdir + '/psnode1')
         utility_cmd.pxb_backup(workdir, workdir + '/node1', node1_socket, workdir + '/psnode1')

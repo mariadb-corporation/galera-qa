@@ -123,7 +123,7 @@ class Utility:
         else:
             return 1
 
-    def pxb_sanity_check(self, workdir):
+    def pxb_sanity_check(self, basedir, workdir, socket):
         """ This method will check pxb installation and
             cleanup backup directory
         """
@@ -135,12 +135,29 @@ class Utility:
             os.mkdir(workdir + '/backup')
         else:
             os.mkdir(workdir + '/backup')
+        version = self.version_check(basedir)
+        if int(version) < int("050700"):
+            create_user = basedir + "/bin/mysql --user=root " \
+                "--socket=" + socket + ' -e"create user xbuser' \
+                "@'localhost' identified by 'test" \
+                "';grant all on *.* to xbuser@'localhost'" \
+                ';" > /dev/null 2>&1'
+        else:
+            create_user = basedir + "/bin/mysql --user=root " \
+                "--socket=" + socket + ' -e"create user xbuser' \
+                "@'localhost' identified with  mysql_native_password by 'test" \
+                "';grant all on *.* to xbuser@'localhost'" \
+                ';" > /dev/null 2>&1'
+        query_status = os.system(create_user)
+        if int(query_status) != 0:
+            print("ERROR!: Could not create xtrabackup user user : xbuser")
+            exit(1)
 
     def pxb_backup(self, workdir, source_datadir, socket, dest_datadir=None):
         """ This method will backup PXB/PS data directory
             with the help of xtrabackup.
         """
-        backup_cmd = "xtrabackup --user=root --password='' --backup " \
+        backup_cmd = "xtrabackup --user=xbuser --password='test' --backup " \
                      "--target-dir=" + workdir + "/backup -S " + \
                      socket + " --datadir=" + source_datadir + " --lock-ddl >" + \
                      workdir + "/log/xb_backup.log 2>&1"
