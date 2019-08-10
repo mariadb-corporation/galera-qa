@@ -31,7 +31,8 @@ workdir = config['config']['workdir']
 basedir = config['config']['basedir']
 node = config['config']['node']
 user = config['config']['user']
-socket = config['config']['node1_socket']
+node1_socket = config['config']['node1_socket']
+node2_socket = config['config']['node2_socket']
 pt_basedir = config['config']['pt_basedir']
 sysbench_user = config['sysbench']['sysbench_user']
 sysbench_pass = config['sysbench']['sysbench_pass']
@@ -43,7 +44,7 @@ sysbench_run_time = 1000
 class SysbenchLoadTest:
     def start_pxc(self):
         # Start PXC cluster for sysbench load test
-        dbconnection_check = db_connection.DbConnection(user, '/tmp/node1.sock')
+        dbconnection_check = db_connection.DbConnection(user, node1_socket)
         server_startup = pxc_startup.StartCluster(parent_dir, workdir, basedir, int(node))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
@@ -62,15 +63,17 @@ class SysbenchLoadTest:
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")
 
-    def sysbench_run(self, socket, db):
+    def sysbench_run(self, node1_socket, db):
         # Sysbench load test
         threads = [32, 64, 128, 256, 1024]
-        checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, socket)
-        checksum.sanity_check()
+        version = utility_cmd.version_check(basedir)
+        if int(version) < int("080000"):
+            checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, node1_socket)
+            checksum.sanity_check()
         for thread in threads:
             sysbench = sysbench_run.SysbenchRun(basedir, workdir,
                                                 sysbench_user, sysbench_pass,
-                                                socket, thread,
+                                                node1_socket, thread,
                                                 sysbench_table_size, db,
                                                 thread, sysbench_run_time)
             if thread == 32:
@@ -80,11 +83,15 @@ class SysbenchLoadTest:
             utility_cmd.check_testcase(result, "Sysbench data cleanup (threads : " + str(thread) + ")")
             result = sysbench.sysbench_load()
             utility_cmd.check_testcase(result, "Sysbench data load (threads : " + str(thread) + ")")
-            checksum.data_consistency('test')
+            if int(version) < int("080000"):
+                checksum.data_consistency('test')
+            else:
+                result = utility_cmd.check_table_count(basedir, 'test', node1_socket, node2_socket)
+                utility_cmd.check_testcase(result, "Checksum run for DB: test")
 
 
 print("\nPXC sysbench load test")
 print("------------------------")
 sysbench_loadtest = SysbenchLoadTest()
 sysbench_loadtest.start_pxc()
-sysbench_loadtest.sysbench_run(socket, 'test')
+sysbench_loadtest.sysbench_run(node1_socket, 'test')

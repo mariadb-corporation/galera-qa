@@ -33,7 +33,8 @@ workdir = config['config']['workdir']
 basedir = config['config']['basedir']
 node = config['config']['node']
 user = config['config']['user']
-socket = config['config']['node1_socket']
+node1_socket = config['config']['node1_socket']
+node2_socket = config['config']['node2_socket']
 pt_basedir = config['config']['pt_basedir']
 sysbench_user = config['sysbench']['sysbench_user']
 sysbench_pass = config['sysbench']['sysbench_pass']
@@ -44,11 +45,11 @@ sysbench_run_time = 1000
 
 
 class ClusterInteraction:
-    def __init__(self, basedir, workdir, user, socket, pt_basedir, node):
+    def __init__(self, basedir, workdir, user, node1_socket, pt_basedir, node):
         self.workdir = workdir
         self.basedir = basedir
         self.user = user
-        self.socket = socket
+        self.socket = node1_socket
         self.pt_basedir = pt_basedir
         self.node = node
 
@@ -61,7 +62,7 @@ class ClusterInteraction:
 
     def start_pxc(self):
         # Start PXC cluster for replication test
-        dbconnection_check = db_connection.DbConnection(user, '/tmp/node1.sock')
+        dbconnection_check = db_connection.DbConnection(user, node1_socket)
         server_startup = pxc_startup.StartCluster(parent_dir, workdir, basedir, int(self.node))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
@@ -80,11 +81,11 @@ class ClusterInteraction:
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")
 
-    def sysbench_run(self, socket, db):
+    def sysbench_run(self, node1_socket, db):
         # Sysbench dataload for consistency test
         sysbench = sysbench_run.SysbenchRun(basedir, workdir,
                                             sysbench_user, sysbench_pass,
-                                            socket, sysbench_threads,
+                                            node1_socket, sysbench_threads,
                                             sysbench_table_size, db,
                                             sysbench_threads, sysbench_run_time)
 
@@ -95,7 +96,7 @@ class ClusterInteraction:
         if encryption == 'YES':
             for i in range(1, sysbench_threads + 1):
                 encrypt_table = basedir + '/bin/mysql --user=root ' \
-                    '--socket=' + socket + ' -e "' \
+                    '--socket=' + node1_socket + ' -e "' \
                     ' alter table ' + db + '.sbtest' + str(i) + \
                     " encryption='Y'" \
                     '"; > /dev/null 2>&1'
@@ -153,12 +154,17 @@ class ClusterInteraction:
         os.system(kill_sysbench)
 
 
-cluster_interaction = ClusterInteraction(basedir, workdir, user, socket, pt_basedir, node)
-checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, socket)
+cluster_interaction = ClusterInteraction(basedir, workdir, user, node1_socket, pt_basedir, node)
 print('----------------------------------------------')
 print('Cluster interaction QA using flow control test')
 print('----------------------------------------------')
 cluster_interaction.start_pxc()
 cluster_interaction.flow_control_qa()
-checksum.sanity_check()
-checksum.data_consistency('test')
+version = utility_cmd.version_check(basedir)
+if int(version) < int("080000"):
+    checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, node1_socket)
+    checksum.sanity_check()
+    checksum.data_consistency('test')
+else:
+    result = utility_cmd.check_table_count(basedir, 'test', node1_socket, node2_socket)
+    utility_cmd.check_testcase(result, "Checksum run for DB: test")

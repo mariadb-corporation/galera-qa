@@ -33,7 +33,8 @@ workdir = config['config']['workdir']
 basedir = config['config']['basedir']
 node = '6'
 user = config['config']['user']
-socket = config['config']['node1_socket']
+node1_socket = config['config']['node1_socket']
+node2_socket = config['config']['node2_socket']
 pt_basedir = config['config']['pt_basedir']
 sysbench_user = config['sysbench']['sysbench_user']
 sysbench_pass = config['sysbench']['sysbench_pass']
@@ -45,7 +46,7 @@ sysbench_run_time = 1000
 class ChaosMonkeyQA:
     def startup(self):
         # Start PXC cluster for ChaosMonkey test
-        dbconnection_check = db_connection.DbConnection(user, '/tmp/node1.sock')
+        dbconnection_check = db_connection.DbConnection(user, node1_socket)
         server_startup = pxc_startup.StartCluster(parent_dir, workdir, basedir, int(node))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
@@ -64,11 +65,11 @@ class ChaosMonkeyQA:
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")
 
-    def sysbench_run(self, socket, db):
+    def sysbench_run(self, node1_socket, db):
         # Sysbench dataload for consistency test
         sysbench = sysbench_run.SysbenchRun(basedir, workdir,
                                             sysbench_user, sysbench_pass,
-                                            socket, sysbench_threads,
+                                            node1_socket, sysbench_threads,
                                             sysbench_table_size, db,
                                             sysbench_threads, sysbench_run_time)
 
@@ -79,7 +80,7 @@ class ChaosMonkeyQA:
         if encryption == 'YES':
             for i in range(1, sysbench_threads + 1):
                 encrypt_table = basedir + '/bin/mysql --user=root ' \
-                    '--socket=' + socket + ' -e "' \
+                    '--socket=' + node1_socket + ' -e "' \
                     ' alter table ' + db + '.sbtest' + str(i) + \
                     " encryption='Y'" \
                     '"; > /dev/null 2>&1'
@@ -94,7 +95,7 @@ class ChaosMonkeyQA:
         """
         nodes = [2, 3, 4, 5, 6]
         rand_nodes = random.choices(nodes, k=2)
-        self.sysbench_run(socket, 'test')
+        self.sysbench_run(node1_socket, 'test')
         query = 'pidof sysbench'
         sysbench_pid = os.popen(query).read().rstrip()
         for j in rand_nodes:
@@ -121,9 +122,14 @@ class ChaosMonkeyQA:
 
 print("\nPXC ChaosMonkey Style test")
 print("----------------------------")
-checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, socket)
 chaosmonkey_qa = ChaosMonkeyQA()
 chaosmonkey_qa.startup()
 chaosmonkey_qa.multi_recovery_test()
-checksum.sanity_check()
-checksum.data_consistency('test')
+version = utility_cmd.version_check(basedir)
+if int(version) < int("080000"):
+    checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, node1_socket)
+    checksum.sanity_check()
+    checksum.data_consistency('test')
+else:
+    result = utility_cmd.check_table_count(basedir, 'test', node1_socket, node2_socket)
+    utility_cmd.check_testcase(result, "Checksum run for DB: test")

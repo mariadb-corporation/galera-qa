@@ -106,22 +106,26 @@ class Utility:
         cnf_name.close()
         return 0
 
-    def check_table_count(self, basedir, db, table, socket1, socket2):
+    def check_table_count(self, basedir, db, socket1, socket2):
         """ This method will compare the table
             count between two nodes
         """
-        query = basedir + '/bin/mysql -uroot --socket=' + \
-            socket1 + ' -Bse"checksum table ' + \
-            db + '.' + table + ';"'
-        table_count_node1 = os.popen(query).read().rstrip()
-        query = basedir + '/bin/mysql -uroot --socket=' + \
-            socket2 + ' -Bse"checksum table ' + \
-            db + '.' + table + ';"'
-        table_count_node2 = os.popen(query).read().rstrip()
-        if table_count_node1 == table_count_node2:
-            return 0
-        else:
-            return 1
+        query = basedir + '/bin/mysql -uroot ' + db + ' --socket=' + \
+            socket1 + ' -Bse"show tables;"'
+        tables = os.popen(query).read().rstrip()
+        for table in tables.split('\n'):
+            query = basedir + '/bin/mysql -uroot --socket=' + \
+                socket1 + ' -Bse"checksum table ' + \
+                db + '.' + table + ';"'
+            table_count_node1 = os.popen(query).read().rstrip()
+            query = basedir + '/bin/mysql -uroot --socket=' + \
+                socket2 + ' -Bse"checksum table ' + \
+                db + '.' + table + ';"'
+            table_count_node2 = os.popen(query).read().rstrip()
+            if table_count_node1 == table_count_node2:
+                return 0
+            else:
+                return 1
 
     def pxb_sanity_check(self, basedir, workdir, socket):
         """ This method will check pxb installation and
