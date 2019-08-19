@@ -45,11 +45,11 @@ sysbench_run_time = 10
 
 
 class SSLCheck:
-    def __init__(self, basedir, workdir, user, socket, node):
+    def __init__(self, basedir, workdir, user, node1_socket, node):
         self.workdir = workdir
         self.basedir = basedir
         self.user = user
-        self.socket = socket
+        self.socket = node1_socket
         self.node = node
 
     def run_query(self, query):
@@ -80,16 +80,16 @@ class SSLCheck:
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")
 
-    def sysbench_run(self, socket, db):
-        sysbench = sysbench_run.SysbenchRun(basedir, workdir,
+    def sysbench_run(self, node1_socket, db):
+        sysbench = sysbench_run.SysbenchRun(basedir, workdir, parent_dir,
                                             sysbench_user, sysbench_pass,
-                                            socket, sysbench_threads,
+                                            node1_socket, sysbench_threads,
                                             sysbench_table_size, db,
                                             sysbench_threads, sysbench_run_time)
 
         result = sysbench.sanity_check()
         utility_cmd.check_testcase(result, "SSL QA sysbench run sanity check")
-        result = sysbench.sysbench_load()
+        result = sysbench.sysbench_load(db)
         utility_cmd.check_testcase(result, "SSL QA sysbench data load")
         if encryption == 'YES':
             for i in range(1, sysbench_threads + 1):
@@ -100,19 +100,19 @@ class SSLCheck:
                     '"; > /dev/null 2>&1'
                 os.system(encrypt_table)
 
-    def data_load(self, db, socket):
+    def data_load(self, db, node1_socket):
         if os.path.isfile(parent_dir + '/util/createsql.py'):
             generate_sql = createsql.GenerateSQL('/tmp/dataload.sql', 1000)
             generate_sql.OutFile()
             generate_sql.CreateTable()
             sys.stdout = sys.__stdout__
             create_db = self.basedir + "/bin/mysql --user=root --socket=" + \
-                socket + ' -Bse"drop database if exists ' + db + \
+                node1_socket + ' -Bse"drop database if exists ' + db + \
                 ';create database ' + db + ';" 2>&1'
             result = os.system(create_db)
             utility_cmd.check_testcase(result, "SSL QA sample DB creation")
             data_load_query = self.basedir + "/bin/mysql --user=root --socket=" + \
-                socket + ' ' + db + ' -f <  /tmp/dataload.sql >/dev/null 2>&1'
+                node1_socket + ' ' + db + ' -f <  /tmp/dataload.sql >/dev/null 2>&1'
             result = os.system(data_load_query)
             utility_cmd.check_testcase(result, "SSL QA sample data load")
 

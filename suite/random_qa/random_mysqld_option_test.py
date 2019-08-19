@@ -66,20 +66,20 @@ class RandomMySQLDOptionQA:
 
     def data_load(self, socket, db):
         # Sysbench data load
-        sysbench = sysbench_run.SysbenchRun(basedir, workdir,
+        sysbench = sysbench_run.SysbenchRun(basedir, workdir, parent_dir,
                                             sysbench_user, sysbench_pass,
                                             socket, 64,
                                             sysbench_table_size, db,
                                             64, sysbench_run_time)
         result = sysbench.sanity_check()
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
-        result = sysbench.sysbench_load()
+        result = sysbench.sysbench_load(db)
         utility_cmd.check_testcase(result, "Sysbench data load")
-        result = sysbench.sysbench_oltp_read_write()
+        result = sysbench.sysbench_oltp_read_write(db)
         utility_cmd.check_testcase(result, "Sysbench read write run")
-        result = sysbench.sysbench_oltp_write_only()
+        result = sysbench.sysbench_oltp_write_only(db)
         utility_cmd.check_testcase(result, "Sysbench write run")
-        result = sysbench.sysbench_oltp_read_only()
+        result = sysbench.sysbench_oltp_read_only(db)
         utility_cmd.check_testcase(result, "Sysbench read run")
 
         # Add prepared statement SQLs

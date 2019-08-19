@@ -37,7 +37,7 @@ pt_basedir = config['config']['pt_basedir']
 sysbench_user = config['sysbench']['sysbench_user']
 sysbench_pass = config['sysbench']['sysbench_pass']
 sysbench_db = config['sysbench']['sysbench_db']
-sysbench_table_size = 100000
+sysbench_table_size = 10000
 sysbench_run_time = 1000
 
 
@@ -65,32 +65,23 @@ class SysbenchLoadTest:
 
     def sysbench_run(self, node1_socket, db):
         # Sysbench load test
-        threads = [32, 64, 128, 256, 1024]
+        threads = [32, 64, 128]
         version = utility_cmd.version_check(basedir)
         if int(version) < int("080000"):
             checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, node1_socket)
             checksum.sanity_check()
-        for thread in threads:
-            sysbench = sysbench_run.SysbenchRun(basedir, workdir, parent_dir,
-                                                sysbench_user, sysbench_pass,
-                                                node1_socket, thread,
-                                                sysbench_table_size, db,
-                                                thread, sysbench_run_time)
-            if thread == 32:
-                result = sysbench.sanity_check()
-                utility_cmd.check_testcase(result, "Sysbench run sanity check")
-            result = sysbench.sysbench_cleanup(db)
-            utility_cmd.check_testcase(result, "Sysbench data cleanup (threads : " + str(thread) + ")")
-            result = sysbench.sysbench_load(db)
-            utility_cmd.check_testcase(result, "Sysbench data load (threads : " + str(thread) + ")")
-            if int(version) < int("080000"):
-                checksum.data_consistency(db)
-            else:
-                result = utility_cmd.check_table_count(basedir, db, node1_socket, node2_socket)
-                utility_cmd.check_testcase(result, "Checksum run for DB: test")
+        sysbench = sysbench_run.SysbenchRun(basedir, workdir, parent_dir,
+                                            sysbench_user, sysbench_pass,
+                                            node1_socket, 16,
+                                            sysbench_table_size, db,
+                                            16, sysbench_run_time)
+        result = sysbench.sanity_check()
+        utility_cmd.check_testcase(result, "Sysbench run sanity check")
+        result = sysbench.sysbench_custom_table()
+        utility_cmd.check_testcase(result, "Sysbench data load")
 
 
-print("\nPXC sysbench load test")
+print("\nPXC sysbench customized data load test")
 print("------------------------")
 sysbench_loadtest = SysbenchLoadTest()
 sysbench_loadtest.start_pxc()

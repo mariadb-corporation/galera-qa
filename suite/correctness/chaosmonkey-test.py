@@ -67,7 +67,7 @@ class ChaosMonkeyQA:
 
     def sysbench_run(self, node1_socket, db):
         # Sysbench dataload for consistency test
-        sysbench = sysbench_run.SysbenchRun(basedir, workdir,
+        sysbench = sysbench_run.SysbenchRun(basedir, workdir, parent_dir,
                                             sysbench_user, sysbench_pass,
                                             node1_socket, sysbench_threads,
                                             sysbench_table_size, db,
@@ -75,7 +75,7 @@ class ChaosMonkeyQA:
 
         result = sysbench.sanity_check()
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
-        result = sysbench.sysbench_load()
+        result = sysbench.sysbench_load(db)
         utility_cmd.check_testcase(result, "Sysbench data load")
         if encryption == 'YES':
             for i in range(1, sysbench_threads + 1):
@@ -85,7 +85,7 @@ class ChaosMonkeyQA:
                     " encryption='Y'" \
                     '"; > /dev/null 2>&1'
                 os.system(encrypt_table)
-        result = sysbench.sysbench_oltp_read_write()
+        result = sysbench.sysbench_oltp_read_write(db)
         utility_cmd.check_testcase(result, "Initiated sysbench oltp run")
 
     def multi_recovery_test(self):

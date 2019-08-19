@@ -123,7 +123,7 @@ class SetupReplication:
 
     def sysbench_run(self, socket, db, node):
         # Sysbench data load
-        sysbench = sysbench_run.SysbenchRun(basedir, workdir,
+        sysbench = sysbench_run.SysbenchRun(basedir, workdir, parent_dir,
                                             sysbench_user, sysbench_pass,
                                             socket, sysbench_threads,
                                             sysbench_table_size, db,
@@ -131,7 +131,7 @@ class SetupReplication:
 
         result = sysbench.sanity_check()
         utility_cmd.check_testcase(result, node + ": Replication QA sysbench run sanity check")
-        result = sysbench.sysbench_load()
+        result = sysbench.sysbench_load(db)
         utility_cmd.check_testcase(result, node + ": Replication QA sysbench data load")
         if encryption == 'YES':
             for i in range(1, sysbench_threads + 1):
