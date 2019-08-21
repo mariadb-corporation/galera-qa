@@ -13,10 +13,14 @@ class Utility:
         print(now + ' ' + f'{text:100}' + '[ ' + status + ' ]')
 
     def check_testcase(self, result, testcase):
+        now = datetime.now().strftime("%H:%M:%S ")
         if result == 0:
-            self.printit(testcase, u'\u2714')
+            print(now + ' ' + f'{testcase:100}' + '[ \u2714 ]')
+            #self.printit(testcase, u'\u2714')
         else:
-            self.printit(testcase, u'\u2718')
+            print(now + ' ' + f'{testcase:100}' + '[ \u2718 ]')
+            #self.printit(testcase, u'\u2718')
+            exit(1)
 
     def check_python_version(self):
         """ Check python version. Raise error if the
@@ -186,9 +190,9 @@ class Utility:
         version = self.version_check(basedir)
         if int(version) < int("050700"):
             io_status = basedir + "/bin/mysql --user=root --socket=" + \
-                         socket + ' -Bse"SHOW SLAVE STATUS\G" 2>&1 ' \
-                                  '| grep "Slave_IO_Running:" ' \
-                                  "| awk '{ print $2 }'"
+                socket + ' -Bse"SHOW SLAVE STATUS\G" 2>&1 ' \
+                '| grep "Slave_IO_Running:" ' \
+                "| awk '{ print $2 }'"
             io_status = os.popen(io_status).read().rstrip()
             if io_status == "Yes":
                 check_slave_status = 'ON'
@@ -196,9 +200,9 @@ class Utility:
                 check_slave_status = 'OFF'
         else:
             check_slave_status = basedir + "/bin/mysql --user=root --socket=" + \
-                                 socket + ' -Bse"SELECT SERVICE_STATE ' \
-                                          'FROM performance_schema.replication_connection_status' \
-                                          " where channel_name='" + channel + "'" + '" 2>&1'
+                socket + ' -Bse"SELECT SERVICE_STATE ' \
+                'FROM performance_schema.replication_connection_status' \
+                " where channel_name='" + channel + "'" + '" 2>&1'
             check_slave_status = os.popen(check_slave_status).read().rstrip()
         if check_slave_status != 'ON':
             self.check_testcase(1, node + ": IO thread slave status")
@@ -216,9 +220,9 @@ class Utility:
         version = self.version_check(basedir)
         if int(version) < int("050700"):
             sql_status = basedir + "/bin/mysql --user=root --socket=" + \
-                                 socket + ' -Bse"SHOW SLAVE STATUS\G" 2>&1 ' \
-                                 '| grep "Slave_SQL_Running:" ' \
-                                 "| awk '{ print $2 }'"
+                socket + ' -Bse"SHOW SLAVE STATUS\G" 2>&1 ' \
+                '| grep "Slave_SQL_Running:" ' \
+                "| awk '{ print $2 }'"
             sql_status = os.popen(sql_status).read().rstrip()
             if sql_status == "Yes":
                 check_slave_status = 'ON'
