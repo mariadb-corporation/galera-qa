@@ -176,6 +176,11 @@ class StartCluster:
                         "delete from mysql.user where user='';" \
                         '" > /dev/null 2>&1'
                     os.system(query)
+                    enable_streaming_replication = self.basedir + '/bin/mysql --user=root ' \
+                        '--socket=/tmp/node' + str(i) + '.sock -Bse"' \
+                        "set global wsrep_trx_fragment_unit='statements'; " \
+                        'set global wsrep_trx_fragment_size=1;"> /dev/null 2>&1'
+                    #os.system(enable_streaming_replication)
                     break  # break the loop if mysqld is running
 
         return int(ping_status)

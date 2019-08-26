@@ -4,23 +4,18 @@ from util import utility
 utility_cmd = utility.Utility()
 
 class SysbenchRun:
-    def __init__(self, basedir, workdir, scriptdir , user, password, socket, tables, table_size, db, threads, time):
+    def __init__(self, basedir, workdir, scriptdir , user, password, socket):
         self.basedir = basedir
         self.workdir = workdir
         self.scriptdir = scriptdir
         self.user = user
         self.password = password
         self.socket = socket
-        self.tables = tables
-        self.table_size = table_size
-        self.db = db
-        self.threads = threads
-        self.time = time
         self.export_lua_path = 'export SBTEST_SCRIPTDIR="' + scriptdir + \
-                               '/sysbench_lua"; export LUA_PATH="' + scriptdir + \
-                               '/sysbench_lua/?;' + scriptdir +'/sysbench_lua/?.lua"'
+            '/sysbench_lua"; export LUA_PATH="' + scriptdir + \
+            '/sysbench_lua/?;' + scriptdir + '/sysbench_lua/?.lua"'
 
-    def sanity_check(self):
+    def sanity_check(self, db):
         # Sanity check for sysbench run
         check_sybench = os.system('which sysbench >/dev/null 2>&1')
         if check_sybench != 0:
@@ -29,8 +24,8 @@ class SysbenchRun:
 
         query = self.basedir + "/bin/mysql --user=root --socket=" + \
             self.socket + " -e'drop database if exists " + \
-            self.db + "; create database " + \
-            self.db + ";' > /dev/null 2>&1"
+            db + "; create database " + \
+            db + ";' > /dev/null 2>&1"
         query_status = os.system(query)
         if int(query_status) != 0:
             #return 1
@@ -55,13 +50,13 @@ class SysbenchRun:
             return 1
         return 0
 
-    def sysbench_load(self, db):
+    def sysbench_load(self, db, tables, threads, table_size):
         # Sysbench data load
         query = self.export_lua_path + ";sysbench " + self.scriptdir + \
             "/sysbench_lua/oltp_insert.lua" \
-            " --table-size=" + str(self.table_size) + \
-            " --tables=" + str(self.tables) + \
-            " --threads=" + str(self.threads) + \
+            " --table-size=" + str(table_size) + \
+            " --tables=" + str(tables) + \
+            " --threads=" + str(threads) + \
             " --mysql-db=" + db + \
             " --mysql-user=" + self.user + \
             " --mysql-password=" + self.password + \
@@ -74,12 +69,12 @@ class SysbenchRun:
             return 1
         return 0
 
-    def sysbench_cleanup(self, db):
+    def sysbench_cleanup(self, db, tables, threads, table_size):
         # Sysbench data cleanup
         query = "sysbench /usr/share/sysbench/oltp_insert.lua" \
-            " --table-size=" + str(self.table_size) + \
-            " --tables=" + str(self.tables) + \
-            " --threads=" + str(self.threads) + \
+            " --table-size=" + str(table_size) + \
+            " --tables=" + str(tables) + \
+            " --threads=" + str(threads) + \
             " --mysql-db=" + db + \
             " --mysql-user=" + self.user + \
             " --mysql-password=" + self.password + \
@@ -92,36 +87,36 @@ class SysbenchRun:
             return 1
         return 0
 
-    def sysbench_oltp_read_write(self, db):
+    def sysbench_oltp_read_write(self, db, tables, threads, table_size, time):
         # Sysbench OLTP read write run
         query = "sysbench /usr/share/sysbench/oltp_read_write.lua" \
-            " --table-size=" + str(self.table_size) + \
-            " --tables=" + str(self.tables) + \
-            " --threads=" + str(self.threads) + \
+            " --table-size=" + str(table_size) + \
+            " --tables=" + str(tables) + \
+            " --threads=" + str(threads) + \
             " --mysql-db=" + db + \
             " --mysql-user=" + self.user + \
             " --mysql-password=" + self.password + \
             " --mysql-socket=" + self.socket + \
-            " --time=" + str(self.time) + \
+            " --time=" + str(time) + \
             " --db-driver=mysql --db-ps-mode=disable run >" + \
-            self.workdir + "/log/sysbench_read_write.log &"
+            self.workdir + "/log/sysbench_read_write_" + str(threads) + ".log"
         query_status = os.system(query)
         if int(query_status) != 0:
             print("ERROR!: sysbench read write run is failed")
             return 1
         return 0
 
-    def sysbench_oltp_read_only(self, db):
+    def sysbench_oltp_read_only(self, db, tables, threads, table_size, time):
         # Sysbench OLTP read only run
         query = "sysbench /usr/share/sysbench/oltp_read_only.lua" \
-            " --table-size=" + str(self.table_size) + \
-            " --tables=" + str(self.tables) + \
-            " --threads=" + str(self.threads) + \
+            " --table-size=" + str(table_size) + \
+            " --tables=" + str(tables) + \
+            " --threads=" + str(threads) + \
             " --mysql-db=" + db + \
             " --mysql-user=" + self.user + \
             " --mysql-password=" + self.password + \
             " --mysql-socket=" + self.socket + \
-            " --time=" + str(self.time) + \
+            " --time=" + str(time) + \
             " --db-driver=mysql --db-ps-mode=disable run >" + \
             self.workdir + "/log/sysbench_read_only.log &"
         query_status = os.system(query)
@@ -130,17 +125,17 @@ class SysbenchRun:
             return 1
         return 0
 
-    def sysbench_oltp_write_only(self, db):
+    def sysbench_oltp_write_only(self, db, tables, threads, table_size, time):
         # Sysbench OLTP write only run
         query = "sysbench /usr/share/sysbench/oltp_write_only.lua" \
-            " --table-size=" + str(self.table_size) + \
-            " --tables=" + str(self.tables) + \
-            " --threads=" + str(self.threads) + \
+            " --table-size=" + str(table_size) + \
+            " --tables=" + str(tables) + \
+            " --threads=" + str(threads) + \
             " --mysql-db=" + db + \
             " --mysql-user=" + self.user + \
             " --mysql-password=" + self.password + \
             " --mysql-socket=" + self.socket + \
-            " --time=" + str(self.time) + \
+            " --time=" + str(time) + \
             " --db-driver=mysql --db-ps-mode=disable run >" + \
             self.workdir + "/log/sysbench_write_only.log &"
         query_status = os.system(query)
@@ -149,7 +144,7 @@ class SysbenchRun:
             return 1
         return 0
 
-    def sysbench_custom_table(self):
+    def sysbench_custom_table(self, db):
         table_format = ['DEFAULT', 'DYNAMIC', 'FIXED', 'COMPRESSED', 'REDUNDANT', 'COMPACT']
         # table_compression = ['ZLIB', 'LZ4', 'NONE']
         if not os.path.exists(self.scriptdir + '/sysbench_lua'):
@@ -158,12 +153,12 @@ class SysbenchRun:
         for tbl_format in table_format:
             query = self.basedir + "/bin/mysql --user=root --socket=" + \
                     self.socket + " -e'drop database if exists " + \
-                    self.db + "_" + tbl_format + "; create database " + \
-                    self.db + "_" + tbl_format + ";' > /dev/null 2>&1"
+                    db + "_" + tbl_format + "; create database " + \
+                    db + "_" + tbl_format + ";' > /dev/null 2>&1"
             query_status = os.system(query)
             if int(query_status) != 0:
                 # return 1
-                print("ERROR!: Could not create sysbench test database(" + self.db + "_" + tbl_format + ")")
+                print("ERROR!: Could not create sysbench test database(" + db + "_" + tbl_format + ")")
                 exit(1)
             add_mysqld_option = 'sed -i ' \
                 "'s#mysql_table_options = " \
@@ -171,5 +166,5 @@ class SysbenchRun:
                 tbl_format + '"#g' + "' " + self.scriptdir + \
                 '/sysbench_lua/oltp_custom_common.lua'
             os.system(add_mysqld_option)
-            self.sysbench_load(self.db + "_" + tbl_format)
+            self.sysbench_load(db + "_" + tbl_format)
         return 0

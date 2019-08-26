@@ -72,12 +72,10 @@ class SysbenchLoadTest:
             checksum.sanity_check()
         sysbench = sysbench_run.SysbenchRun(basedir, workdir, parent_dir,
                                             sysbench_user, sysbench_pass,
-                                            node1_socket, 16,
-                                            sysbench_table_size, db,
-                                            16, sysbench_run_time)
-        result = sysbench.sanity_check()
+                                            node1_socket)
+        result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
-        result = sysbench.sysbench_custom_table()
+        result = sysbench.sysbench_custom_table(db)
         utility_cmd.check_testcase(result, "Sysbench data load")
 
 

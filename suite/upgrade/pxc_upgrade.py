@@ -71,13 +71,11 @@ class PXCUpgrade:
         # Sysbench dataload for consistency test
         sysbench = sysbench_run.SysbenchRun(pxc_lower_base, workdir,
                                             sysbench_user, sysbench_pass,
-                                            node1_socket, sysbench_threads,
-                                            sysbench_table_size, db,
-                                            sysbench_threads, sysbench_run_time)
+                                            node1_socket)
 
-        result = sysbench.sanity_check()
+        result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
-        result = sysbench.sysbench_load()
+        result = sysbench.sysbench_load(db, sysbench_threads, sysbench_threads, sysbench_table_size)
         utility_cmd.check_testcase(result, "Sysbench data load")
         version = utility_cmd.version_check(pxc_lower_base)
         if int(version) > int("050700"):
