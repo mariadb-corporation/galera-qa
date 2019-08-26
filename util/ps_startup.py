@@ -7,7 +7,8 @@ import subprocess
 import random
 import shutil
 import time
-
+from util import utility
+utility_cmd = utility.Utility()
 
 class StartPerconaServer:
     def __init__(self, scriptdir, workdir, basedir, node):
@@ -33,8 +34,6 @@ class StartPerconaServer:
         if not os.path.isfile(self.basedir + '/bin/mysqld'):
             print(self.basedir + '/bin/mysqld does not exist')
             return 1
-            exit(1)
-
         return 0
 
     # This method will help us to check PS version
@@ -54,6 +53,7 @@ class StartPerconaServer:
             For customised configuration please add your values
             in conf/custom.conf.
         """
+        version = utility_cmd.version_check(self.basedir)
         port = random.randint(21, 30) * 1000
         port_list = []
         for j in range(1, self.node + 1):
@@ -61,13 +61,14 @@ class StartPerconaServer:
         if not os.path.isfile(self.scriptdir + '/conf/ps.cnf'):
             print('Default pxc.cnf is missing in ' + self.scriptdir + '/conf')
             return 1
-            exit(1)
         else:
             shutil.copy(self.scriptdir + '/conf/custom.cnf', self.workdir + '/conf/custom.cnf')
         for i in range(1, self.node + 1):
             shutil.copy(self.scriptdir + '/conf/ps.cnf', self.workdir + '/conf/ps' + str(i) + '.cnf')
             cnf_name = open(self.workdir + '/conf/ps' + str(i) + '.cnf', 'a+')
             cnf_name.write('\nport=' + str(port_list[i - 1]) + '\n')
+            if int(version) < int("050700"):
+                cnf_name.write('log_error_verbosity=3\n')
             cnf_name.write('socket=/tmp/psnode' + str(i) + '.sock\n')
             cnf_name.write('server_id=' + str(100 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
@@ -86,7 +87,6 @@ class StartPerconaServer:
         if not os.path.isfile(config_file):
             print('Custom config ' + config_file + ' is missing')
             return 1
-            exit(1)
         config_file = config_file
         cnf_name = open(self.workdir + '/conf/custom.cnf', 'a+')
         cnf_name.write('\n')

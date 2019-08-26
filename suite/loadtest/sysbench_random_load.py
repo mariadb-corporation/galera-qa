@@ -3,6 +3,7 @@ import os
 import sys
 import configparser
 import argparse
+import time
 cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
@@ -58,7 +59,8 @@ class SysbenchLoadTest:
             utility_cmd.check_testcase(result, "Configuration file creation")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "Initializing cluster")
-        result = server_startup.start_cluster('--max-connections=1500')
+        result = server_startup.start_cluster('--max-connections=1500 --innodb_buffer_pool_size=4G '
+                                              '--innodb_log_file_size=1G')
         utility_cmd.check_testcase(result, "Cluster startup")
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")
@@ -83,11 +85,12 @@ class SysbenchLoadTest:
             utility_cmd.check_testcase(result, "Sysbench data load (threads : " + str(table_count) + ")")
             for thread in threads:
                 sysbench.sysbench_oltp_read_write(db, table_count, thread, sysbench_table_size, sysbench_run_time)
+                time.sleep(5)
                 if int(version) < int("080000"):
                     checksum.data_consistency(db)
                 else:
                     result = utility_cmd.check_table_count(basedir, db, node1_socket, node2_socket)
-                    utility_cmd.check_testcase(result, "Checksum run for DB: test")
+                    utility_cmd.check_testcase(result, "Checksum run for DB: " + db )
 
 
 print("\nPXC sysbench load test")

@@ -15,10 +15,10 @@ class Utility:
     def check_testcase(self, result, testcase):
         now = datetime.now().strftime("%H:%M:%S ")
         if result == 0:
-            print(now + ' ' + f'{testcase:100}' + '[ \u2714 ]')
-            #self.printit(testcase, u'\u2714')
+            print(now + ' ' + f'{testcase:100}' + '[ \u2713 ]')
+            #self.printit(testcase, u'\u2713')
         else:
-            print(now + ' ' + f'{testcase:100}' + '[ \u2718 ]')
+            print(now + ' ' + f'{testcase:100}' + '[ \u2717 ]')
             #self.printit(testcase, u'\u2718')
             exit(1)
 
@@ -129,6 +129,7 @@ class Utility:
             if table_count_node1 == table_count_node2:
                 return 0
             else:
+                print("\tTable(" + db + '.' + table + " ) checksum is different")
                 return 1
 
     def pxb_sanity_check(self, basedir, workdir, socket):

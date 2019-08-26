@@ -58,7 +58,8 @@ class SysbenchLoadTest:
             utility_cmd.check_testcase(result, "Configuration file creation")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "Initializing cluster")
-        result = server_startup.start_cluster('--max-connections=1500')
+        result = server_startup.start_cluster('--max-connections=1500 --innodb_buffer_pool_size=8G '
+                                              '--innodb_log_file_size=1G')
         utility_cmd.check_testcase(result, "Cluster startup")
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")

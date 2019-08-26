@@ -70,6 +70,8 @@ class StartCluster:
             version = utility_cmd.version_check(self.basedir)
             if int(version) < int("080000"):
                 cnf_name.write('wsrep_sst_auth=root:\n')
+            if int(version) < int("050700"):
+                cnf_name.write('log_error_verbosity=3\n')
             cnf_name.write('port=' + str(port_list[i - 1]) + '\n')
             if wsrep_extra == "ssl" or wsrep_extra == "encryption":
                 cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
