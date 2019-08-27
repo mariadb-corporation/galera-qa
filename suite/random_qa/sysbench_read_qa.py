@@ -38,8 +38,7 @@ pt_basedir = config['config']['pt_basedir']
 sysbench_user = config['sysbench']['sysbench_user']
 sysbench_pass = config['sysbench']['sysbench_pass']
 sysbench_db = config['sysbench']['sysbench_db']
-sysbench_table_size = 10000
-sysbench_run_time = 100
+sysbench_table_size = 100000
 
 
 class SysbenchLoadTest:
@@ -78,13 +77,12 @@ class SysbenchLoadTest:
         for thread in threads:
             result = sysbench.sanity_check(db)
             utility_cmd.check_testcase(result, "Sysbench run sanity check")
-            sysbench.sysbench_custom_load(db, 5, thread, sysbench_table_size)
-            time.sleep(5)
+            sysbench.sysbench_custom_read_qa(db, 5, thread, sysbench_table_size)
             if int(version) < int("080000"):
                 checksum.data_consistency(db)
             else:
                 result = utility_cmd.check_table_count(basedir, db, node1_socket, node2_socket)
-                utility_cmd.check_testcase(result, "Checksum run for DB: " + db )
+                utility_cmd.check_testcase(result, "Checksum run for DB: " + db)
 
 
 print("\nPXC sysbench load test")

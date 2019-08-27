@@ -38,8 +38,7 @@ pt_basedir = config['config']['pt_basedir']
 sysbench_user = config['sysbench']['sysbench_user']
 sysbench_pass = config['sysbench']['sysbench_pass']
 sysbench_db = config['sysbench']['sysbench_db']
-sysbench_table_size = 1000
-sysbench_run_time = 100
+sysbench_table_size = 10000000
 
 
 class SysbenchLoadTest:
@@ -67,8 +66,7 @@ class SysbenchLoadTest:
 
     def sysbench_run(self, node1_socket, db):
         # Sysbench load test
-        tables = [50, 100, 300, 600, 1000]
-        threads = [32, 64, 128, 256, 512, 1024]
+        threads = [32, 64, 128]
         version = utility_cmd.version_check(basedir)
         if int(version) < int("080000"):
             checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, node1_socket)
@@ -76,21 +74,15 @@ class SysbenchLoadTest:
         sysbench = sysbench_run.SysbenchRun(basedir, workdir, parent_dir,
                                             sysbench_user, sysbench_pass,
                                             node1_socket)
-        result = sysbench.sanity_check(db)
-        for table_count in tables:
+        for thread in threads:
+            result = sysbench.sanity_check(db)
             utility_cmd.check_testcase(result, "Sysbench run sanity check")
-            result = sysbench.sysbench_cleanup(db, table_count, table_count, sysbench_table_size)
-            utility_cmd.check_testcase(result, "Sysbench data cleanup (threads : " + str(table_count) + ")")
-            result = sysbench.sysbench_load(db, table_count, table_count, sysbench_table_size)
-            utility_cmd.check_testcase(result, "Sysbench data load (threads : " + str(table_count) + ")")
-            for thread in threads:
-                sysbench.sysbench_oltp_read_write(db, table_count, thread, sysbench_table_size, sysbench_run_time)
-                time.sleep(5)
-                if int(version) < int("080000"):
-                    checksum.data_consistency(db)
-                else:
-                    result = utility_cmd.check_table_count(basedir, db, node1_socket, node2_socket)
-                    utility_cmd.check_testcase(result, "Checksum run for DB: " + db )
+            sysbench.sysbench_custom_oltp_load(db, 5, thread, sysbench_table_size)
+            if int(version) < int("080000"):
+                checksum.data_consistency(db)
+            else:
+                result = utility_cmd.check_table_count(basedir, db, node1_socket, node2_socket)
+                utility_cmd.check_testcase(result, "Checksum run for DB: " + db)
 
 
 print("\nPXC sysbench load test")

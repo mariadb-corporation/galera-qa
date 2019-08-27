@@ -69,7 +69,7 @@ class SysbenchRun:
             return 1
         return 0
 
-    def sysbench_custom_load(self, db, table_count, thread, table_size):
+    def sysbench_custom_oltp_load(self, db, table_count, thread, table_size):
         # Create sysbench table structure
         result = self.sysbench_load(db, table_count, table_count, 0)
         utility_cmd.check_testcase(result, "Sysbench data load")
@@ -82,7 +82,7 @@ class SysbenchRun:
             query = self.export_lua_path + ";sysbench " + self.scriptdir + \
                 "/sysbench_lua/oltp_read_write.lua" \
                 " --table-size=" + str(table_size) + \
-                " --tables=" + str(3) + \
+                " --tables=" + str(table_count) + \
                 " --threads=" + str(thread) + \
                 " --mysql-db=" + db + \
                 " --mysql-user=" + self.user + \
@@ -94,16 +94,54 @@ class SysbenchRun:
                 " --non_index_updates=" + str(non_index_update) + \
                 " --db-driver=mysql run >" + \
                 self.workdir + "/log/sysbench_oltp_read_write.log"
-            print(query)
             query_status = os.system(query)
             combination = "rand_type:" + rand_type + \
                           ", delete_inserts:" + str(delete_insert) + \
-                          ",index_updates:" + str(index_update) + \
-                          ", non_index_updates:" + str(non_index_update)
+                          ",idx_updates:" + str(index_update) + \
+                          ", non_idx_updates:" + str(non_index_update)
             if int(query_status) != 0:
-                print("ERROR!: sysbench oltp(combination:" + combination + ") run is failed")
+                print("ERROR!: sysbench oltp(" + combination + ") run is failed")
             else:
-                utility_cmd.check_testcase(query_status, "Sysbench oltp(combination:" + combination + ") run")
+                utility_cmd.check_testcase(query_status, "Sysbench oltp(" + combination + ") run")
+
+    def sysbench_custom_read_qa(self, db, table_count, thread, table_size):
+        # Create sysbench table structure
+        result = self.sysbench_load(db, table_count, table_count, table_size)
+        utility_cmd.check_testcase(result, "Sysbench data load")
+        sum_ranges = [2, 4, 6]
+        distinct_ranges = [3, 5, 7]
+        simple_ranges = [1, 3, 5]
+        order_ranges = [2, 5, 8]
+        point_selects = [10, 20, 30]
+        for sum_range, distinct_range, simple_range, order_range, point_select in \
+                itertools.product(sum_ranges, distinct_ranges, simple_ranges, order_ranges, point_selects):
+            query = self.export_lua_path + ";sysbench " + self.scriptdir + \
+                "/sysbench_lua/oltp_read_only.lua" \
+                " --table-size=" + str(table_size) + \
+                " --tables=" + str(table_count) + \
+                " --threads=" + str(thread) + \
+                " --mysql-db=" + db + \
+                " --mysql-user=" + self.user + \
+                " --mysql-password=" + self.password + \
+                " --mysql-socket=" + self.socket + \
+                " --distinct_ranges=" + str(distinct_range) + \
+                " --sum_ranges=" + str(sum_range) + \
+                " --simple_ranges=" + str(simple_range) + \
+                " --order_ranges=" + str(order_range) + \
+                " --point_selects=" + str(point_select) + \
+                " --db-driver=mysql run >" + \
+                self.workdir + "/log/sysbench_oltp_read_only.log"
+            query_status = os.system(query)
+            combination = "distinct_rng:" + str(distinct_range) + \
+                          ", sum_rng:" + str(sum_range) + \
+                          ", simple_rng:" + str(simple_range) + \
+                          ", point_selects:" + str(point_select) + \
+                          ", order_rng:" + str(order_range)
+            if int(query_status) != 0:
+                print("ERROR!: sysbench read only(" + combination + ") run is failed")
+                exit(1)
+            else:
+                utility_cmd.check_testcase(query_status, "Sysbench read only(" + combination + ") run")
 
     def sysbench_cleanup(self, db, tables, threads, table_size):
         # Sysbench data cleanup
