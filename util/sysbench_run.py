@@ -1,5 +1,5 @@
 import os
-import shutil
+import itertools
 from util import utility
 utility_cmd = utility.Utility()
 
@@ -68,6 +68,42 @@ class SysbenchRun:
             print("ERROR!: sysbench data load run is failed")
             return 1
         return 0
+
+    def sysbench_custom_load(self, db, table_count, thread, table_size):
+        # Create sysbench table structure
+        result = self.sysbench_load(db, table_count, table_count, 0)
+        utility_cmd.check_testcase(result, "Sysbench data load")
+        rand_types = ['uniform', 'gaussian', 'special', 'pareto']
+        delete_inserts = [10, 20, 30, 40, 50]
+        index_updates = [10, 20, 30, 40, 50]
+        non_index_updates = [10, 20, 30, 40, 50]
+        for rand_type, delete_insert, index_update, non_index_update in \
+                itertools.product(rand_types, delete_inserts, index_updates, non_index_updates):
+            query = self.export_lua_path + ";sysbench " + self.scriptdir + \
+                "/sysbench_lua/oltp_read_write.lua" \
+                " --table-size=" + str(table_size) + \
+                " --tables=" + str(3) + \
+                " --threads=" + str(thread) + \
+                " --mysql-db=" + db + \
+                " --mysql-user=" + self.user + \
+                " --mysql-password=" + self.password + \
+                " --mysql-socket=" + self.socket + \
+                " --rand_type=" + rand_type + \
+                " --delete_inserts=" + str(delete_insert) + \
+                " --index_updates=" + str(index_update) + \
+                " --non_index_updates=" + str(non_index_update) + \
+                " --db-driver=mysql run >" + \
+                self.workdir + "/log/sysbench_oltp_read_write.log"
+            print(query)
+            query_status = os.system(query)
+            combination = "rand_type:" + rand_type + \
+                          ", delete_inserts:" + str(delete_insert) + \
+                          ",index_updates:" + str(index_update) + \
+                          ", non_index_updates:" + str(non_index_update)
+            if int(query_status) != 0:
+                print("ERROR!: sysbench oltp(combination:" + combination + ") run is failed")
+            else:
+                utility_cmd.check_testcase(query_status, "Sysbench oltp(combination:" + combination + ") run")
 
     def sysbench_cleanup(self, db, tables, threads, table_size):
         # Sysbench data cleanup
