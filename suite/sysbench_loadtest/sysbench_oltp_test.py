@@ -66,13 +66,13 @@ class SysbenchLoadTest:
 
     def sysbench_run(self, node1_socket, db):
         # Sysbench load test
+        checksum = ""
         threads = [32, 64, 128]
         version = utility_cmd.version_check(basedir)
         if int(version) < int("080000"):
             checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, node1_socket)
             checksum.sanity_check()
-        sysbench = sysbench_run.SysbenchRun(basedir, workdir, parent_dir,
-                                            sysbench_user, sysbench_pass,
+        sysbench = sysbench_run.SysbenchRun(basedir, workdir,
                                             node1_socket)
         for thread in threads:
             result = sysbench.sanity_check(db)

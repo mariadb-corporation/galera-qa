@@ -97,7 +97,7 @@ class ClusterInteraction:
                 os.system(encrypt_table)
 
         result = sysbench.sysbench_oltp_read_write(db, sysbench_threads, sysbench_threads,
-                                                   sysbench_table_size, sysbench_run_time)
+                                                   sysbench_table_size, sysbench_run_time, 'Yes')
         utility_cmd.check_testcase(result, "Initiated sysbench oltp run")
 
     def startup_check(self, cluster_node):

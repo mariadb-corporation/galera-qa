@@ -158,7 +158,11 @@ class SysbenchRun:
             return 1
         return 0
 
-    def sysbench_oltp_read_write(self, db, tables, threads, table_size, time):
+    def sysbench_oltp_read_write(self, db, tables, threads, table_size, time, background=None):
+        if background == "Yes":
+            str_run = " run & "
+        else:
+            str_run = " run "
         # Sysbench OLTP read write run
         query = "sysbench /usr/share/sysbench/oltp_read_write.lua" \
             " --table-size=" + str(table_size) + \
@@ -167,7 +171,7 @@ class SysbenchRun:
             " --mysql-db=" + db + " " + SYSBENCH_DB_CONNECT + \
             " --mysql-socket=" + self.socket + \
             " --time=" + str(time) + \
-            " --db-ps-mode=disable run >" + \
+            " --db-ps-mode=disable " + str_run + " >" + \
             self.workdir + "/log/sysbench_read_write_" + str(threads) + ".log"
         query_status = os.system(query)
         if int(query_status) != 0:
@@ -175,7 +179,11 @@ class SysbenchRun:
             return 1
         return 0
 
-    def sysbench_oltp_read_only(self, db, tables, threads, table_size, time):
+    def sysbench_oltp_read_only(self, db, tables, threads, table_size, time, background=None):
+        if background == "Yes":
+            str_run = " run & "
+        else:
+            str_run = " run "
         # Sysbench OLTP read only run
         query = "sysbench /usr/share/sysbench/oltp_read_only.lua" \
             " --table-size=" + str(table_size) + \
@@ -184,7 +192,7 @@ class SysbenchRun:
             " --mysql-db=" + db + " " + SYSBENCH_DB_CONNECT + \
             " --mysql-socket=" + self.socket + \
             " --time=" + str(time) + \
-            " --db-ps-mode=disable run >" + \
+            " --db-ps-mode=disable " + str_run + " >" + \
             self.workdir + "/log/sysbench_read_only.log &"
         query_status = os.system(query)
         if int(query_status) != 0:
@@ -192,7 +200,11 @@ class SysbenchRun:
             return 1
         return 0
 
-    def sysbench_oltp_write_only(self, db, tables, threads, table_size, time):
+    def sysbench_oltp_write_only(self, db, tables, threads, table_size, time, background=None):
+        if background == "Yes":
+            str_run = " run & "
+        else:
+            str_run = " run "
         # Sysbench OLTP write only run
         query = "sysbench /usr/share/sysbench/oltp_write_only.lua" \
             " --table-size=" + str(table_size) + \
@@ -201,7 +213,7 @@ class SysbenchRun:
             " --mysql-db=" + db + " " + SYSBENCH_DB_CONNECT + \
             " --mysql-socket=" + self.socket + \
             " --time=" + str(time) + \
-            " --db-ps-mode=disable run >" + \
+            " --db-ps-mode=disable " + str_run + " >" + \
             self.workdir + "/log/sysbench_write_only.log &"
         query_status = os.system(query)
         if int(query_status) != 0:
