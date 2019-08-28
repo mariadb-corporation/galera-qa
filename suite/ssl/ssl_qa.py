@@ -36,9 +36,6 @@ node = config['config']['node']
 node1_socket = config['config']['node1_socket']
 node2_socket = config['config']['node2_socket']
 pt_basedir = config['config']['pt_basedir']
-sysbench_user = config['sysbench']['sysbench_user']
-sysbench_pass = config['sysbench']['sysbench_pass']
-sysbench_db = config['sysbench']['sysbench_db']
 sysbench_threads = 10
 sysbench_table_size = 1000
 sysbench_run_time = 10
@@ -81,8 +78,7 @@ class SSLCheck:
         utility_cmd.check_testcase(result, "Database connection")
 
     def sysbench_run(self, node1_socket, db):
-        sysbench = sysbench_run.SysbenchRun(basedir, workdir, parent_dir,
-                                            sysbench_user, sysbench_pass,
+        sysbench = sysbench_run.SysbenchRun(basedir, workdir,
                                             node1_socket)
 
         result = sysbench.sanity_check(db)

@@ -37,9 +37,6 @@ node1_socket = config['config']['node1_socket']
 ps1_socket = config['config']['ps1_socket']
 ps2_socket = config['config']['ps2_socket']
 pt_basedir = config['config']['pt_basedir']
-sysbench_user = config['sysbench']['sysbench_user']
-sysbench_pass = config['sysbench']['sysbench_pass']
-sysbench_db = config['sysbench']['sysbench_db']
 sysbench_threads = 10
 sysbench_table_size = 1000
 sysbench_run_time = 10
@@ -113,8 +110,7 @@ class SetupReplication:
 
     def sysbench_run(self, socket, db, node):
         # Sysbench data load
-        sysbench = sysbench_run.SysbenchRun(basedir, workdir, parent_dir,
-                                            sysbench_user, sysbench_pass,
+        sysbench = sysbench_run.SysbenchRun(basedir, workdir,
                                             socket)
 
         result = sysbench.sanity_check(db)

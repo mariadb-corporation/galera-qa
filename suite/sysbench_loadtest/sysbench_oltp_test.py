@@ -38,7 +38,7 @@ pt_basedir = config['config']['pt_basedir']
 sysbench_user = config['sysbench']['sysbench_user']
 sysbench_pass = config['sysbench']['sysbench_pass']
 sysbench_db = config['sysbench']['sysbench_db']
-sysbench_table_size = 10000000
+sysbench_table_size = config['sysbench']['sysbench_oltp_test_table_size']
 
 
 class SysbenchLoadTest:

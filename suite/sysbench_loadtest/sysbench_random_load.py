@@ -3,6 +3,7 @@ import os
 import sys
 import configparser
 import argparse
+import time
 cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
@@ -37,8 +38,8 @@ pt_basedir = config['config']['pt_basedir']
 sysbench_user = config['sysbench']['sysbench_user']
 sysbench_pass = config['sysbench']['sysbench_pass']
 sysbench_db = config['sysbench']['sysbench_db']
-sysbench_table_size = 10000
-sysbench_run_time = 1000
+sysbench_table_size = config['sysbench']['sysbench_random_load_table_size']
+sysbench_run_time = config['sysbench']['sysbench_random_load_run_time']
 
 
 class SysbenchLoadTest:
@@ -58,28 +59,40 @@ class SysbenchLoadTest:
             utility_cmd.check_testcase(result, "Configuration file creation")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "Initializing cluster")
-        result = server_startup.start_cluster('--max-connections=1500')
+        result = server_startup.start_cluster('--max-connections=1500 --innodb_buffer_pool_size=4G '
+                                              '--innodb_log_file_size=1G')
         utility_cmd.check_testcase(result, "Cluster startup")
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")
 
     def sysbench_run(self, node1_socket, db):
         # Sysbench load test
-        threads = [32, 64, 128]
+        tables = [50, 100, 300, 600, 1000]
+        threads = [32, 64, 128, 256, 512, 1024]
         version = utility_cmd.version_check(basedir)
         if int(version) < int("080000"):
             checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, node1_socket)
             checksum.sanity_check()
-        sysbench = sysbench_run.SysbenchRun(basedir, workdir, parent_dir,
-                                            sysbench_user, sysbench_pass,
+        sysbench = sysbench_run.SysbenchRun(basedir, workdir,
                                             node1_socket)
         result = sysbench.sanity_check(db)
-        utility_cmd.check_testcase(result, "Sysbench run sanity check")
-        result = sysbench.sysbench_custom_table(db)
-        utility_cmd.check_testcase(result, "Sysbench data load")
+        for table_count in tables:
+            utility_cmd.check_testcase(result, "Sysbench run sanity check")
+            result = sysbench.sysbench_cleanup(db, table_count, table_count, sysbench_table_size)
+            utility_cmd.check_testcase(result, "Sysbench data cleanup (threads : " + str(table_count) + ")")
+            result = sysbench.sysbench_load(db, table_count, table_count, sysbench_table_size)
+            utility_cmd.check_testcase(result, "Sysbench data load (threads : " + str(table_count) + ")")
+            for thread in threads:
+                sysbench.sysbench_oltp_read_write(db, table_count, thread, sysbench_table_size, sysbench_run_time)
+                time.sleep(5)
+                if int(version) < int("080000"):
+                    checksum.data_consistency(db)
+                else:
+                    result = utility_cmd.check_table_count(basedir, db, node1_socket, node2_socket)
+                    utility_cmd.check_testcase(result, "Checksum run for DB: " + db )
 
 
-print("\nPXC sysbench customized data load test")
+print("\nPXC sysbench load test")
 print("------------------------")
 sysbench_loadtest = SysbenchLoadTest()
 sysbench_loadtest.start_pxc()

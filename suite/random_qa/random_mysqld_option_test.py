@@ -33,9 +33,6 @@ node = config['config']['node']
 user = config['config']['user']
 socket = config['config']['node1_socket']
 pt_basedir = config['config']['pt_basedir']
-sysbench_user = config['sysbench']['sysbench_user']
-sysbench_pass = config['sysbench']['sysbench_pass']
-sysbench_db = config['sysbench']['sysbench_db']
 sysbench_table_size = 10000
 sysbench_run_time = 100
 
@@ -66,9 +63,7 @@ class RandomMySQLDOptionQA:
 
     def data_load(self, socket, db):
         # Sysbench data load
-        sysbench = sysbench_run.SysbenchRun(basedir, workdir, parent_dir,
-                                            sysbench_user, sysbench_pass,
-                                            socket)
+        sysbench = sysbench_run.SysbenchRun(basedir, workdir, socket)
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
         result = sysbench.sysbench_load(db, 64, 64, sysbench_table_size)
