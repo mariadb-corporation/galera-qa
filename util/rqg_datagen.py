@@ -17,16 +17,16 @@ utility_cmd = utility.Utility()
 
 
 class RQGDataGen:
-    def __init__(self, basedir, workdir, module, user):
+    def __init__(self, basedir, workdir, user):
         self.basedir = basedir
         self.workdir = workdir
-        self.module = parent_dir + '/randgen/conf/' + module
         self.user = user
 
-    def initiate_rqg(self, db, socket):
+    def initiate_rqg(self, module, db, socket):
         """ Method to initiate RQD data load against
             Percona XtraDB cluster.
         """
+        module = parent_dir + '/randgen/conf/' + module
         master_port = self.basedir + "/bin/mysql --user=root --socket=" + socket + \
             ' -Bse"select @@port" 2>&1'
         port = os.popen(master_port).read().rstrip()
@@ -35,17 +35,26 @@ class RQGDataGen:
             ';create database ' + db + ';" 2>&1'
         os.system(create_db)
         os.chdir(parent_dir + '/randgen')
-        if not os.path.exists(self.module):
-            print(self.module + ' does not exist in RQG')
+        if not os.path.exists(module):
+            print(module + ' does not exist in RQG')
             exit(1)
-        for file in os.listdir(self.module):
+        for file in os.listdir(module):
             if file.endswith(".zz"):
                 rqg_command = "perl " + parent_dir + "/randgen/gendata.pl " \
                               "--dsn=dbi:mysql:host=127.0.0.1:port=" \
                               + port + ":user=" + self.user + \
                               ":database=" + db + " --spec=" + \
-                              self.module + '/' + file + " > " + \
+                              module + '/' + file + " > " + \
                               self.workdir + "/log/rqg_run.log 2>&1"
                 result = os.system(rqg_command)
-                utility_cmd.check_testcase(result, "RQG data load")
+                utility_cmd.check_testcase(result, "RQG data load (DB: " + db + ")")
+
+    def pxc_dataload(self, socket):
+        """
+            RQG data load for PXC Server
+        """
+        rqg_config = ['galera', 'transactions', 'partitioning', 'gis', 'runtime', 'temporal']
+        for config in rqg_config:
+            self.initiate_rqg(config, 'db_' + config, socket)
+
 

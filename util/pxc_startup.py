@@ -70,6 +70,8 @@ class StartCluster:
             version = utility_cmd.version_check(self.basedir)
             if int(version) < int("080000"):
                 cnf_name.write('wsrep_sst_auth=root:\n')
+            if int(version) < int("050700"):
+                cnf_name.write('log_error_verbosity=3\n')
             cnf_name.write('port=' + str(port_list[i - 1]) + '\n')
             if wsrep_extra == "ssl" or wsrep_extra == "encryption":
                 cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
@@ -90,6 +92,7 @@ class StartCluster:
                 shutil.copy(self.scriptdir + '/conf/encryption.cnf', self.workdir + '/conf/encryption.cnf')
                 cnf_name.write('!include ' + self.workdir + '/conf/encryption.cnf\n')
                 cnf_name.write('!include ' + self.workdir + '/conf/ssl.cnf\n')
+                cnf_name.write('pxc_encrypt_cluster_traffic = ON\n')
             cnf_name.close()
         return 0
 
@@ -175,6 +178,11 @@ class StartCluster:
                         "delete from mysql.user where user='';" \
                         '" > /dev/null 2>&1'
                     os.system(query)
+                    enable_streaming_replication = self.basedir + '/bin/mysql --user=root ' \
+                        '--socket=/tmp/node' + str(i) + '.sock -Bse"' \
+                        "set global wsrep_trx_fragment_unit='statements'; " \
+                        'set global wsrep_trx_fragment_size=1;"> /dev/null 2>&1'
+                    #os.system(enable_streaming_replication)
                     break  # break the loop if mysqld is running
 
         return int(ping_status)

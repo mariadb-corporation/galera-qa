@@ -11,10 +11,9 @@ Basic configuration details are available in [config.ini](./config.ini) file. We
 
 config.ini
 ```
-[config]
 workdir = /dev/shm/qa
 basedir = /dev/shm/qa/Percona-XtraDB-Cluster-5.7.25-rel28-31.35.1.Linux.x86_64.ssl100
-node = 2
+node = 3
 user = root
 node1_socket = /tmp/node1.sock
 node2_socket = /tmp/node2.sock
@@ -28,6 +27,14 @@ pt_basedir = /dev/shm/qa/percona-toolkit-3.0.10
 sysbench_user=sysbench
 sysbench_pass=sysbench
 sysbench_db=sbtest
+sysbench_normal_table_size = 1000
+sysbench_load_test_table_size = 100000
+sysbench_random_load_table_size = 1000
+sysbench_random_load_run_time = 100
+sysbench_oltp_test_table_size = 10000000
+sysbench_read_qa_table_size = 100000
+sysbench_customized_dataload_table_size = 10000
+sysbench_run_time = 100
 
 [upgrade]
 pxc_lower_base = /dev/shm/qa/Percona-XtraDB-Cluster-5.6.44-rel86.0-28.34-debug..Linux.x86_64
@@ -49,15 +56,8 @@ optional arguments:
   -h, --help            show this help message and exit
   -t TESTNAME, --testname TESTNAME
                         Specify test file location
-  -s {loadtest,replication,correctness,ssl,upgrade,all}, --suite {loadtest,replication,correctness,ssl,upgrade,all}
+  -s {sysbench_loadtest,replication,correctness,ssl,upgrade,random_qa,galera_sr}, --suite {sysbench_loadtest,replication,correctness,ssl,upgrade,random_qa,galera_sr}
                         Specify suite name
   -e, --encryption-run  This option will enable encryption options
-  --sysbench_threads SYSBENCH_THREADS
-                        Specify sysbench threads. sysbench table count will be
-                        based on this value
-  --sysbench_table_size SYSBENCH_TABLE_SIZE
-                        Specify sysbench table size
-  --sysbench_run_time SYSBENCH_RUN_TIME
-                        Specify sysbench oltp run time (in sec)
 
 ```

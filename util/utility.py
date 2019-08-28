@@ -3,6 +3,7 @@ import os
 import sys
 import shutil
 import subprocess
+import random
 from distutils.spawn import find_executable
 
 
@@ -12,10 +13,14 @@ class Utility:
         print(now + ' ' + f'{text:100}' + '[ ' + status + ' ]')
 
     def check_testcase(self, result, testcase):
+        now = datetime.now().strftime("%H:%M:%S ")
         if result == 0:
-            self.printit(testcase, u'\u2714')
+            print(now + ' ' + f'{testcase:100}' + '[ \u2713 ]')
+            #self.printit(testcase, u'\u2713')
         else:
-            self.printit(testcase, u'\u2718')
+            print(now + ' ' + f'{testcase:100}' + '[ \u2717 ]')
+            #self.printit(testcase, u'\u2718')
+            exit(1)
 
     def check_python_version(self):
         """ Check python version. Raise error if the
@@ -93,24 +98,41 @@ class Utility:
         os.chdir(cwd)
         return 0
 
-    def check_table_count(self, basedir, db, table, socket1, socket2):
+    def create_custom_cnf(self, parent_dir, workdir ):
+        """ Add random mysqld options
+        """
+        with open(parent_dir + '/conf/mysql_options_pxc57.txt') as f:
+            lines = random.sample(f.readlines(), 10)
+        cnf_name = open(workdir + '/conf/custom.cnf', 'a+')
+        cnf_name.write('\n')
+        for x in range(len(lines)):
+            cnf_name.write(lines[x])
+        cnf_name.close()
+        return 0
+
+    def check_table_count(self, basedir, db, socket1, socket2):
         """ This method will compare the table
             count between two nodes
         """
-        query = basedir + '/bin/mysql -uroot --socket=' + \
-            socket1 + ' -Bse"checksum table ' + \
-            db + '.' + table + ';"'
-        table_count_node1 = os.popen(query).read().rstrip()
-        query = basedir + '/bin/mysql -uroot --socket=' + \
-            socket2 + ' -Bse"checksum table ' + \
-            db + '.' + table + ';"'
-        table_count_node2 = os.popen(query).read().rstrip()
-        if table_count_node1 == table_count_node2:
-            return 0
-        else:
-            return 1
+        query = basedir + '/bin/mysql -uroot ' + db + ' --socket=' + \
+            socket1 + ' -Bse"show tables;"'
+        tables = os.popen(query).read().rstrip()
+        for table in tables.split('\n'):
+            query = basedir + '/bin/mysql -uroot --socket=' + \
+                socket1 + ' -Bse"checksum table ' + \
+                db + '.' + table + ';"'
+            table_count_node1 = os.popen(query).read().rstrip()
+            query = basedir + '/bin/mysql -uroot --socket=' + \
+                socket2 + ' -Bse"checksum table ' + \
+                db + '.' + table + ';"'
+            table_count_node2 = os.popen(query).read().rstrip()
+            if table_count_node1 == table_count_node2:
+                return 0
+            else:
+                print("\tTable(" + db + '.' + table + " ) checksum is different")
+                return 1
 
-    def pxb_sanity_check(self, workdir):
+    def pxb_sanity_check(self, basedir, workdir, socket):
         """ This method will check pxb installation and
             cleanup backup directory
         """
@@ -122,12 +144,29 @@ class Utility:
             os.mkdir(workdir + '/backup')
         else:
             os.mkdir(workdir + '/backup')
+        version = self.version_check(basedir)
+        if int(version) < int("050700"):
+            create_user = basedir + "/bin/mysql --user=root " \
+                "--socket=" + socket + ' -e"create user xbuser' \
+                "@'localhost' identified by 'test" \
+                "';grant all on *.* to xbuser@'localhost'" \
+                ';" > /dev/null 2>&1'
+        else:
+            create_user = basedir + "/bin/mysql --user=root " \
+                "--socket=" + socket + ' -e"create user xbuser' \
+                "@'localhost' identified with  mysql_native_password by 'test" \
+                "';grant all on *.* to xbuser@'localhost'" \
+                ';" > /dev/null 2>&1'
+        query_status = os.system(create_user)
+        if int(query_status) != 0:
+            print("ERROR!: Could not create xtrabackup user user : xbuser")
+            exit(1)
 
     def pxb_backup(self, workdir, source_datadir, socket, dest_datadir=None):
         """ This method will backup PXB/PS data directory
             with the help of xtrabackup.
         """
-        backup_cmd = "xtrabackup --user=root --password='' --backup " \
+        backup_cmd = "xtrabackup --user=xbuser --password='test' --backup " \
                      "--target-dir=" + workdir + "/backup -S " + \
                      socket + " --datadir=" + source_datadir + " --lock-ddl >" + \
                      workdir + "/log/xb_backup.log 2>&1"
@@ -152,9 +191,9 @@ class Utility:
         version = self.version_check(basedir)
         if int(version) < int("050700"):
             io_status = basedir + "/bin/mysql --user=root --socket=" + \
-                         socket + ' -Bse"SHOW SLAVE STATUS\G" 2>&1 ' \
-                                  '| grep "Slave_IO_Running:" ' \
-                                  "| awk '{ print $2 }'"
+                socket + ' -Bse"SHOW SLAVE STATUS\G" 2>&1 ' \
+                '| grep "Slave_IO_Running:" ' \
+                "| awk '{ print $2 }'"
             io_status = os.popen(io_status).read().rstrip()
             if io_status == "Yes":
                 check_slave_status = 'ON'
@@ -162,9 +201,9 @@ class Utility:
                 check_slave_status = 'OFF'
         else:
             check_slave_status = basedir + "/bin/mysql --user=root --socket=" + \
-                                 socket + ' -Bse"SELECT SERVICE_STATE ' \
-                                          'FROM performance_schema.replication_connection_status' \
-                                          " where channel_name='" + channel + "'" + '" 2>&1'
+                socket + ' -Bse"SELECT SERVICE_STATE ' \
+                'FROM performance_schema.replication_connection_status' \
+                " where channel_name='" + channel + "'" + '" 2>&1'
             check_slave_status = os.popen(check_slave_status).read().rstrip()
         if check_slave_status != 'ON':
             self.check_testcase(1, node + ": IO thread slave status")
@@ -182,9 +221,9 @@ class Utility:
         version = self.version_check(basedir)
         if int(version) < int("050700"):
             sql_status = basedir + "/bin/mysql --user=root --socket=" + \
-                                 socket + ' -Bse"SHOW SLAVE STATUS\G" 2>&1 ' \
-                                 '| grep "Slave_SQL_Running:" ' \
-                                 "| awk '{ print $2 }'"
+                socket + ' -Bse"SHOW SLAVE STATUS\G" 2>&1 ' \
+                '| grep "Slave_SQL_Running:" ' \
+                "| awk '{ print $2 }'"
             sql_status = os.popen(sql_status).read().rstrip()
             if sql_status == "Yes":
                 check_slave_status = 'ON'

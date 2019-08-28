@@ -15,15 +15,12 @@ def main():
     scriptdir = os.path.dirname(os.path.realpath(__file__))
     parser = argparse.ArgumentParser(prog='PXC QA Framework', usage='%(prog)s [options]')
     parser.add_argument('-t', '--testname', help='Specify test file location')
-    parser.add_argument('-s', '--suite', default='all',
-                        choices=['loadtest', 'replication', 'correctness', 'ssl', 'upgrade', 'all'],
+    parser.add_argument('-s', '--suite', default='replication',
+                        choices=['sysbench_loadtest', 'replication', 'correctness', 'ssl', 'upgrade',
+                                 'random_qa', 'galera_sr'],
                         help='Specify suite name')
     parser.add_argument('-e', '--encryption-run', action='store_true',
                         help='This option will enable encryption options')
-    parser.add_argument('--sysbench_threads', default=2, help='Specify sysbench threads. sysbench '
-                                                              'table count will be based on this value')
-    parser.add_argument('--sysbench_table_size', default=1000, help='Specify sysbench table size')
-    parser.add_argument('--sysbench_run_time', default=10, help='Specify sysbench oltp run time (in sec)')
 
     args = parser.parse_args()
     if args.encryption_run is True:
@@ -35,46 +32,17 @@ def main():
     config = configparser.ConfigParser()
     config.read('config.ini')
 
-    if suite == 'replication':
+    if suite:
         if not os.path.exists(scriptdir + '/suite/replication'):
-            print('Suite ' + suite + '(' + scriptdir + '/suite/replication) does not exist')
+            print('Suite ' + suite + '(' + scriptdir + '/suite/' + suite + ') does not exist')
             exit(1)
-        for file in os.listdir(scriptdir + '/suite/replication'):
+        for file in os.listdir(scriptdir + '/suite/' + suite):
             if file.endswith(".py"):
-                os.system(scriptdir + '/suite/replication/' + file + ' ' + encryption)
-    elif suite == 'correctness':
-        if not os.path.exists(scriptdir + '/suite/correctness'):
-            print('Suite ' + suite + '(' + scriptdir + '/suite/correctness) does not exist')
-            exit(1)
-        for file in os.listdir(scriptdir + '/suite/correctness'):
-            if file.endswith(".py"):
-                os.system(scriptdir + '/suite/correctness/' + file + ' ' + encryption)
-    elif suite == 'ssl':
-        if not os.path.exists(scriptdir + '/suite/ssl'):
-            print('Suite ' + suite + '(' + scriptdir + '/suite/ssl) does not exist')
-            exit(1)
-        for file in os.listdir(scriptdir + '/suite/ssl'):
-            if file.endswith(".py"):
-                os.system(scriptdir + '/suite/ssl/' + file + ' ' + encryption)
-    elif suite == 'loadtest':
-        if not os.path.exists(scriptdir + '/suite/loadtest'):
-            print('Suite ' + suite + '(' + scriptdir + '/suite/loadtest) does not exist')
-            exit(1)
-        for file in os.listdir(scriptdir + '/suite/loadtest'):
-            if file.endswith(".py"):
-                os.system(scriptdir + '/suite/loadtest/' + file + ' ' + encryption)
-    elif suite == 'upgrade':
-        if not os.path.exists(scriptdir + '/suite/upgrade'):
-            print('Suite ' + suite + '(' + scriptdir + '/suite/upgrade) does not exist')
-            exit(1)
-        for file in os.listdir(scriptdir + '/suite/upgrade'):
-            if file.endswith(".py"):
-                os.system(scriptdir + '/suite/upgrade/' + file + ' ' + encryption)
+                os.system(scriptdir + '/suite/' + suite + '/' + file + ' ' + encryption)
 
     if test_name is not None:
         if not os.path.isfile(test_name):
             print(test_name + ' does not exist')
-            return 1
             exit(1)
         else:
             os.system(scriptdir + '/' + test_name + ' ' + encryption)

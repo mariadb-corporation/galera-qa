@@ -35,20 +35,17 @@ pxc_lower_base = config['upgrade']['pxc_lower_base']
 pxc_upper_base = config['upgrade']['pxc_upper_base']
 node = '3'
 user = config['config']['user']
-socket = config['config']['node1_socket']
+node1_socket = config['config']['node1_socket']
+node2_socket = config['config']['node2_socket']
 pt_basedir = config['config']['pt_basedir']
-sysbench_user = config['sysbench']['sysbench_user']
-sysbench_pass = config['sysbench']['sysbench_pass']
-sysbench_db = config['sysbench']['sysbench_db']
 sysbench_threads = 10
 sysbench_table_size = 1000
 sysbench_run_time = 1000
 
-
 class PXCUpgrade:
     def startup(self):
         # Start PXC cluster for upgrade test
-        dbconnection_check = db_connection.DbConnection(user, socket)
+        dbconnection_check = db_connection.DbConnection(user, node1_socket)
         server_startup = pxc_startup.StartCluster(parent_dir, workdir, pxc_lower_base, int(node))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
@@ -67,18 +64,25 @@ class PXCUpgrade:
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")
 
-    def sysbench_run(self, socket, db):
+    def sysbench_run(self, node1_socket, db):
         # Sysbench dataload for consistency test
         sysbench = sysbench_run.SysbenchRun(pxc_lower_base, workdir,
-                                            sysbench_user, sysbench_pass,
-                                            socket, sysbench_threads,
-                                            sysbench_table_size, db,
-                                            sysbench_threads, sysbench_run_time)
+                                            node1_socket)
 
-        result = sysbench.sanity_check()
+        result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
-        result = sysbench.sysbench_load()
+        result = sysbench.sysbench_load(db, sysbench_threads, sysbench_threads, sysbench_table_size)
         utility_cmd.check_testcase(result, "Sysbench data load")
+        version = utility_cmd.version_check(pxc_lower_base)
+        if int(version) > int("050700"):
+            if encryption == 'YES':
+                for i in range(1, sysbench_threads + 1):
+                    encrypt_table = pxc_lower_base + '/bin/mysql --user=root ' \
+                        '--socket=/tmp/node1.sock -e "' \
+                        ' alter table ' + db + '.sbtest' + str(i) + \
+                        " encryption='Y'" \
+                        '"; > /dev/null 2>&1'
+                    os.system(encrypt_table)
 
     def startup_check(self, cluster_node):
         """ This method will check the node
@@ -100,12 +104,15 @@ class PXCUpgrade:
             latest version and perform
             table checksum.
         """
-        self.sysbench_run(socket, 'test')
+        self.sysbench_run(node1_socket, 'test')
         for i in range(int(node), 0, -1):
             shutdown_node = pxc_lower_base + '/bin/mysqladmin --user=root --socket=/tmp/node' + str(i) + \
                 '.sock shutdown > /dev/null 2>&1'
             result = os.system(shutdown_node)
             utility_cmd.check_testcase(result, "Shutdown cluster node" + str(i) + " for upgrade testing")
+            version = utility_cmd.version_check(pxc_upper_base)
+            if int(version) > int("080000"):
+                os.system("sed -i '/wsrep_sst_auth=root:/d' " + workdir + '/conf/node' + str(i) + '.cnf')
             startup_cmd = pxc_upper_base + '/bin/mysqld --defaults-file=' + \
                 workdir + '/conf/node' + str(i) + '.cnf --datadir=' + \
                 workdir + '/node' + str(i) + ' --basedir=' + pxc_upper_base + \
@@ -144,18 +151,23 @@ query = pxc_upper_base + "/bin/mysqld --version 2>&1 | grep -oe '[0-9]\.[0-9][\.
 upper_version = os.popen(query).read().rstrip()
 print("\nPXC Upgrade test : Upgrading from PXC-" + lower_version + " to PXC-" + upper_version)
 print("------------------------------------------------------------------------------")
-checksum = table_checksum.TableChecksum(pt_basedir, pxc_upper_base, workdir, node, socket)
 upgrade_qa = PXCUpgrade()
 upgrade_qa.startup()
-rqg_dataload = rqg_datagen.RQGDataGen(pxc_lower_base, workdir,
-                                      'galera', user)
-rqg_dataload.initiate_rqg('rqg_galera', socket)
-rqg_dataload = rqg_datagen.RQGDataGen(pxc_lower_base, workdir,
-                                      'transactions', user)
-rqg_dataload.initiate_rqg('rqg_transactions', socket)
-rqg_dataload = rqg_datagen.RQGDataGen(pxc_lower_base, workdir,
-                                      'partitioning', user)
-rqg_dataload.initiate_rqg('rqg_partitioning', socket)
+rqg_dataload = rqg_datagen.RQGDataGen(pxc_lower_base, workdir, user)
+rqg_dataload.pxc_dataload(node1_socket)
 upgrade_qa.upgrade()
-checksum.sanity_check()
-checksum.data_consistency('test,rqg_galera,rqg_transactions,rqg_partitioning')
+
+version = utility_cmd.version_check(pxc_upper_base)
+if int(version) < int("080000"):
+    checksum = table_checksum.TableChecksum(pt_basedir, pxc_upper_base, workdir, node, node1_socket)
+    checksum.sanity_check()
+    checksum.data_consistency('test,db_galera,db_transactions,db_partitioning')
+else:
+    result = utility_cmd.check_table_count(pxc_upper_base, 'test', node1_socket, node2_socket)
+    utility_cmd.check_testcase(result, "Checksum run for DB: test")
+    result = utility_cmd.check_table_count(pxc_upper_base, 'db_galera', node1_socket, node2_socket)
+    utility_cmd.check_testcase(result, "Checksum run for DB: db_galera")
+    result = utility_cmd.check_table_count(pxc_upper_base, 'db_transactions', node1_socket, node2_socket)
+    utility_cmd.check_testcase(result, "Checksum run for DB: db_transactions")
+    result = utility_cmd.check_table_count(pxc_upper_base, 'db_partitioning', node1_socket, node2_socket)
+    utility_cmd.check_testcase(result, "Checksum run for DB: db_partitioning")

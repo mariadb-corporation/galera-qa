@@ -38,9 +38,6 @@ node1_socket = config['config']['node1_socket']
 ps1_socket = config['config']['ps1_socket']
 ps2_socket = config['config']['ps2_socket']
 pt_basedir = config['config']['pt_basedir']
-sysbench_user = config['sysbench']['sysbench_user']
-sysbench_pass = config['sysbench']['sysbench_pass']
-sysbench_db = config['sysbench']['sysbench_db']
 sysbench_threads = 10
 sysbench_table_size = 1000
 sysbench_run_time = 10
@@ -89,7 +86,7 @@ class SetupReplication:
             This method will also do
             sanity check before backup
         """
-        utility_cmd.pxb_sanity_check(workdir)
+        utility_cmd.pxb_sanity_check(basedir, workdir, node1_socket)
         if os.path.exists(workdir + '/psnode1'):
             shutil.rmtree(workdir + '/psnode1')
         utility_cmd.pxb_backup(workdir, workdir + '/node1', node1_socket, workdir + '/psnode1')
@@ -108,8 +105,12 @@ class SetupReplication:
         server_startup = ps_startup.StartPerconaServer(parent_dir, workdir, basedir, int(node))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "PS: Startup sanity check")
-        result = server_startup.create_config()
-        utility_cmd.check_testcase(result, "PS: Configuration file creation")
+        if encryption == 'YES':
+            result = server_startup.create_config('encryption')
+            utility_cmd.check_testcase(result, "PS: Configuration file creation")
+        else:
+            result = server_startup.create_config()
+            utility_cmd.check_testcase(result, "PS: Configuration file creation")
         result = server_startup.add_myextra_configuration(script_dir + '/replication.cnf')
         utility_cmd.check_testcase(result, "PS: Adding custom configuration")
         result = server_startup.start_server(my_extra)
@@ -120,15 +121,20 @@ class SetupReplication:
     def sysbench_run(self, socket, db, node):
         # Sysbench data load
         sysbench = sysbench_run.SysbenchRun(basedir, workdir,
-                                            sysbench_user, sysbench_pass,
-                                            socket, sysbench_threads,
-                                            sysbench_table_size, db,
-                                            sysbench_threads, sysbench_run_time)
+                                            socket)
 
-        result = sysbench.sanity_check()
+        result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, node + ": Replication QA sysbench run sanity check")
-        result = sysbench.sysbench_load()
+        result = sysbench.sysbench_load(db, sysbench_threads, sysbench_threads, sysbench_table_size)
         utility_cmd.check_testcase(result, node + ": Replication QA sysbench data load")
+        if encryption == 'YES':
+            for i in range(1, sysbench_threads + 1):
+                encrypt_table = basedir + '/bin/mysql --user=root ' \
+                    '--socket=' + socket + ' -e "' \
+                    ' alter table ' + db + '.sbtest' + str(i) + \
+                    " encryption='Y'" \
+                    '"; > /dev/null 2>&1'
+                os.system(encrypt_table)
 
     def data_load(self, db, socket, node):
         # Random data load
@@ -146,12 +152,14 @@ class SetupReplication:
                 socket + ' ' + db + ' -f <  /tmp/dataload.sql >/dev/null 2>&1'
             result = os.system(data_load_query)
             utility_cmd.check_testcase(result, node + ": Replication QA sample data load")
+        # Add prepared statement SQLs
+        create_ps = self.basedir + "/bin/mysql --user=root --socket=" + \
+                    socket + ' < ' + parent_dir + '/util/prepared_statements.sql > /dev/null 2>&1'
+        result = os.system(create_ps)
+        utility_cmd.check_testcase(result, node + ": Replication QA prepared statements dataload")
 
 
 replication_run = SetupReplication(basedir, workdir, node)
-rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir,
-                                      'replication', user)
-
 print("\nSetup replication using Percona Xtrabackup")
 print("------------------------------------------")
 replication_run.start_pxc()

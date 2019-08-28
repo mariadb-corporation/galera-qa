@@ -36,20 +36,17 @@ node = config['config']['node']
 node1_socket = config['config']['node1_socket']
 node2_socket = config['config']['node2_socket']
 pt_basedir = config['config']['pt_basedir']
-sysbench_user = config['sysbench']['sysbench_user']
-sysbench_pass = config['sysbench']['sysbench_pass']
-sysbench_db = config['sysbench']['sysbench_db']
 sysbench_threads = 10
 sysbench_table_size = 1000
 sysbench_run_time = 10
 
 
 class SSLCheck:
-    def __init__(self, basedir, workdir, user, socket, node):
+    def __init__(self, basedir, workdir, user, node1_socket, node):
         self.workdir = workdir
         self.basedir = basedir
         self.user = user
-        self.socket = socket
+        self.socket = node1_socket
         self.node = node
 
     def run_query(self, query):
@@ -80,31 +77,36 @@ class SSLCheck:
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")
 
-    def sysbench_run(self, socket, db):
+    def sysbench_run(self, node1_socket, db):
         sysbench = sysbench_run.SysbenchRun(basedir, workdir,
-                                            sysbench_user, sysbench_pass,
-                                            socket, sysbench_threads,
-                                            sysbench_table_size, db,
-                                            sysbench_threads, sysbench_run_time)
+                                            node1_socket)
 
-        result = sysbench.sanity_check()
+        result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "SSL QA sysbench run sanity check")
-        result = sysbench.sysbench_load()
+        result = sysbench.sysbench_load(db, sysbench_threads, sysbench_threads, sysbench_table_size)
         utility_cmd.check_testcase(result, "SSL QA sysbench data load")
+        if encryption == 'YES':
+            for i in range(1, sysbench_threads + 1):
+                encrypt_table = basedir + '/bin/mysql --user=root ' \
+                    '--socket=/tmp/node1.sock -e "' \
+                    ' alter table ' + db + '.sbtest' + str(i) + \
+                    " encryption='Y'" \
+                    '"; > /dev/null 2>&1'
+                os.system(encrypt_table)
 
-    def data_load(self, db, socket):
+    def data_load(self, db, node1_socket):
         if os.path.isfile(parent_dir + '/util/createsql.py'):
             generate_sql = createsql.GenerateSQL('/tmp/dataload.sql', 1000)
             generate_sql.OutFile()
             generate_sql.CreateTable()
             sys.stdout = sys.__stdout__
             create_db = self.basedir + "/bin/mysql --user=root --socket=" + \
-                socket + ' -Bse"drop database if exists ' + db + \
+                node1_socket + ' -Bse"drop database if exists ' + db + \
                 ';create database ' + db + ';" 2>&1'
             result = os.system(create_db)
             utility_cmd.check_testcase(result, "SSL QA sample DB creation")
             data_load_query = self.basedir + "/bin/mysql --user=root --socket=" + \
-                socket + ' ' + db + ' -f <  /tmp/dataload.sql >/dev/null 2>&1'
+                node1_socket + ' ' + db + ' -f <  /tmp/dataload.sql >/dev/null 2>&1'
             result = os.system(data_load_query)
             utility_cmd.check_testcase(result, "SSL QA sample data load")
 
@@ -113,13 +115,17 @@ print("\nPXC SSL test")
 print("--------------")
 ssl_run = SSLCheck(basedir, workdir, user, node1_socket, node)
 ssl_run.start_pxc()
-ssl_run.sysbench_run(node1_socket, 'test')
+ssl_run.sysbench_run(node1_socket, 'sbtest')
 ssl_run.data_load('pxc_dataload_db', node1_socket)
-rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir, 'examples', user)
-rqg_dataload.initiate_rqg('test', node1_socket)
-result = utility_cmd.check_table_count(basedir, 'test', 'sbtest1', node1_socket, node2_socket)
-utility_cmd.check_testcase(result, "SSL QA table test.sbtest1 checksum between nodes")
-utility_cmd.check_testcase(result, "SSL QA table pxc_dataload_db.t1 checksum between nodes")
-checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, node1_socket)
-checksum.sanity_check()
-checksum.data_consistency('test,pxc_dataload_db')
+rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir, user)
+rqg_dataload.initiate_rqg('examples', 'test', node1_socket)
+version = utility_cmd.version_check(basedir)
+if int(version) < int("080000"):
+    checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, node1_socket)
+    checksum.sanity_check()
+    checksum.data_consistency('test,pxc_dataload_db')
+else:
+    result = utility_cmd.check_table_count(basedir, 'test', node1_socket, node2_socket)
+    utility_cmd.check_testcase(result, "Checksum run for DB: test")
+    result = utility_cmd.check_table_count(basedir, 'pxc_dataload_db', node1_socket, node2_socket)
+    utility_cmd.check_testcase(result, "Checksum run for DB: pxc_dataload_db")
