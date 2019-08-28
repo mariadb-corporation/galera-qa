@@ -77,8 +77,9 @@ class SysbenchLoadTest:
         utility_cmd.check_testcase(result, "Sysbench data load")
 
 
+print("----------------------------------------")
 print("\nPXC sysbench customized data load test")
-print("------------------------")
+print("----------------------------------------")
 sysbench_loadtest = SysbenchLoadTest()
 sysbench_loadtest.start_pxc()
 sysbench_loadtest.sysbench_run(node1_socket, 'test')

@@ -85,7 +85,8 @@ class SysbenchLoadTest:
                 utility_cmd.check_testcase(result, "Checksum run for DB: " + db)
 
 
-print("\nPXC sysbench load test")
+print("------------------------")
+print("\nPXC sysbench oltp test")
 print("------------------------")
 sysbench_loadtest = SysbenchLoadTest()
 sysbench_loadtest.start_pxc()

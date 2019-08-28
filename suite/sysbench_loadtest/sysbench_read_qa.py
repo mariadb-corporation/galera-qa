@@ -84,8 +84,9 @@ class SysbenchLoadTest:
                 utility_cmd.check_testcase(result, "Checksum run for DB: " + db)
 
 
-print("\nPXC sysbench load test")
-print("------------------------")
+print("-----------------------------")
+print("\nPXC sysbench read only test")
+print("-----------------------------")
 sysbench_loadtest = SysbenchLoadTest()
 sysbench_loadtest.start_pxc()
 sysbench_loadtest.sysbench_run(node1_socket, 'test')
