@@ -1,10 +1,13 @@
-from datetime import datetime
+#!/usr/bin/env python3
 import os
-import sys
+import random
 import shutil
 import subprocess
-import random
+import sys
+from datetime import datetime
 from distutils.spawn import find_executable
+from util import db_connection
+from util import pxc_startup
 
 
 class Utility:
@@ -296,3 +299,23 @@ class Utility:
         result = os.system(invoke_slave)
         self.check_testcase(result, "Initiated replication")
 
+    def start_pxc(self, parent_dir, workdir, basedir, node, socket, user, encryption, my_extra):
+        # Start PXC cluster
+        dbconnection_check = db_connection.DbConnection(user, socket)
+        server_startup = pxc_startup.StartCluster(parent_dir, workdir, basedir, int(node))
+        result = server_startup.sanity_check()
+        self.check_testcase(result, "Startup sanity check")
+        if encryption == 'YES':
+            result = self.create_ssl_certificate(workdir)
+            self.check_testcase(result, "SSL Configuration")
+            result = server_startup.create_config('encryption')
+            self.check_testcase(result, "Configuration file creation")
+        else:
+            result = server_startup.create_config('none')
+            self.check_testcase(result, "Configuration file creation")
+        result = server_startup.initialize_cluster()
+        self.check_testcase(result, "Initializing cluster")
+        result = server_startup.start_cluster('--max-connections=1500 ' + my_extra)
+        self.check_testcase(result, "Cluster startup")
+        result = dbconnection_check.connection_check()
+        self.check_testcase(result, "Database connection")

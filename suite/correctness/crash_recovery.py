@@ -198,10 +198,10 @@ print('Crash recovery QA using multiple restart')
 print('----------------------------------------')
 crash_recovery_run.start_pxc()
 crash_recovery_run.crash_recovery('multi_restart')
-if int(version) < int("080000"):
-    checksum.sanity_check()
-    checksum.data_consistency('test')
-else:
-    result = utility_cmd.check_table_count(basedir, 'test', node1_socket, node2_socket)
-    utility_cmd.check_testcase(result, "Checksum run for DB: test")
+# if int(version) < int("080000"):
+#    checksum.sanity_check()
+#    checksum.data_consistency('test')
+# else:
+result = utility_cmd.check_table_count(basedir, 'test', node1_socket, node2_socket)
+utility_cmd.check_testcase(result, "Checksum run for DB: test")
 

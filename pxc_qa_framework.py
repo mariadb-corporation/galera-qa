@@ -15,7 +15,7 @@ def main():
     scriptdir = os.path.dirname(os.path.realpath(__file__))
     parser = argparse.ArgumentParser(prog='PXC QA Framework', usage='%(prog)s [options]')
     parser.add_argument('-t', '--testname', help='Specify test file location')
-    parser.add_argument('-s', '--suite', default='replication',
+    parser.add_argument('-s', '--suite', default='',
                         choices=['sysbench_loadtest', 'replication', 'correctness', 'ssl', 'upgrade',
                                  'random_qa', 'galera_sr'],
                         help='Specify suite name')
@@ -37,8 +37,16 @@ def main():
             print('Suite ' + suite + '(' + scriptdir + '/suite/' + suite + ') does not exist')
             exit(1)
         for file in os.listdir(scriptdir + '/suite/' + suite):
+            print("Running " + suite + " QA framework")
             if file.endswith(".py"):
                 os.system(scriptdir + '/suite/' + suite + '/' + file + ' ' + encryption)
+    else:
+        print("Starting PXC QA framework")
+        for subdir, dirs, files in os.walk(scriptdir + '/suite'):
+            for file in files:
+                if file.endswith(".py"):
+                    print("Initiating testsuite: " + os.path.join(subdir, file))
+                    os.system(os.path.join(subdir, file + ' ' + encryption))
 
     if test_name is not None:
         if not os.path.isfile(test_name):

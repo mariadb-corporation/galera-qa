@@ -70,7 +70,7 @@ class StartCluster:
             version = utility_cmd.version_check(self.basedir)
             if int(version) < int("080000"):
                 cnf_name.write('wsrep_sst_auth=root:\n')
-            if int(version) < int("050700"):
+            if int(version) > int("050700"):
                 cnf_name.write('log_error_verbosity=3\n')
             cnf_name.write('port=' + str(port_list[i - 1]) + '\n')
             if wsrep_extra == "ssl" or wsrep_extra == "encryption":
@@ -145,6 +145,7 @@ class StartCluster:
         """ Method to start the cluster nodes. This method
             will also check the startup status.
         """
+        ping_status = ""
         if my_extra is None:
             my_extra = ''
         for i in range(1, self.node + 1):
