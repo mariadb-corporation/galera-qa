@@ -25,7 +25,8 @@ class StartPerconaServer:
             the availability of mysqld binary file.
         """
         # kill existing mysqld process
-        os.system("ps -ef | grep 'psnode' | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1")
+        os.system("ps -ef | grep '" + self.workdir + "/ps[0-9].cnf"
+                  " | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1")
         if not os.path.exists(self.workdir + '/log'):
             os.mkdir(self.workdir + '/log')
 
@@ -40,8 +41,8 @@ class StartPerconaServer:
     # This method will help us to check PS version
     def version_check(self):
         # Database version check
-        version_info = os.popen(self.basedir +
-                                "/bin/mysqld --version 2>&1 | grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1").read()
+        version_info = os.popen(self.basedir + "/bin/mysqld --version 2>&1 | "
+                                               "grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1").read()
         version = "{:02d}{:02d}{:02d}".format(int(version_info.split('.')[0]),
                                               int(version_info.split('.')[1]),
                                               int(version_info.split('.')[2]))
