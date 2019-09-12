@@ -72,7 +72,7 @@ class SysbenchRun:
 
     def sysbench_custom_oltp_load(self, db, table_count, thread, table_size):
         # Create sysbench table structure
-        result = self.sysbench_load(db, table_count, table_count, 0)
+        result = self.sysbench_load(db, table_count, table_count, 10000)
         utility_cmd.check_testcase(result, "Sysbench data load")
         rand_types = ['uniform', 'gaussian', 'special', 'pareto']
         delete_inserts = [10, 20, 30, 40, 50]
