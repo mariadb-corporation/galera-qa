@@ -121,10 +121,10 @@ chaosmonkey_qa = ChaosMonkeyQA()
 chaosmonkey_qa.startup()
 chaosmonkey_qa.multi_recovery_test()
 version = utility_cmd.version_check(basedir)
-#if int(version) < int("080000"):
+# if int(version) < int("080000"):
 #    checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, node1_socket)
 #    checksum.sanity_check()
 #    checksum.data_consistency('test')
-#else:
+# else:
 result = utility_cmd.check_table_count(basedir, 'test', node1_socket, node2_socket)
 utility_cmd.check_testcase(result, "Checksum run for DB: test")

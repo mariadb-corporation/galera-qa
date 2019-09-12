@@ -88,8 +88,9 @@ class SysbenchRun:
                 " --mysql-db=" + db + " " + SYSBENCH_DB_CONNECT + \
                 " --mysql-socket=" + self.socket + \
                 " --rand_type=" + rand_type + \
-                " --delete_inserts=" + str(delete_insert) + \
+                " --db-ps-mode=disable --delete_inserts=" + str(delete_insert) + \
                 " --index_updates=" + str(index_update) + \
+                " --time=" + str(10) + \
                 " --non_index_updates=" + str(non_index_update) + " run >" + \
                 self.workdir + "/log/sysbench_oltp_read_write.log"
             query_status = os.system(query)
@@ -125,6 +126,7 @@ class SysbenchRun:
                 " --simple_ranges=" + str(simple_range) + \
                 " --order_ranges=" + str(order_range) + \
                 " --point_selects=" + str(point_select) + \
+                " --time=" + str(10) + \
                 " run >" + self.workdir + "/log/sysbench_oltp_read_only.log"
             query_status = os.system(query)
             combination = "distinct_rng:" + str(distinct_range) + \
