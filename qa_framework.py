@@ -1,20 +1,21 @@
-#!/usr/bin/env python3.7
+#!/usr/bin/env python3
 # Created by Ramesh Sivaraman, Percona LLC.
-# PXC QA framework will help us to test Percona XtraDB Cluster.
+# QA framework will help us to test Percona Server and Percona XtraDB Cluster.
 
-import configparser
 import os
 import argparse
 
 
 def main():
-    """ This function will help us to run PXC QA scripts.
+    """ This function will help us to run PS/PXC QA scripts.
         We can initiate complete test suite or individual
         testcase using this function.
     """
     scriptdir = os.path.dirname(os.path.realpath(__file__))
-    parser = argparse.ArgumentParser(prog='PXC QA Framework', usage='%(prog)s [options]')
+    parser = argparse.ArgumentParser(prog='QA Framework', usage='%(prog)s [options]')
     parser.add_argument('-t', '--testname', help='Specify test file location')
+    parser.add_argument('-p', '--product', default='pxc', choices=['pxc', 'ps'],
+                        help='Specify product(PXC/PS) name to test')
     parser.add_argument('-s', '--suite', default='',
                         choices=['sysbench_loadtest', 'replication', 'correctness', 'ssl', 'upgrade',
                                  'random_qa', 'galera_sr'],
@@ -29,24 +30,15 @@ def main():
         encryption = ''
     test_name = args.testname
     suite = args.suite
-    config = configparser.ConfigParser()
-    config.read('config.ini')
 
     if suite:
-        if not os.path.exists(scriptdir + '/suite/replication'):
+        if not os.path.exists(scriptdir + '/suite/' + suite):
             print('Suite ' + suite + '(' + scriptdir + '/suite/' + suite + ') does not exist')
             exit(1)
+        print("Running " + suite + " QA framework")
         for file in os.listdir(scriptdir + '/suite/' + suite):
-            print("Running " + suite + " QA framework")
             if file.endswith(".py"):
                 os.system(scriptdir + '/suite/' + suite + '/' + file + ' ' + encryption)
-    else:
-        print("Starting PXC QA framework")
-        for subdir, dirs, files in os.walk(scriptdir + '/suite'):
-            for file in files:
-                if file.endswith(".py"):
-                    print("Initiating testsuite: " + os.path.join(subdir, file))
-                    os.system(os.path.join(subdir, file + ' ' + encryption))
 
     if test_name is not None:
         if not os.path.isfile(test_name):

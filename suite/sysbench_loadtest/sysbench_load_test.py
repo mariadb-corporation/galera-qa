@@ -26,9 +26,13 @@ else:
 
 
 class SysbenchLoadTest:
-    def start_pxc(self):
-        my_extra = "--innodb_buffer_pool_size=8G --innodb_log_file_size=1G"
-        utility_cmd.start_pxc(parent_dir, WORKDIR, BASEDIR, NODE, NODE1_SOCKET, USER, encryption, my_extra)
+    def start_server(self, node):
+        if SERVER == "pxc":
+            my_extra = "--innodb_buffer_pool_size=8G --innodb_log_file_size=1G"
+            utility_cmd.start_pxc(parent_dir, WORKDIR, BASEDIR, node, NODE1_SOCKET, USER, encryption, my_extra)
+        elif SERVER == "ps":
+            my_extra = "--innodb_buffer_pool_size=8G --innodb_log_file_size=1G"
+            utility_cmd.start_ps(parent_dir, WORKDIR, BASEDIR, node, PS1_SOCKET, USER, encryption, my_extra)
 
     def sysbench_run(self, socket, db):
         # Sysbench load test
@@ -59,5 +63,9 @@ print("-------------------------")
 print("\nPXC sysbench load test")
 print("------------------------")
 sysbench_loadtest = SysbenchLoadTest()
-sysbench_loadtest.start_pxc()
-sysbench_loadtest.sysbench_run(NODE1_SOCKET, 'test')
+if SERVER == "pxc":
+    sysbench_loadtest.start_server(NODE)
+    sysbench_loadtest.sysbench_run(NODE1_SOCKET, 'test')
+elif SERVER == "ps":
+    sysbench_loadtest.start_server(1)
+    sysbench_loadtest.sysbench_run(PS1_SOCKET, 'test')

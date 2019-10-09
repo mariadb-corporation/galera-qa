@@ -6,6 +6,7 @@ config.read('config.ini')
 
 WORKDIR = config['config']['workdir']
 BASEDIR = config['config']['basedir']
+SERVER = config['config']['server']
 NODE = config['config']['node']
 USER = config['config']['user']
 NODE1_SOCKET = config['config']['node1_socket']

@@ -7,8 +7,7 @@ import subprocess
 import random
 import shutil
 import time
-from util import utility
-utility_cmd = utility.Utility()
+from util import sanity
 
 
 class StartPerconaServer:
@@ -25,7 +24,7 @@ class StartPerconaServer:
             the availability of mysqld binary file.
         """
         # kill existing mysqld process
-        os.system("ps -ef | grep '" + self.workdir + "/conf/ps[0-9].cnf"
+        os.system("ps -ef | grep '" + self.workdir + "/conf/ps[0-9].cnf'"
                   " | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1")
         if not os.path.exists(self.workdir + '/log'):
             os.mkdir(self.workdir + '/log')
@@ -55,7 +54,7 @@ class StartPerconaServer:
             For customised configuration please add your values
             in conf/custom.conf.
         """
-        version = utility_cmd.version_check(self.basedir)
+        version = sanity.version_check(self.basedir)
         port = random.randint(21, 30) * 1000
         port_list = []
         for j in range(1, self.node + 1):

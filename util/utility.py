@@ -8,6 +8,7 @@ from datetime import datetime
 from distutils.spawn import find_executable
 from util import db_connection
 from util import pxc_startup
+from util import ps_startup
 
 
 class Utility:
@@ -319,3 +320,25 @@ class Utility:
         self.check_testcase(result, "Cluster startup")
         result = dbconnection_check.connection_check()
         self.check_testcase(result, "Database connection")
+
+    def start_ps(self, parent_dir, workdir, basedir, node, socket, user, encryption, my_extra):
+        """ Start Percona Server. This method will
+            perform sanity checks for PS startup
+        """
+        # Start PXC cluster for replication test
+        dbconnection_check = db_connection.DbConnection(user, socket)
+        server_startup = ps_startup.StartPerconaServer(parent_dir, workdir, basedir, int(node))
+        result = server_startup.sanity_check()
+        self.check_testcase(result, "PS: Startup sanity check")
+        if encryption == 'YES':
+            result = server_startup.create_config('encryption')
+            self.check_testcase(result, "PS: Configuration file creation")
+        else:
+            result = server_startup.create_config()
+            self.check_testcase(result, "PS: Configuration file creation")
+        result = server_startup.initialize_cluster()
+        self.check_testcase(result, "PS: Initializing cluster")
+        result = server_startup.start_server('--max-connections=1500 ' + my_extra)
+        self.check_testcase(result, "PS: Cluster startup")
+        result = dbconnection_check.connection_check()
+        self.check_testcase(result, "PS: Database connection")

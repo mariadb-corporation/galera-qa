@@ -7,8 +7,7 @@ import subprocess
 import random
 import shutil
 import time
-from util import utility
-utility_cmd = utility.Utility()
+from util import sanity
 
 
 class StartCluster:
@@ -67,7 +66,7 @@ class StartCluster:
                 add wsrep_sst_auth variable. This variable does not 
                 required starting from PXC-8.x 
             """
-            version = utility_cmd.version_check(self.basedir)
+            version = sanity.version_check(self.basedir)
             if int(version) < int("080000"):
                 cnf_name.write('wsrep_sst_auth=root:\n')
             if int(version) > int("050700"):
@@ -125,7 +124,7 @@ class StartCluster:
             if not os.path.isfile(self.workdir + '/conf/node' + str(i) + '.cnf'):
                 print('Could not find config file /conf/node' + str(i) + '.cnf')
                 exit(1)
-            version = utility_cmd.version_check(self.basedir)
+            version = sanity.version_check(self.basedir)
             if int(version) < int("050700"):
                 os.mkdir(self.workdir + '/node' + str(i))
                 initialize_node = self.basedir + '/scripts/mysql_install_db --no-defaults ' \
