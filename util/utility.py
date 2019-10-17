@@ -4,6 +4,7 @@ import random
 import shutil
 import subprocess
 import sys
+import time
 from datetime import datetime
 from distutils.spawn import find_executable
 from util import db_connection
@@ -166,25 +167,32 @@ class Utility:
             print("ERROR!: Could not create xtrabackup user user : xbuser")
             exit(1)
 
-    def pxb_backup(self, workdir, source_datadir, socket, dest_datadir=None):
-        """ This method will backup PXB/PS data directory
+    def pxb_backup(self, workdir, source_datadir, socket, encryption, dest_datadir=None):
+        """ This method will backup PXC/PS data directory
             with the help of xtrabackup.
         """
+        if encryption == 'YES':
+            backup_extra = " --keyring-file-data=" + source_datadir +  \
+                           "/keyring --early-plugin-load='keyring_file=keyring_file.so'"
+        else:
+            backup_extra = ''
         backup_cmd = "xtrabackup --user=xbuser --password='test' --backup " \
-                     "--target-dir=" + workdir + "/backup -S " + \
-                     socket + " --datadir=" + source_datadir + " --lock-ddl >" + \
+                     " --target-dir=" + workdir + "/backup -S" + \
+                     socket + " --datadir=" + source_datadir + " " + backup_extra + " --lock-ddl >" + \
                      workdir + "/log/xb_backup.log 2>&1"
         os.system(backup_cmd)
         prepare_backup = "xtrabackup --prepare --target_dir=" + \
-                         workdir + "/backup --lock-ddl >" + \
+                         workdir + "/backup " + backup_extra + " --lock-ddl >" + \
                          workdir + "/log/xb_backup_prepare.log 2>&1"
         os.system(prepare_backup)
         if dest_datadir is not None:
             copy_backup = "xtrabackup --copy-back --target-dir=" + \
                           workdir + "/backup --datadir=" + \
-                          dest_datadir + " --lock-ddl >" + \
+                          dest_datadir + " " + backup_extra + " --lock-ddl >" + \
                           workdir + "/log/copy_backup.log 2>&1"
             os.system(copy_backup)
+        if encryption == 'YES':
+            os.system("cp " + source_datadir + "/keyring " + dest_datadir)
 
     def replication_io_status(self, basedir, socket, node, channel):
         """ This will check replication IO thread

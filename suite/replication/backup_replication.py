@@ -89,7 +89,7 @@ class SetupReplication:
         utility_cmd.pxb_sanity_check(basedir, workdir, node1_socket)
         if os.path.exists(workdir + '/psnode1'):
             shutil.rmtree(workdir + '/psnode1')
-        utility_cmd.pxb_backup(workdir, workdir + '/node1', node1_socket, workdir + '/psnode1')
+        utility_cmd.pxb_backup(workdir, workdir + '/node1', node1_socket, encryption, workdir + '/psnode1')
 
     def start_slave(self, node, my_extra=None):
         """ Start Percona Server. This method will
