@@ -1,11 +1,11 @@
 #!/usr/bin/env python3.7
 import os
 import sys
-import configparser
 import argparse
 cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
+from config import *
 from util import pxc_startup
 from util import db_connection
 from util import sysbench_run
@@ -26,20 +26,6 @@ if args.encryption_run is True:
 else:
     encryption = 'NO'
 
-# Reading initial configuration
-config = configparser.ConfigParser()
-config.read(parent_dir + '/config.ini')
-workdir = config['config']['workdir']
-basedir = config['config']['basedir']
-user = config['config']['user']
-node = config['config']['node']
-node1_socket = config['config']['node1_socket']
-node2_socket = config['config']['node2_socket']
-pt_basedir = config['config']['pt_basedir']
-sysbench_threads = 10
-sysbench_table_size = 1000
-sysbench_run_time = 10
-
 
 class SSLCheck:
     def __init__(self, basedir, workdir, user, node1_socket, node):
@@ -58,11 +44,11 @@ class SSLCheck:
 
     def start_pxc(self):
         # Start PXC cluster for replication test
-        dbconnection_check = db_connection.DbConnection(user, self.socket)
-        server_startup = pxc_startup.StartCluster(parent_dir, workdir, basedir, int(node))
+        dbconnection_check = db_connection.DbConnection(USER, self.socket)
+        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
-        result = utility_cmd.create_ssl_certificate(workdir)
+        result = utility_cmd.create_ssl_certificate(WORKDIR)
         utility_cmd.check_testcase(result, "SSL Configuration")
         if encryption == 'YES':
             result = server_startup.create_config('encryption')
@@ -78,16 +64,17 @@ class SSLCheck:
         utility_cmd.check_testcase(result, "Database connection")
 
     def sysbench_run(self, node1_socket, db):
-        sysbench = sysbench_run.SysbenchRun(basedir, workdir,
-                                            node1_socket)
+        sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
+                                            WORKDIR + '/node1/mysql.sock')
 
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "SSL QA sysbench run sanity check")
-        result = sysbench.sysbench_load(db, sysbench_threads, sysbench_threads, sysbench_table_size)
+        result = sysbench.sysbench_load(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
+                                        SYSBENCH_NORMAL_TABLE_SIZE)
         utility_cmd.check_testcase(result, "SSL QA sysbench data load")
         if encryption == 'YES':
-            for i in range(1, sysbench_threads + 1):
-                encrypt_table = basedir + '/bin/mysql --user=root ' \
+            for i in range(1, SYSBENCH_THREADS + 1):
+                encrypt_table = BASEDIR + '/bin/mysql --user=root ' \
                     '--socket=/tmp/node1.sock -e "' \
                     ' alter table ' + db + '.sbtest' + str(i) + \
                     " encryption='Y'" \
@@ -113,19 +100,22 @@ class SSLCheck:
 
 print("\nPXC SSL test")
 print("--------------")
-ssl_run = SSLCheck(basedir, workdir, user, node1_socket, node)
+ssl_run = SSLCheck(BASEDIR, WORKDIR, USER, WORKDIR + '/node1/mysql.sock', NODE)
 ssl_run.start_pxc()
-ssl_run.sysbench_run(node1_socket, 'sbtest')
-ssl_run.data_load('pxc_dataload_db', node1_socket)
-rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir, user)
-rqg_dataload.initiate_rqg('examples', 'test', node1_socket)
-version = utility_cmd.version_check(basedir)
+ssl_run.sysbench_run(WORKDIR + '/node1/mysql.sock', 'sbtest')
+ssl_run.data_load('pxc_dataload_db', WORKDIR + '/node1/mysql.sock')
+rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER)
+rqg_dataload.initiate_rqg('examples', 'test', WORKDIR + '/node1/mysql.sock')
+version = utility_cmd.version_check(BASEDIR)
 if int(version) < int("080000"):
-    checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, node1_socket)
+    checksum = table_checksum.TableChecksum(PT_BASEDIR, BASEDIR, WORKDIR,
+                                            NODE, WORKDIR + '/node1/mysql.sock')
     checksum.sanity_check()
     checksum.data_consistency('test,pxc_dataload_db')
 else:
-    result = utility_cmd.check_table_count(basedir, 'test', node1_socket, node2_socket)
+    result = utility_cmd.check_table_count(BASEDIR, 'test', WORKDIR + '/node1/mysql.sock',
+                                           WORKDIR + '/node2/mysql.sock')
     utility_cmd.check_testcase(result, "Checksum run for DB: test")
-    result = utility_cmd.check_table_count(basedir, 'pxc_dataload_db', node1_socket, node2_socket)
+    result = utility_cmd.check_table_count(BASEDIR, 'pxc_dataload_db', WORKDIR + '/node1/mysql.sock',
+                                           WORKDIR + '/node2/mysql.sock')
     utility_cmd.check_testcase(result, "Checksum run for DB: pxc_dataload_db")

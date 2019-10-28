@@ -81,7 +81,7 @@ class StartCluster:
             else:
                 cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
                                + str(port_list[i - 1] + 8) + "'\n")
-            cnf_name.write('socket=/tmp/node' + str(i) + '.sock\n')
+            cnf_name.write('socket = ' + self.workdir + '/node' + str(i) + '/mysql.sock\n')
             cnf_name.write('server_id=' + str(10 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
             if wsrep_extra == "ssl":
@@ -166,20 +166,20 @@ class StartCluster:
                            '/log/startup' + str(i) + '.sh'
             os.system(save_startup)
             subprocess.call(startup, shell=True, stderr=subprocess.DEVNULL)
-            ping_query = self.basedir + '/bin/mysqladmin --user=root --socket=/tmp/node' + str(i) + \
-                '.sock ping > /dev/null 2>&1'
+            ping_query = self.basedir + '/bin/mysqladmin --user=root --socket=' + self.workdir + \
+                '/node' + str(i) + '/mysql.sock ping > /dev/null 2>&1'
             for startup_timer in range(120):
                 time.sleep(1)
                 ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
                 ping_status = ("{}".format(ping_check))
                 if int(ping_status) == 0:
                     query = self.basedir + '/bin/mysql --user=root ' \
-                        '--socket=/tmp/node' + str(i) + '.sock -Bse"' \
+                        '--socket=' + self.workdir + '/node' + str(i) + '/mysql.sock -Bse"' \
                         "delete from mysql.user where user='';" \
                         '" > /dev/null 2>&1'
                     os.system(query)
                     enable_streaming_replication = self.basedir + '/bin/mysql --user=root ' \
-                        '--socket=/tmp/node' + str(i) + '.sock -Bse"' \
+                        '--socket=' + self.workdir + '/node' + str(i) + '/mysql.sock -Bse"' \
                         "set global wsrep_trx_fragment_unit='statements'; " \
                         'set global wsrep_trx_fragment_size=1;"> /dev/null 2>&1'
                     #os.system(enable_streaming_replication)

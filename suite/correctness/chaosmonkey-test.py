@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import os
 import sys
-import configparser
 import argparse
 import random
 import time
 cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
+from config import *
 from util import pxc_startup
 from util import db_connection
 from util import sysbench_run
@@ -26,29 +26,19 @@ if args.encryption_run is True:
 else:
     encryption = 'NO'
 
-# Reading initial configuration
-config = configparser.ConfigParser()
-config.read(parent_dir + '/config.ini')
-workdir = config['config']['workdir']
-basedir = config['config']['basedir']
+# Initial configuration
 node = '6'
-user = config['config']['user']
-node1_socket = config['config']['node1_socket']
-node2_socket = config['config']['node2_socket']
-pt_basedir = config['config']['pt_basedir']
-sysbench_threads = 10
-sysbench_table_size = 1000
-sysbench_run_time = 1000
+
 
 class ChaosMonkeyQA:
     def startup(self):
         # Start PXC cluster for ChaosMonkey test
-        dbconnection_check = db_connection.DbConnection(user, node1_socket)
-        server_startup = pxc_startup.StartCluster(parent_dir, workdir, basedir, int(node))
+        dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
+        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(node))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
-            result = utility_cmd.create_ssl_certificate(workdir)
+            result = utility_cmd.create_ssl_certificate(WORKDIR)
             utility_cmd.check_testcase(result, "SSL Configuration")
             result = server_startup.create_config('encryption')
             utility_cmd.check_testcase(result, "Configuration file creation")
@@ -62,25 +52,25 @@ class ChaosMonkeyQA:
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")
 
-    def sysbench_run(self, node1_socket, db):
+    def sysbench_run(self, socket, db):
         # Sysbench dataload for consistency test
-        sysbench = sysbench_run.SysbenchRun(basedir, workdir,
-                                            node1_socket)
+        sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
+                                            socket)
 
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
-        result = sysbench.sysbench_load(db, sysbench_threads, sysbench_threads, sysbench_table_size)
+        result = sysbench.sysbench_load(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS, SYSBENCH_NORMAL_TABLE_SIZE)
         utility_cmd.check_testcase(result, "Sysbench data load")
         if encryption == 'YES':
-            for i in range(1, sysbench_threads + 1):
-                encrypt_table = basedir + '/bin/mysql --user=root ' \
-                    '--socket=' + node1_socket + ' -e "' \
+            for i in range(1, SYSBENCH_TABLE_COUNT + 1):
+                encrypt_table = BASEDIR + '/bin/mysql --user=root ' \
+                    '--socket=' + socket + ' -e "' \
                     ' alter table ' + db + '.sbtest' + str(i) + \
                     " encryption='Y'" \
                     '"; > /dev/null 2>&1'
                 os.system(encrypt_table)
-        result = sysbench.sysbench_oltp_read_write(db, sysbench_threads, sysbench_threads,
-                                                   sysbench_table_size, sysbench_run_time, 'Yes')
+        result = sysbench.sysbench_oltp_read_write(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
+                                                   SYSBENCH_NORMAL_TABLE_SIZE, SYSBENCH_RUN_TIME, 'Yes')
         utility_cmd.check_testcase(result, "Initiated sysbench oltp run")
 
     def multi_recovery_test(self):
@@ -90,13 +80,13 @@ class ChaosMonkeyQA:
         """
         nodes = [2, 3, 4, 5, 6]
         rand_nodes = random.choices(nodes, k=2)
-        self.sysbench_run(node1_socket, 'test')
+        self.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
         query = 'pidof sysbench'
         sysbench_pid = os.popen(query).read().rstrip()
         for j in rand_nodes:
-            query = 'cat `' + basedir + \
-                    '/bin/mysql  --user=root --socket=/tmp/node' +  \
-                    str(j) + '.sock -Bse"select @@pid_file"  2>&1`'
+            query = 'cat `' + BASEDIR + \
+                    '/bin/mysql  --user=root --socket=' + WORKDIR + \
+                        '/node' + str(j) + '/mysql.sock -Bse"select @@pid_file"  2>&1`'
             time.sleep(1)
             pid = os.popen(query).read().rstrip()
             result = os.system('kill -9 ' + pid)
@@ -108,7 +98,7 @@ class ChaosMonkeyQA:
         time.sleep(10)
 
         for j in rand_nodes:
-            query = 'bash ' + workdir + \
+            query = 'bash ' + WORKDIR + \
                     '/log/startup' + str(j) + '.sh'
             result = os.system(query)
             utility_cmd.check_testcase(result, "Restarting Cluster Node" + str(j))
@@ -120,11 +110,12 @@ print("----------------------------")
 chaosmonkey_qa = ChaosMonkeyQA()
 chaosmonkey_qa.startup()
 chaosmonkey_qa.multi_recovery_test()
-version = utility_cmd.version_check(basedir)
+version = utility_cmd.version_check(BASEDIR)
 # if int(version) < int("080000"):
 #    checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, node1_socket)
 #    checksum.sanity_check()
 #    checksum.data_consistency('test')
 # else:
-result = utility_cmd.check_table_count(basedir, 'test', node1_socket, node2_socket)
+result = utility_cmd.check_table_count(BASEDIR, 'test', WORKDIR + '/node1/mysql.sock',
+                                       WORKDIR + '/node2/mysql.sock')
 utility_cmd.check_testcase(result, "Checksum run for DB: test")

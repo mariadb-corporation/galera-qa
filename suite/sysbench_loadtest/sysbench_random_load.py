@@ -28,13 +28,13 @@ else:
 
 
 class SysbenchLoadTest:
-    def start_server(self, node):
+    def start_server(self, socket, node):
         if SERVER == "pxc":
             my_extra = "--innodb_buffer_pool_size=8G --innodb_log_file_size=1G"
-            utility_cmd.start_pxc(parent_dir, WORKDIR, BASEDIR, node, NODE1_SOCKET, USER, encryption, my_extra)
+            utility_cmd.start_pxc(parent_dir, WORKDIR, BASEDIR, node, socket, USER, encryption, my_extra)
         elif SERVER == "ps":
             my_extra = "--innodb_buffer_pool_size=8G --innodb_log_file_size=1G"
-            utility_cmd.start_ps(parent_dir, WORKDIR, BASEDIR, node, PS1_SOCKET, USER, encryption, my_extra)
+            utility_cmd.start_ps(parent_dir, WORKDIR, BASEDIR, node, socket, USER, encryption, my_extra)
 
     def sysbench_run(self, socket, db):
         checksum = ""
@@ -58,7 +58,7 @@ class SysbenchLoadTest:
                 sysbench.sysbench_oltp_read_write(db, table_count, thread,
                                                   SYSBENCH_RANDOM_LOAD_TABLE_SIZE, SYSBENCH_RANDOM_LOAD_RUN_TIME)
                 time.sleep(5)
-                result = utility_cmd.check_table_count(BASEDIR, db, socket, NODE2_SOCKET)
+                result = utility_cmd.check_table_count(BASEDIR, db, socket, WORKDIR + '/node2/mysql.sock')
                 utility_cmd.check_testcase(result, "Checksum run for DB: " + db)
 
 
@@ -67,8 +67,8 @@ print("\nPXC sysbench random load test")
 print("-------------------------------")
 sysbench_loadtest = SysbenchLoadTest()
 if SERVER == "pxc":
-    sysbench_loadtest.start_server(NODE)
-    sysbench_loadtest.sysbench_run(NODE1_SOCKET, 'test')
+    sysbench_loadtest.start_server(WORKDIR + '/node1/mysql.sock', NODE)
+    sysbench_loadtest.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
 elif SERVER == "ps":
-    sysbench_loadtest.start_server(1)
+    sysbench_loadtest.start_server(PS1_SOCKET, 1)
     sysbench_loadtest.sysbench_run(PS1_SOCKET, 'test')
