@@ -46,6 +46,7 @@ class RQGDataGen:
                               ":database=" + db + " --spec=" + \
                               module + '/' + file + " > " + \
                               self.workdir + "/log/rqg_run.log 2>&1"
+                print(rqg_command)
                 result = os.system(rqg_command)
                 utility_cmd.check_testcase(result, "RQG data load (DB: " + db + ")")
 

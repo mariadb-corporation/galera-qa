@@ -35,7 +35,6 @@ class StartCluster:
         if not os.path.isfile(self.basedir + '/bin/mysqld'):
             print(self.basedir + '/bin/mysqld does not exist')
             return 1
-            exit(1)
         return 0
 
     def create_config(self, wsrep_extra):
@@ -45,6 +44,7 @@ class StartCluster:
             For customised configuration please add your values
             in conf/custom.conf.
         """
+        version = sanity.version_check(self.basedir)
         port = random.randint(10, 19) * 1000
         port_list = []
         addr_list = ''
@@ -54,7 +54,6 @@ class StartCluster:
         if not os.path.isfile(self.scriptdir + '/conf/pxc.cnf'):
             print('Default pxc.cnf is missing in ' + self.scriptdir + '/conf')
             return 1
-            exit(1)
         else:
             shutil.copy(self.scriptdir + '/conf/custom.cnf', self.workdir + '/conf/custom.cnf')
         for i in range(1, self.node + 1):
@@ -66,28 +65,39 @@ class StartCluster:
                 add wsrep_sst_auth variable. This variable does not 
                 required starting from PXC-8.x 
             """
-            version = sanity.version_check(self.basedir)
+
             if int(version) < int("080000"):
                 cnf_name.write('wsrep_sst_auth=root:\n')
             if int(version) > int("050700"):
                 cnf_name.write('log_error_verbosity=3\n')
             cnf_name.write('port=' + str(port_list[i - 1]) + '\n')
-            if wsrep_extra == "ssl" or wsrep_extra == "encryption":
+            if int(version) > int("080000"):
+                sanity.create_ssl_certificate(self.workdir)
                 cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
                                + str(port_list[i - 1] + 8) + ';socket.ssl_key='
                                + self.workdir + '/cert/server-key.pem;socket.ssl_cert='
                                + self.workdir + '/cert/server-cert.pem;socket.ssl_ca='
                                + self.workdir + "/cert/ca.pem'\n")
             else:
-                cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
-                               + str(port_list[i - 1] + 8) + "'\n")
+                if wsrep_extra == "ssl" or wsrep_extra == "encryption":
+                    cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
+                                    + str(port_list[i - 1] + 8) + ';socket.ssl_key='
+                                    + self.workdir + '/cert/server-key.pem;socket.ssl_cert='
+                                    + self.workdir + '/cert/server-cert.pem;socket.ssl_ca='
+                                    + self.workdir + "/cert/ca.pem'\n")
+                else:
+                    cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
+                                    + str(port_list[i - 1] + 8) + "'\n")
             cnf_name.write('socket = ' + self.workdir + '/node' + str(i) + '/mysql.sock\n')
             cnf_name.write('server_id=' + str(10 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
-            if wsrep_extra == "ssl":
-                # shutil.copy(self.scriptdir + '/conf/ssl.cnf', self.workdir + '/conf/ssl.cnf')
+            if int(version) > int("080000"):
                 cnf_name.write('!include ' + self.workdir + '/conf/ssl.cnf\n')
-            elif wsrep_extra == 'encryption':
+            else:
+                if wsrep_extra == "ssl":
+                    # shutil.copy(self.scriptdir + '/conf/ssl.cnf', self.workdir + '/conf/ssl.cnf')
+                    cnf_name.write('!include ' + self.workdir + '/conf/ssl.cnf\n')
+            if wsrep_extra == 'encryption':
                 shutil.copy(self.scriptdir + '/conf/encryption.cnf', self.workdir + '/conf/encryption.cnf')
                 cnf_name.write('!include ' + self.workdir + '/conf/encryption.cnf\n')
                 cnf_name.write('!include ' + self.workdir + '/conf/ssl.cnf\n')
@@ -178,11 +188,6 @@ class StartCluster:
                         "delete from mysql.user where user='';" \
                         '" > /dev/null 2>&1'
                     os.system(query)
-                    enable_streaming_replication = self.basedir + '/bin/mysql --user=root ' \
-                        '--socket=' + self.workdir + '/node' + str(i) + '/mysql.sock -Bse"' \
-                        "set global wsrep_trx_fragment_unit='statements'; " \
-                        'set global wsrep_trx_fragment_size=1;"> /dev/null 2>&1'
-                    #os.system(enable_streaming_replication)
                     break  # break the loop if mysqld is running
 
         return int(ping_status)

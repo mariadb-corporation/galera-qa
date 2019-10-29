@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.7
+#!/usr/bin/env python3
 import os
 import sys
 import argparse
@@ -48,8 +48,6 @@ class SSLCheck:
         server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
-        result = utility_cmd.create_ssl_certificate(WORKDIR)
-        utility_cmd.check_testcase(result, "SSL Configuration")
         if encryption == 'YES':
             result = server_startup.create_config('encryption')
             utility_cmd.check_testcase(result, "Configuration file creation")

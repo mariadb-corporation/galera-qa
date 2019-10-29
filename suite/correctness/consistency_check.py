@@ -52,8 +52,6 @@ class ConsistencyCheck:
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
-            result = utility_cmd.create_ssl_certificate(WORKDIR)
-            utility_cmd.check_testcase(result, "SSL Configuration")
             result = server_startup.create_config('encryption')
             utility_cmd.check_testcase(result, "Configuration file creation")
         else:
