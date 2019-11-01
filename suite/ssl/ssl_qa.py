@@ -43,7 +43,7 @@ class SSLCheck:
         return 0
 
     def start_pxc(self):
-        # Start PXC cluster for replication test
+        # Start PXC cluster for SSL test
         dbconnection_check = db_connection.DbConnection(USER, self.socket)
         server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE))
         result = server_startup.sanity_check()

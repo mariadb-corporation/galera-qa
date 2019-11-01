@@ -2,6 +2,7 @@
 import os
 import sys
 import argparse
+import time
 cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
@@ -52,6 +53,7 @@ class SysbenchLoadTest:
             utility_cmd.check_testcase(result, "Sysbench data cleanup (threads : " + str(thread) + ")")
             result = sysbench.sysbench_load(db, thread, thread, SYSBENCH_LOAD_TEST_TABLE_SIZE)
             utility_cmd.check_testcase(result, "Sysbench data load (threads : " + str(thread) + ")")
+            time.sleep(5)
             #if int(version) < int("080000"):
             #    checksum.data_consistency(db)
             #else:

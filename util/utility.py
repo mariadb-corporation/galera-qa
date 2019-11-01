@@ -290,3 +290,11 @@ class Utility:
         self.check_testcase(result, "PS: Cluster startup")
         result = dbconnection_check.connection_check()
         self.check_testcase(result, "PS: Database connection")
+
+    def stop_pxc(self, workdir, basedir, node):
+        # Stop PXC cluster
+        for i in range(int(node), 0, -1):
+            shutdown_node = basedir + '/bin/mysqladmin --user=root --socket=' + \
+                        workdir + '/node' + str(i) + '/mysql.sock shutdown > /dev/null 2>&1'
+            result = os.system(shutdown_node)
+            self.check_testcase(result, "PXC: shutting down cluster node" + str(i))

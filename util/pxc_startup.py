@@ -37,13 +37,15 @@ class StartCluster:
             return 1
         return 0
 
-    def create_config(self, wsrep_extra):
+    def create_config(self, wsrep_extra, wsrep_provider_option=None):
         """ Method to create cluster configuration file
             based on the node count. To create configuration
             file it will take default values from conf/pxc.cnf.
             For customised configuration please add your values
             in conf/custom.conf.
         """
+        if wsrep_provider_option is None:
+            wsrep_provider_option = ''
         version = sanity.version_check(self.basedir)
         port = random.randint(10, 19) * 1000
         port_list = []
@@ -74,20 +76,20 @@ class StartCluster:
             if int(version) > int("080000"):
                 sanity.create_ssl_certificate(self.workdir)
                 cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
-                               + str(port_list[i - 1] + 8) + ';socket.ssl_key='
+                               + str(port_list[i - 1] + 8) + ';' + wsrep_provider_option + 'socket.ssl_key='
                                + self.workdir + '/cert/server-key.pem;socket.ssl_cert='
                                + self.workdir + '/cert/server-cert.pem;socket.ssl_ca='
                                + self.workdir + "/cert/ca.pem'\n")
             else:
                 if wsrep_extra == "ssl" or wsrep_extra == "encryption":
                     cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
-                                    + str(port_list[i - 1] + 8) + ';socket.ssl_key='
+                                    + str(port_list[i - 1] + 8) + ';' + wsrep_provider_option + 'socket.ssl_key='
                                     + self.workdir + '/cert/server-key.pem;socket.ssl_cert='
                                     + self.workdir + '/cert/server-cert.pem;socket.ssl_ca='
                                     + self.workdir + "/cert/ca.pem'\n")
                 else:
                     cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
-                                    + str(port_list[i - 1] + 8) + "'\n")
+                                    + str(port_list[i - 1] + 8) + ';' + wsrep_provider_option + "'\n")
             cnf_name.write('socket = ' + self.workdir + '/node' + str(i) + '/mysql.sock\n')
             cnf_name.write('server_id=' + str(10 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
@@ -125,6 +127,7 @@ class StartCluster:
             using --initialize-insecure option for
             passwordless authentication.
         """
+        result = ""
         # This is for encryption testing. Encryption features are not fully supported
         # if wsrep_extra == "encryption":
         #    init_opt = '--innodb_undo_tablespaces=2 '

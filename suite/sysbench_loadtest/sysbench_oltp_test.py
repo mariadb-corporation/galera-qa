@@ -2,6 +2,7 @@
 import os
 import sys
 import argparse
+import time
 cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
@@ -48,6 +49,7 @@ class SysbenchOLTPTest:
             result = sysbench.sanity_check(db)
             utility_cmd.check_testcase(result, "Sysbench run sanity check")
             sysbench.sysbench_custom_oltp_load(db, 5, thread, SYSBENCH_OLTP_TEST_TABLE_SIZE)
+            time.sleep(5)
             #if int(version) < int("080000"):
             #    checksum.data_consistency(db)
             #else:
