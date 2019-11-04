@@ -50,12 +50,12 @@ class PXCUpgrade:
 
     def sysbench_run(self, node1_socket, db):
         # Sysbench dataload for consistency test
-        sysbench = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
+        sysbench_node1 = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
                                             node1_socket)
 
-        result = sysbench.sanity_check(db)
+        result = sysbench_node1.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
-        result = sysbench.sysbench_load(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS, SYSBENCH_NORMAL_TABLE_SIZE)
+        result = sysbench_node1.sysbench_load(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS, SYSBENCH_NORMAL_TABLE_SIZE)
         utility_cmd.check_testcase(result, "Sysbench data load")
         version = utility_cmd.version_check(PXC_LOWER_BASE)
         if int(version) > int("050700"):
@@ -67,6 +67,16 @@ class PXCUpgrade:
                         " encryption='Y'" \
                         '"; > /dev/null 2>&1'
                     os.system(encrypt_table)
+        sysbench_node2 = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
+                                            WORKDIR + '/node2/mysql.sock')
+        sysbench_node3 = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
+                                            WORKDIR + '/node3/mysql.sock')
+        sysbench_node1.sysbench_oltp_read_write(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
+                                          SYSBENCH_NORMAL_TABLE_SIZE, 1000, 'Yes')
+        sysbench_node2.sysbench_oltp_read_write(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
+                                          SYSBENCH_NORMAL_TABLE_SIZE, 1000, 'Yes')
+        sysbench_node3.sysbench_oltp_read_write(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
+                                          SYSBENCH_NORMAL_TABLE_SIZE, 1000, 'Yes')
 
     def startup_check(self, cluster_node):
         """ This method will check the node
@@ -83,14 +93,21 @@ class PXCUpgrade:
                 utility_cmd.check_testcase(int(ping_status), "Node startup is successful")
                 break  # break the loop if mysqld is running
 
-    def upgrade(self):
+    def rolling_upgrade(self):
         """ This function will upgrade
             Percona XtraDB Cluster to
             latest version and perform
             table checksum.
         """
         self.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
+        time.sleep(5)
         for i in range(int(NODE), 0, -1):
+            query = "ps -ef | grep sysbench | grep -v gep | grep node" + \
+                                 str(i) + " | awk '{print $2}'"
+            sysbench_pid = os.popen(query).read().rstrip()
+            print(sysbench_pid)
+            kill_sysbench = "kill -9 " + sysbench_pid + " > /dev/null 2>&1"
+            os.system(kill_sysbench)
             shutdown_node = PXC_LOWER_BASE + '/bin/mysqladmin --user=root --socket=' + \
                 WORKDIR + '/node' + str(i) + \
                 '/mysql.sock shutdown > /dev/null 2>&1'
@@ -143,28 +160,23 @@ upgrade_qa = PXCUpgrade()
 upgrade_qa.startup()
 rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER)
 rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
-upgrade_qa.upgrade()
+upgrade_qa.rolling_upgrade()
 
 version = utility_cmd.version_check(PXC_UPPER_BASE)
-if int(version) < int("080000"):
-    checksum = table_checksum.TableChecksum(PT_BASEDIR, PXC_UPPER_BASE, WORKDIR, NODE,
-                                            WORKDIR + '/node1/mysql.sock')
-    checksum.sanity_check()
-    checksum.data_consistency('test,db_galera,db_transactions,db_partitioning')
-else:
-    result = utility_cmd.check_table_count(PXC_UPPER_BASE, 'test',
+result = utility_cmd.check_table_count(PXC_UPPER_BASE, 'test',
                                            WORKDIR + '/node1/mysql.sock',
                                            WORKDIR + '/node2/mysql.sock')
-    utility_cmd.check_testcase(result, "Checksum run for DB: test")
-    result = utility_cmd.check_table_count(PXC_UPPER_BASE, 'db_galera',
+utility_cmd.check_testcase(result, "Checksum run for DB: test")
+result = utility_cmd.check_table_count(PXC_UPPER_BASE, 'db_galera',
                                            WORKDIR + '/node1/mysql.sock',
                                            WORKDIR + '/node2/mysql.sock')
-    utility_cmd.check_testcase(result, "Checksum run for DB: db_galera")
-    result = utility_cmd.check_table_count(PXC_UPPER_BASE, 'db_transactions',
+utility_cmd.check_testcase(result, "Checksum run for DB: db_galera")
+result = utility_cmd.check_table_count(PXC_UPPER_BASE, 'db_transactions',
                                            WORKDIR + '/node1/mysql.sock',
                                            WORKDIR + '/node2/mysql.sock')
-    utility_cmd.check_testcase(result, "Checksum run for DB: db_transactions")
-    result = utility_cmd.check_table_count(PXC_UPPER_BASE, 'db_partitioning',
+utility_cmd.check_testcase(result, "Checksum run for DB: db_transactions")
+result = utility_cmd.check_table_count(PXC_UPPER_BASE, 'db_partitioning',
                                            WORKDIR + '/node1/mysql.sock',
                                            WORKDIR + '/node2/mysql.sock')
-    utility_cmd.check_testcase(result, "Checksum run for DB: db_partitioning")
+utility_cmd.check_testcase(result, "Checksum run for DB: db_partitioning")
+

@@ -50,10 +50,12 @@ class ClusterInteraction:
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
-            result = server_startup.create_config('encryption')
+            result = server_startup.create_config(
+                'encryption', 'gcache.keep_pages_size=5;gcache.page_size=1024M;gcache.size=1024M;')
             utility_cmd.check_testcase(result, "Configuration file creation")
         else:
-            result = server_startup.create_config('none')
+            result = server_startup.create_config(
+                'none', 'gcache.keep_pages_size=5;gcache.page_size=1024M;gcache.size=1024M;')
             utility_cmd.check_testcase(result, "Configuration file creation")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "Initializing cluster")
@@ -85,7 +87,7 @@ class ClusterInteraction:
         utility_cmd.check_testcase(result, "Initiated sysbench oltp run")
 
     def startup_check(self, cluster_node):
-        """ This method will check the node recovery
+        """ This method will check the node
             startup status.
         """
         recovery_startup = "bash " + self.workdir + \
@@ -98,14 +100,16 @@ class ClusterInteraction:
             ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
             ping_status = ("{}".format(ping_check))
             if int(ping_status) == 0:
-                utility_cmd.check_testcase(int(ping_status), "Cluster recovery is successful")
+                utility_cmd.check_testcase(int(ping_status), "Cluster restart is successful")
                 break  # break the loop if mysqld is running
 
-    def flow_control_qa(self):
+    def cluster_interaction_qa(self):
         """ This method will help us to test cluster
             interaction using following test methods.
             1) Flow control
+            2) IST
         """
+        utility_cmd.check_testcase(0, "Initiating flow control test")
         self.sysbench_run(self.socket, 'test')
         query = 'pidof sysbench'
         sysbench_pid = os.popen(query).read().rstrip()
@@ -121,15 +125,26 @@ class ClusterInteraction:
                 'select sleep(120);unlock tables"  2>&1 &'
             os.system(query)
             flow_control_status = 'OFF'
-            while flow_control_status == 'OFF':
+            while flow_control_status != 'OFF':
                 query = self.basedir + \
                     '/bin/mysql  --user=root --socket=' + WORKDIR + '/node1/mysql.sock' \
                     ' -Bse"show status like ' \
                     "'wsrep_flow_control_status';" + '"' \
-                    "| awk '{ print $2 }'  2>&1"
-                flow_control_status = os.system(query)
+                    "| awk '{ print $2 }'  2>/dev/null"
+                flow_control_status = os.popen(query).read().rstrip()
                 time.sleep(1)
-        kill_sysbench = "kill -9 " + sysbench_pid
+
+        utility_cmd.check_testcase(0, "Initiating IST test")
+        shutdown_node = self.basedir + '/bin/mysqladmin --user=root --socket=' + \
+                        WORKDIR + '/node' + self.node + '/mysql.sock shutdown > /dev/null 2>&1'
+        result = os.system(shutdown_node)
+        utility_cmd.check_testcase(result, "Shutdown cluster node for crash recovery")
+        time.sleep(5)
+        kill_sysbench = "kill -9 " + sysbench_pid + " > /dev/null 2>&1"
+        os.system(kill_sysbench)
+        self.startup_check(self.node)
+
+        kill_sysbench = "kill -9 " + sysbench_pid + " > /dev/null 2>&1"
         os.system(kill_sysbench)
 
 
@@ -139,13 +154,8 @@ print('----------------------------------------------')
 print('Cluster interaction QA using flow control test')
 print('----------------------------------------------')
 cluster_interaction.start_pxc()
-cluster_interaction.flow_control_qa()
+cluster_interaction.cluster_interaction_qa()
 version = utility_cmd.version_check(BASEDIR)
-#if int(version) < int("080000"):
-#    checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, node1_socket)
-#    checksum.sanity_check()
-#    checksum.data_consistency('test')
-#else:
 result = utility_cmd.check_table_count(BASEDIR, 'test', WORKDIR + '/node1/mysql.sock',
                                        WORKDIR + '/node2/mysql.sock')
 utility_cmd.check_testcase(result, "Checksum run for DB: test")

@@ -38,7 +38,7 @@ class WSREPProviderRandomTest:
                            '/log/startup' + str(cluster_node) + '.sh'
         os.system(restart_server)
         ping_query = BASEDIR + '/bin/mysqladmin --user=root --socket=' + \
-                     WORKDIR + '/node' + cluster_node + '/mysql.sock ping > /dev/null 2>&1'
+                     WORKDIR + '/node' + str(cluster_node) + '/mysql.sock ping > /dev/null 2>&1'
         for startup_timer in range(120):
             time.sleep(1)
             ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
@@ -70,7 +70,7 @@ class WSREPProviderRandomTest:
                                             socket)
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
-        result = sysbench.sysbench_load(db, 64, 64, SYSBENCH_LOAD_TEST_TABLE_SIZE)
+        result = sysbench.sysbench_load(db, 64, 64, 1000)
         utility_cmd.check_testcase(result, "Sysbench data load")
         utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
         wsrep_provider_options = {
@@ -78,7 +78,7 @@ class WSREPProviderRandomTest:
             "gcache.recover": ["yes", "no"],
             "gcache.page_size": ["512M", "1024M"],
             "gcache.size": ["512M", "1024M", "2048M"],
-            "repl.commit_order": [0, 1, 2, 3]
+            #"repl.commit_order": [0, 1, 2, 3]
         }
 
         keys = wsrep_provider_options.keys()
@@ -103,7 +103,7 @@ class WSREPProviderRandomTest:
             result = dbconnection_check.connection_check()
             utility_cmd.check_testcase(result, "Database connection check")
             result = sysbench.sysbench_oltp_read_write(db, 64, 64,
-                                                       SYSBENCH_LOAD_TEST_TABLE_SIZE, 300)
+                                                       SYSBENCH_LOAD_TEST_TABLE_SIZE, 300, 'Yes')
             utility_cmd.check_testcase(result, "Sysbench oltp run initiated")
             query = 'pidof sysbench'
             sysbench_pid = os.popen(query).read().rstrip()
