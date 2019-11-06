@@ -27,7 +27,8 @@ else:
 class StreamingReplication:
     def start_server(self, node):
         my_extra = "--innodb_buffer_pool_size=2G --innodb_log_file_size=1G"
-        utility_cmd.start_pxc(parent_dir, WORKDIR, BASEDIR, node, NODE1_SOCKET, USER, encryption, my_extra)
+        utility_cmd.start_pxc(parent_dir, WORKDIR, BASEDIR, node,
+                              WORKDIR + '/node1/mysql.sock', USER, encryption, my_extra)
 
     def sysbench_run(self, socket, db):
         # Sysbench data load
@@ -75,6 +76,6 @@ print("\nPXC Streaming Replication test")
 print("--------------------------------")
 streaming_replication = StreamingReplication()
 streaming_replication.start_server(NODE)
-streaming_replication.sysbench_run(NODE1_SOCKET, 'test')
-streaming_replication.streaming_replication_qa(NODE1_SOCKET, 'test')
+streaming_replication.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
+streaming_replication.streaming_replication_qa(WORKDIR + '/node1/mysql.sock', 'test')
 

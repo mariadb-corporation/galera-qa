@@ -17,7 +17,7 @@ utility_cmd.check_python_version()
 
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC replication test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='PXC sysbench random load test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 args = parser.parse_args()
@@ -27,7 +27,7 @@ else:
     encryption = 'NO'
 
 
-class SysbenchLoadTest:
+class SysbenchRandomLoadTest:
     def start_server(self, socket, node):
         if SERVER == "pxc":
             my_extra = "--innodb_buffer_pool_size=8G --innodb_log_file_size=1G"
@@ -65,10 +65,10 @@ class SysbenchLoadTest:
 print("-------------------------------")
 print("\nPXC sysbench random load test")
 print("-------------------------------")
-sysbench_loadtest = SysbenchLoadTest()
+sysbench_random_loadtest = SysbenchRandomLoadTest()
 if SERVER == "pxc":
-    sysbench_loadtest.start_server(WORKDIR + '/node1/mysql.sock', NODE)
-    sysbench_loadtest.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
+    sysbench_random_loadtest.start_server(WORKDIR + '/node1/mysql.sock', NODE)
+    sysbench_random_loadtest.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
 elif SERVER == "ps":
-    sysbench_loadtest.start_server(PS1_SOCKET, 1)
-    sysbench_loadtest.sysbench_run(PS1_SOCKET, 'test')
+    sysbench_random_loadtest.start_server(PS1_SOCKET, 1)
+    sysbench_random_loadtest.sysbench_run(PS1_SOCKET, 'test')

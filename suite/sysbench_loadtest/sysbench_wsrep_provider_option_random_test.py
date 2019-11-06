@@ -70,7 +70,7 @@ class WSREPProviderRandomTest:
                                             socket)
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
-        result = sysbench.sysbench_load(db, 64, 64, 1000)
+        result = sysbench.sysbench_load(db, 64, 64, SYSBENCH_LOAD_TEST_TABLE_SIZE)
         utility_cmd.check_testcase(result, "Sysbench data load")
         utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
         wsrep_provider_options = {

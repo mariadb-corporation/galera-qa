@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Created by Ramesh Sivaraman, Percona LLC.
-# QA framework will help us to test Percona Server and Percona XtraDB Cluster.
+# QA framework will help us to test Percona XtraDB Cluster and Percona Server.
 
 import os
 import argparse
