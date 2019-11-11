@@ -104,6 +104,8 @@ class StartCluster:
                 cnf_name.write('!include ' + self.workdir + '/conf/encryption.cnf\n')
                 cnf_name.write('!include ' + self.workdir + '/conf/ssl.cnf\n')
                 cnf_name.write('pxc_encrypt_cluster_traffic = ON\n')
+            else:
+                cnf_name.write('pxc_encrypt_cluster_traffic = OFF\n')
             cnf_name.close()
         return 0
 

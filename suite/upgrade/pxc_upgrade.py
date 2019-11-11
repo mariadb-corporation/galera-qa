@@ -4,6 +4,7 @@ import sys
 import argparse
 import subprocess
 import time
+from datetime import datetime
 cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
@@ -48,7 +49,7 @@ class PXCUpgrade:
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")
 
-    def sysbench_run(self, node1_socket, db):
+    def sysbench_run(self, node1_socket, db, upgrade_type):
         # Sysbench dataload for consistency test
         sysbench_node1 = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
                                             node1_socket)
@@ -60,7 +61,7 @@ class PXCUpgrade:
         version = utility_cmd.version_check(PXC_LOWER_BASE)
         if int(version) > int("050700"):
             if encryption == 'YES':
-                for i in range(1, SYSBENCH_TABLE_COUNT + 1):
+                for i in range(1, int(SYSBENCH_TABLE_COUNT) + 1):
                     encrypt_table = PXC_LOWER_BASE + '/bin/mysql --user=root ' \
                         '--socket=' + WORKDIR + '/node1/mysql.sock -e "' \
                         ' alter table ' + db + '.sbtest' + str(i) + \
@@ -68,15 +69,29 @@ class PXCUpgrade:
                         '"; > /dev/null 2>&1'
                     os.system(encrypt_table)
         sysbench_node2 = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
-                                            WORKDIR + '/node2/mysql.sock')
+                                                  WORKDIR + '/node2/mysql.sock')
         sysbench_node3 = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
-                                            WORKDIR + '/node3/mysql.sock')
-        sysbench_node1.sysbench_oltp_read_write(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
-                                          SYSBENCH_NORMAL_TABLE_SIZE, 1000, 'Yes')
-        sysbench_node2.sysbench_oltp_read_write(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
-                                          SYSBENCH_NORMAL_TABLE_SIZE, 1000, 'Yes')
-        sysbench_node3.sysbench_oltp_read_write(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
-                                          SYSBENCH_NORMAL_TABLE_SIZE, 1000, 'Yes')
+                                                  WORKDIR + '/node3/mysql.sock')
+        if upgrade_type == 'readwrite':
+            result = sysbench_node1.sysbench_oltp_read_write(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
+                                              SYSBENCH_NORMAL_TABLE_SIZE, 1000, 'Yes')
+            utility_cmd.check_testcase(result, "Initiated sysbench oltp run on node1")
+            result = sysbench_node2.sysbench_oltp_read_write(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
+                                              SYSBENCH_NORMAL_TABLE_SIZE, 1000, 'Yes')
+            utility_cmd.check_testcase(result, "Initiated sysbench oltp run on node2")
+            result = sysbench_node3.sysbench_oltp_read_write(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
+                                              SYSBENCH_NORMAL_TABLE_SIZE, 1000, 'Yes')
+            utility_cmd.check_testcase(result, "Initiated sysbench oltp run on node3")
+        elif upgrade_type == 'readonly':
+            result = sysbench_node1.sysbench_oltp_read_only(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
+                                              SYSBENCH_NORMAL_TABLE_SIZE, 1000, 'Yes')
+            utility_cmd.check_testcase(result, "Initiated sysbench readonly run on node1")
+            result = sysbench_node2.sysbench_oltp_read_only(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
+                                              SYSBENCH_NORMAL_TABLE_SIZE, 1000, 'Yes')
+            utility_cmd.check_testcase(result, "Initiated sysbench readonly run on node2")
+            result = sysbench_node3.sysbench_oltp_read_only(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
+                                              SYSBENCH_NORMAL_TABLE_SIZE, 1000, 'Yes')
+            utility_cmd.check_testcase(result, "Initiated sysbench readonly run on node3")
 
     def startup_check(self, cluster_node):
         """ This method will check the node
@@ -93,13 +108,21 @@ class PXCUpgrade:
                 utility_cmd.check_testcase(int(ping_status), "Node startup is successful")
                 break  # break the loop if mysqld is running
 
-    def rolling_upgrade(self):
+    def rolling_upgrade(self, upgrade_type):
         """ This function will upgrade
             Percona XtraDB Cluster to
             latest version and perform
             table checksum.
         """
-        self.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
+        print('------------------------------------------------------------------------------------')
+        if upgrade_type == 'none':
+            print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade without active workload")
+        elif upgrade_type == 'readonly':
+            print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active readonly workload")
+        elif upgrade_type == 'readwrite':
+            print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active read/write workload")
+        print('------------------------------------------------------------------------------------')
+        self.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test', upgrade_type)
         time.sleep(5)
         for i in range(int(NODE), 0, -1):
             query = "ps -ef | grep sysbench | grep -v gep | grep node" + \
@@ -116,19 +139,27 @@ class PXCUpgrade:
             version = utility_cmd.version_check(PXC_UPPER_BASE)
             if int(version) > int("080000"):
                 os.system("sed -i '/wsrep_sst_auth=root:/d' " + WORKDIR + '/conf/node' + str(i) + '.cnf')
-            startup_cmd = PXC_UPPER_BASE + '/bin/mysqld --defaults-file=' + \
-                WORKDIR + '/conf/node' + str(i) + '.cnf --datadir=' + \
-                WORKDIR + '/node' + str(i) + ' --basedir=' + PXC_UPPER_BASE + \
-                ' --wsrep-provider=none --log-error=' + \
-                WORKDIR + '/log/node' + str(i) + '.err > ' + \
-                WORKDIR + '/log/node' + str(i) + '.err 2>&1 &'
+                startup_cmd = PXC_UPPER_BASE + '/bin/mysqld --defaults-file=' + \
+                    WORKDIR + '/conf/node' + str(i) + '.cnf --datadir=' + \
+                    WORKDIR + '/node' + str(i) + ' --basedir=' + PXC_UPPER_BASE + ' --log-error=' + \
+                    WORKDIR + '/log/upgrade_node' + str(i) + '.err >> ' + \
+                    WORKDIR + '/log/upgrade_node' + str(i) + '.err 2>&1 &'
+            else:
+                startup_cmd = PXC_UPPER_BASE + '/bin/mysqld --defaults-file=' + \
+                    WORKDIR + '/conf/node' + str(i) + '.cnf --datadir=' + \
+                    WORKDIR + '/node' + str(i) + ' --basedir=' + PXC_UPPER_BASE + \
+                    ' --wsrep-provider=none --log-error=' + \
+                    WORKDIR + '/log/upgrade_node' + str(i) + '.err >> ' + \
+                    WORKDIR + '/log/upgrade_node' + str(i) + '.err 2>&1 &'
+
             os.system(startup_cmd)
             self.startup_check(i)
-            upgrade_cmd = PXC_UPPER_BASE + '/bin/mysql_upgrade -uroot --socket=' + \
-                WORKDIR + '/node' + str(i) + \
-                '/mysql.sock > ' + WORKDIR + '/log/node' + str(i) + '_upgrade.log 2>&1'
-            result = os.system(upgrade_cmd)
-            utility_cmd.check_testcase(result, "Cluster node" + str(i) + " upgrade is successful")
+            if int(version) < int("080000"):
+                upgrade_cmd = PXC_UPPER_BASE + '/bin/mysql_upgrade -uroot --socket=' + \
+                    WORKDIR + '/node' + str(i) + \
+                    '/mysql.sock > ' + WORKDIR + '/log/node' + str(i) + '_upgrade.log 2>&1'
+                result = os.system(upgrade_cmd)
+                utility_cmd.check_testcase(result, "Cluster node" + str(i) + " upgrade is successful")
             shutdown_node = PXC_UPPER_BASE + '/bin/mysqladmin --user=root --socket=' + \
                 WORKDIR + '/node' + str(i) + \
                 '/mysql.sock shutdown > /dev/null 2>&1'
@@ -143,11 +174,20 @@ class PXCUpgrade:
                     WORKDIR + '/log/upgrade_startup' + str(i) + '.sh'
                 os.system(remove_bootstrap_option)
             time.sleep(5)
+
             upgrade_startup = "bash " + WORKDIR + \
                               '/log/upgrade_startup' + str(i) + '.sh'
             result = os.system(upgrade_startup)
             utility_cmd.check_testcase(result, "Starting cluster node" + str(i) + " after upgrade run")
             self.startup_check(i)
+        time.sleep(10)
+        sysbench_node = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
+                                                  WORKDIR + '/node1/mysql.sock')
+        result = sysbench_node.sysbench_oltp_read_write('test', SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
+                                                SYSBENCH_NORMAL_TABLE_SIZE, 100)
+        utility_cmd.check_testcase(result, "Sysbench oltp run after upgrade")
+        time.sleep(5)
+        utility_cmd.stop_pxc(WORKDIR, PXC_UPPER_BASE, NODE)
 
 
 query = PXC_LOWER_BASE + "/bin/mysqld --version 2>&1 | grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1"
@@ -160,7 +200,15 @@ upgrade_qa = PXCUpgrade()
 upgrade_qa.startup()
 rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER)
 rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
-upgrade_qa.rolling_upgrade()
+upgrade_qa.rolling_upgrade('none')
+upgrade_qa.startup()
+rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER)
+rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
+upgrade_qa.rolling_upgrade('readonly')
+upgrade_qa.startup()
+rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER)
+rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
+upgrade_qa.rolling_upgrade('readwrite')
 
 version = utility_cmd.version_check(PXC_UPPER_BASE)
 result = utility_cmd.check_table_count(PXC_UPPER_BASE, 'test',
