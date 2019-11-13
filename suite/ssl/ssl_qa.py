@@ -71,7 +71,7 @@ class SSLCheck:
                                         SYSBENCH_NORMAL_TABLE_SIZE)
         utility_cmd.check_testcase(result, "SSL QA sysbench data load")
         if encryption == 'YES':
-            for i in range(1, SYSBENCH_THREADS + 1):
+            for i in range(1, int(SYSBENCH_THREADS) + 1):
                 encrypt_table = BASEDIR + '/bin/mysql --user=root ' \
                     '--socket=/tmp/node1.sock -e "' \
                     ' alter table ' + db + '.sbtest' + str(i) + \

@@ -112,7 +112,7 @@ class SetupReplication:
         result = sysbench.sysbench_load(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS, SYSBENCH_NORMAL_TABLE_SIZE)
         utility_cmd.check_testcase(result, node + ": Replication QA sysbench data load")
         if encryption == 'YES':
-            for i in range(1, SYSBENCH_TABLE_COUNT + 1):
+            for i in range(1, int(SYSBENCH_TABLE_COUNT) + 1):
                 encrypt_table = BASEDIR + '/bin/mysql --user=root ' \
                     '--socket=' + socket + ' -e "' \
                     ' alter table ' + db + '.sbtest' + str(i) + \
