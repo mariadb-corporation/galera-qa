@@ -156,6 +156,7 @@ print('----------------------------------------------')
 cluster_interaction.start_pxc()
 cluster_interaction.cluster_interaction_qa()
 version = utility_cmd.version_check(BASEDIR)
+time.sleep(5)
 result = utility_cmd.check_table_count(BASEDIR, 'test', WORKDIR + '/node1/mysql.sock',
                                        WORKDIR + '/node2/mysql.sock')
 utility_cmd.check_testcase(result, "Checksum run for DB: test")

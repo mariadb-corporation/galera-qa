@@ -114,14 +114,6 @@ class PXCUpgrade:
             latest version and perform
             table checksum.
         """
-        print('------------------------------------------------------------------------------------')
-        if upgrade_type == 'none':
-            print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade without active workload")
-        elif upgrade_type == 'readonly':
-            print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active readonly workload")
-        elif upgrade_type == 'readwrite':
-            print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active read/write workload")
-        print('------------------------------------------------------------------------------------')
         self.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test', upgrade_type)
         time.sleep(5)
         for i in range(int(NODE), 0, -1):
@@ -214,17 +206,26 @@ lower_version = os.popen(query).read().rstrip()
 query = PXC_UPPER_BASE + "/bin/mysqld --version 2>&1 | grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1"
 upper_version = os.popen(query).read().rstrip()
 version = utility_cmd.version_check(PXC_UPPER_BASE)
+print('------------------------------------------------------------------------------------')
 print("\nPXC Upgrade test : Upgrading from PXC-" + lower_version + " to PXC-" + upper_version)
-print("------------------------------------------------------------------------------")
+print('------------------------------------------------------------------------------------')
+print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade without active workload")
+print('------------------------------------------------------------------------------------')
 upgrade_qa = PXCUpgrade()
 upgrade_qa.startup()
 rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER)
 rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
 upgrade_qa.rolling_upgrade('none')
+print('------------------------------------------------------------------------------------')
+print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active readonly workload")
+print('------------------------------------------------------------------------------------')
 upgrade_qa.startup()
 rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER)
 rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
 upgrade_qa.rolling_upgrade('readonly')
+print('------------------------------------------------------------------------------------')
+print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active read/write workload")
+print('------------------------------------------------------------------------------------')
 upgrade_qa.startup()
 rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER)
 rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')

@@ -2,6 +2,7 @@
 import os
 import sys
 import argparse
+import time
 cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
@@ -109,11 +110,7 @@ consistency_run.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
 consistency_run.data_load('pxc_dataload_db', WORKDIR + '/node1/mysql.sock')
 rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
 version = utility_cmd.version_check(BASEDIR)
-#if int(version) < int("080000"):
-#    checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, node1_socket)
-#    checksum.sanity_check()
-#    checksum.data_consistency('test,pxc_dataload_db,db_galera')
-#else:
+time.sleep(5)
 result = utility_cmd.check_table_count(BASEDIR, 'test', WORKDIR + '/node1/mysql.sock',
                                        WORKDIR + '/node2/mysql.sock')
 utility_cmd.check_testcase(result, "Checksum run for DB: test")

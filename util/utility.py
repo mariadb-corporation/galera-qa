@@ -302,7 +302,7 @@ class Utility:
     def stop_ps(self, workdir, basedir, node):
         # Stop Percona Server
         for i in range(int(node), 0, -1):
-            shutdown_node = basedir + '/bin/mysqladmin --user=root --socket=/psnode' + \
+            shutdown_node = basedir + '/bin/mysqladmin --user=root --socket=/tmp/psnode' + \
                             str(i) + '.sock shutdown > /dev/null 2>&1'
             result = os.system(shutdown_node)
-            self.check_testcase(result, "PXC: shutting down cluster node" + str(i))
+            self.check_testcase(result, "PS: shutting down cluster node" + str(i))

@@ -31,7 +31,7 @@ else:
 
 
 class PXCUpgrade:
-    def startup(self):
+    def startup(self, replication_conf):
         # Start PXC cluster for upgrade test
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
         server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, PXC_LOWER_BASE, int(NODE))
@@ -43,7 +43,7 @@ class PXCUpgrade:
         else:
             result = server_startup.create_config('none')
             utility_cmd.check_testcase(result, "Configuration file creation")
-        result = server_startup.add_myextra_configuration(cwd + '/replication.cnf')
+        result = server_startup.add_myextra_configuration(parent_dir + '/suite/replication/' + replication_conf)
         utility_cmd.check_testcase(result, "PXC: Adding custom configuration")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "Initializing cluster")
@@ -52,7 +52,7 @@ class PXCUpgrade:
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")
 
-    def start_ps(self, node, my_extra=None):
+    def start_ps(self, node, replication_conf, my_extra=None):
         """ Start Percona Server. This method will
             perform sanity checks for PS startup
             :param my_extra: We can pass extra PS startup
@@ -71,7 +71,7 @@ class PXCUpgrade:
         else:
             result = server_startup.create_config()
             utility_cmd.check_testcase(result, "PS: Configuration file creation")
-        result = server_startup.add_myextra_configuration(cwd + '/replication.cnf')
+        result = server_startup.add_myextra_configuration(parent_dir + '/suite/replication/' + replication_conf)
         utility_cmd.check_testcase(result, "PS: Adding custom configuration")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "PS: Initializing cluster")
@@ -233,7 +233,7 @@ class PXCUpgrade:
         utility_cmd.check_testcase(result, "Checksum run for DB: db_partitioning")
 
         utility_cmd.stop_pxc(WORKDIR, PXC_UPPER_BASE, NODE)
-        utility_cmd.stop_ps(WORKDIR, PXC_LOWER_BASE, NODE)
+        utility_cmd.stop_ps(WORKDIR, PXC_LOWER_BASE, 1)
 
 
 query = PXC_LOWER_BASE + "/bin/mysqld --version 2>&1 | grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1"
@@ -242,11 +242,12 @@ query = PXC_UPPER_BASE + "/bin/mysqld --version 2>&1 | grep -oe '[0-9]\.[0-9][\.
 upper_version = os.popen(query).read().rstrip()
 version = utility_cmd.version_check(PXC_UPPER_BASE)
 print('------------------------------------------------------------------------------------')
-print("\nPXC Asyc replication upgrade test : Upgrading from PXC-" + lower_version + " to PXC-" + upper_version)
+print("\nPXC Asyc non-gtid replication upgrade test : Upgrading from PXC-" + lower_version +
+      " to PXC-" + upper_version)
 print('------------------------------------------------------------------------------------')
 upgrade_qa = PXCUpgrade()
-upgrade_qa.startup()
-upgrade_qa.start_ps('1')
+upgrade_qa.startup('replication.cnf')
+upgrade_qa.start_ps('1', 'replication.cnf')
 utility_cmd.invoke_replication(BASEDIR, '/tmp/psnode1.sock',
                                WORKDIR + '/node3/mysql.sock', 'NONGTID', 'none')
 utility_cmd.replication_io_status(BASEDIR, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
@@ -255,3 +256,16 @@ rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER)
 rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
 upgrade_qa.rolling_upgrade('none')
 
+print('------------------------------------------------------------------------------------')
+print("\nPXC Asyc gtid replication upgrade test : Upgrading from PXC-" + lower_version +
+      " to PXC-" + upper_version)
+print('------------------------------------------------------------------------------------')
+upgrade_qa.startup('gtid_replication.cnf')
+upgrade_qa.start_ps('1', 'gtid_replication.cnf')
+utility_cmd.invoke_replication(BASEDIR, '/tmp/psnode1.sock',
+                               WORKDIR + '/node3/mysql.sock', 'NONGTID', 'none')
+utility_cmd.replication_io_status(BASEDIR, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
+utility_cmd.replication_sql_status(BASEDIR, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
+rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER)
+rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
+upgrade_qa.rolling_upgrade('none')

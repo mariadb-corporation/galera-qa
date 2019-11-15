@@ -114,6 +114,7 @@ version = utility_cmd.version_check(BASEDIR)
 #    checksum.sanity_check()
 #    checksum.data_consistency('test')
 # else:
+time.sleep(5)
 result = utility_cmd.check_table_count(BASEDIR, 'test', WORKDIR + '/node1/mysql.sock',
                                        WORKDIR + '/node2/mysql.sock')
 utility_cmd.check_testcase(result, "Checksum run for DB: test")
