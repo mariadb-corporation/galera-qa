@@ -103,9 +103,11 @@ class StartCluster:
                 shutil.copy(self.scriptdir + '/conf/encryption.cnf', self.workdir + '/conf/encryption.cnf')
                 cnf_name.write('!include ' + self.workdir + '/conf/encryption.cnf\n')
                 cnf_name.write('!include ' + self.workdir + '/conf/ssl.cnf\n')
-                cnf_name.write('pxc_encrypt_cluster_traffic = ON\n')
+                if int(version) > int("570000"):
+                    cnf_name.write('pxc_encrypt_cluster_traffic = ON\n')
             else:
-                cnf_name.write('pxc_encrypt_cluster_traffic = OFF\n')
+                if int(version) > int("570000"):
+                    cnf_name.write('pxc_encrypt_cluster_traffic = OFF\n')
             cnf_name.close()
         return 0
 
