@@ -322,19 +322,19 @@ rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER)
 rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
 upgrade_qa.rolling_upgrade('readwrite')
 if int(version) > int("080000"):
-    print('--------------------------------------------------------------------------------------')
-    print(datetime.now().strftime("%H:%M:%S ") + "PXC Upgrade test : Mix of PXC-" +
+    print('------------------------------------------------------------------------------------')
+    print(datetime.now().strftime("%H:%M:%S ") + "Mix of PXC-" +
           lower_version + " and PXC-" + upper_version + "(without active workload)")
-    print('--------------------------------------------------------------------------------------')
+    print('------------------------------------------------------------------------------------')
     upgrade_qa = PXCUpgrade()
     upgrade_qa.startup()
     upgrade_qa.start_upper_version()
-    print('--------------------------------------------------------------------------------------')
-    print(datetime.now().strftime("%H:%M:%S ") + "PXC Upgrade test : Mix of PXC-" +
+    print('------------------------------------------------------------------------------------')
+    print(datetime.now().strftime("%H:%M:%S ") + "Mix of PXC-" +
           lower_version + " and PXC-" + upper_version + "(with active read/write workload)")
-    print('--------------------------------------------------------------------------------------')
+    print('------------------------------------------------------------------------------------')
     upgrade_qa.startup('wsrep_extra')
     rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER)
     rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
-    upgrade_qa.rolling_upgrade('readwrite')
+    upgrade_qa.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test', 'readwrite')
     upgrade_qa.start_upper_version()

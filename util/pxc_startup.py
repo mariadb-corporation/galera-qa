@@ -50,7 +50,7 @@ class StartCluster:
         port = random.randint(10, 19) * 1000
         port_list = []
         addr_list = ''
-        for j in range(1, self.node + 1):
+        for j in range(1, int(self.node) + 1):
             port_list += [port + (j * 100)]
             addr_list = addr_list + '127.0.0.1:' + str(port + (j * 100) + 8) + ','
         if not os.path.isfile(self.scriptdir + '/conf/pxc.cnf'):
@@ -125,13 +125,15 @@ class StartCluster:
         cnf_name.close()
         return 0
 
-    def initialize_cluster(self):
+    def initialize_cluster(self, init_extra=None):
         """ Method to initialize the cluster database
             directories. This will initialize the cluster
             using --initialize-insecure option for
             passwordless authentication.
         """
         result = ""
+        if init_extra is None:
+            init_extra = ''
         # This is for encryption testing. Encryption features are not fully supported
         # if wsrep_extra == "encryption":
         #    init_opt = '--innodb_undo_tablespaces=2 '
@@ -150,7 +152,7 @@ class StartCluster:
                     self.workdir + '/log/startup' + str(i) + '.log 2>&1'
             else:
                 initialize_node = self.basedir + '/bin/mysqld --no-defaults ' \
-                    ' --initialize-insecure --basedir=' + self.basedir + \
+                    ' --initialize-insecure ' + init_extra + ' --basedir=' + self.basedir + \
                     ' --datadir=' + self.workdir + '/node' + str(i) + ' > ' + \
                     self.workdir + '/log/startup' + str(i) + '.log 2>&1'
             run_query = subprocess.call(initialize_node, shell=True, stderr=subprocess.DEVNULL)
