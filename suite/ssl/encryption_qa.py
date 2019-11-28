@@ -12,6 +12,7 @@ from util import table_checksum
 from util import rqg_datagen
 from util import pxc_startup
 from util import db_connection
+from util import createsql
 utility_cmd = utility.Utility()
 utility_cmd.check_python_version()
 
@@ -90,6 +91,22 @@ class EncryptionTest:
             utility_cmd.check_testcase(result, "Database connection")
             self.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
             rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
+            # Add prepared statement SQLs
+            create_ps = BASEDIR + "/bin/mysql --user=root --socket=" + \
+                WORKDIR + '/node1/mysql.sock' + ' < ' + parent_dir + \
+                '/util/prepared_statements.sql > /dev/null 2>&1'
+            result = os.system(create_ps)
+            utility_cmd.check_testcase(result, "Creating prepared statements")
+            # Random data load
+            if os.path.isfile(parent_dir + '/util/createsql.py'):
+                generate_sql = createsql.GenerateSQL('/tmp/dataload.sql', 1000)
+                generate_sql.OutFile()
+                generate_sql.CreateTable()
+                sys.stdout = sys.__stdout__
+                data_load_query = BASEDIR + "/bin/mysql --user=root --socket=" + \
+                    WORKDIR + '/node1/mysql.sock' + ' test -f <  /tmp/dataload.sql >/dev/null 2>&1'
+                result = os.system(data_load_query)
+                utility_cmd.check_testcase(result, "Sample data load")
             utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
 
 

@@ -56,7 +56,7 @@ class SetupReplication:
             utility_cmd.check_testcase(result, "PXC: Configuration file creation")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "PXC: Initializing cluster")
-        result = server_startup.add_myextra_configuration(script_dir + '/gtid_replication.cnf')
+        result = server_startup.add_myextra_configuration(cwd + '/gtid_replication.cnf')
         utility_cmd.check_testcase(result, "PXC: Adding custom configuration")
         result = server_startup.start_cluster(my_extra)
         utility_cmd.check_testcase(result, "PXC: Cluster startup")
@@ -83,7 +83,7 @@ class SetupReplication:
         else:
             result = server_startup.create_config()
             utility_cmd.check_testcase(result, "PS: Configuration file creation")
-        result = server_startup.add_myextra_configuration(script_dir + '/gtid_replication.cnf')
+        result = server_startup.add_myextra_configuration(cwd + '/gtid_replication.cnf')
         utility_cmd.check_testcase(result, "PS: Adding custom configuration")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "PS: Initializing cluster")

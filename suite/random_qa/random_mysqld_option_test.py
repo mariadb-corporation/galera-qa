@@ -90,8 +90,9 @@ class RandomMySQLDOptionQA:
             utility_cmd.check_testcase(result, "Sample data load")
 
 
-print("\nPXC Random MySQLD options test")
-print("------------------------")
+print("------------------------------")
+print("PXC Random MySQLD options test")
+print("------------------------------")
 random_mysql_option_qa = RandomMySQLDOptionQA()
 random_mysql_option_qa.start_pxc()
 random_mysql_option_qa.data_load(socket, 'test')
