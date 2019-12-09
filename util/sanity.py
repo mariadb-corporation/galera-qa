@@ -8,9 +8,9 @@ from datetime import datetime
 
 def check_python_version():
     """ Check python version. Raise error if the
-        version is 3.7 or greater
+        version is 3.5 or greater
     """
-    if sys.version_info < (3, 7):
+    if sys.version_info < (3, 5):
         print("\nError! You should use python 3.7 or greater\n")
         exit(1)
 
