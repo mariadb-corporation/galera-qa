@@ -38,7 +38,10 @@ def main():
         print("Running " + suite + " QA framework")
         for file in os.listdir(scriptdir + '/suite/' + suite):
             if file.endswith(".py"):
-                os.system(scriptdir + '/suite/' + suite + '/' + file + ' ' + encryption)
+                result = os.system(scriptdir + '/suite/' + suite + '/' + file + ' ' + encryption)
+                if result != 0:
+                    print("Failed to run " + file + ", please check the error log")
+                    exit(1)
 
     if test_name is not None:
         if not os.path.isfile(test_name):
