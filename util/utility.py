@@ -306,3 +306,76 @@ class Utility:
                             str(i) + '.sock shutdown > /dev/null 2>&1'
             result = os.system(shutdown_node)
             self.check_testcase(result, "PS: shutting down cluster node" + str(i))
+
+    def pxc_startup_check(self, basedir, workdir, cluster_node):
+        """ This method will check the node
+            startup status.
+        """
+        query_cluster_status = basedir + '/bin/mysql --user=root --socket=' + \
+            workdir + '/node' + str(cluster_node) + \
+            '/mysql.sock -Bse"show status like \'wsrep_local_state_comment\';"' \
+            ' 2>/dev/null | awk \'{print $2}\''
+        ping_query = basedir + '/bin/mysqladmin --user=root --socket=' + \
+            workdir + '/node' + str(cluster_node) + \
+            '/mysql.sock ping > /dev/null 2>&1'
+        for startup_timer in range(300):
+            time.sleep(1)
+            cluster_status = os.popen(query_cluster_status).read().rstrip()
+            if cluster_status == 'Synced':
+                self.check_testcase(0, "Node startup is successful")
+                break
+            if startup_timer > 298:
+                self.check_testcase(0, "Warning! Node is not synced with cluster. "
+                                       "Check the error log to get more info")
+                ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
+                ping_status = ("{}".format(ping_check))
+                if int(ping_status) == 0:
+                    self.check_testcase(int(ping_status), "Node startup is successful "
+                                                          "(Node status:" + cluster_status + ")")
+                    break  # break the loop if mysqld is running
+
+    def node_joiner(self, workdir, basedir, donor_node, joiner_node):
+        # Starting PXC cluster node
+        donor = 'node' + donor_node
+        joiner = 'node' + joiner_node
+        shutil.copy(workdir + '/conf/' + donor + '.cnf',
+                    workdir + '/conf/' + joiner + '.cnf')
+        query = basedir + '/bin/mysql --user=root --socket=' + workdir + '/node' + donor_node + \
+            '/mysql.sock -Bse"show variables like \'wsrep_cluster_address\';"' \
+            ' 2>/dev/null | awk \'{print $2}\''
+        wsrep_cluster_addr = os.popen(query).read().rstrip()
+        query = basedir + "/bin/mysql --user=root --socket=" + \
+            workdir + '/node' + donor_node + '/mysql.sock -Bse"select @@port" 2>&1'
+        port_no = os.popen(query).read().rstrip()
+        wsrep_port_no = int(port_no) + 108
+        port_no = int(port_no) + 100
+        os.system("sed -i 's#" + donor + "#" + joiner + "#g' " + workdir +
+                  '/conf/' + joiner + '.cnf')
+        os.system("sed -i '/wsrep_sst_auth=root:/d' " + workdir +
+                  '/conf/' + joiner + '.cnf')
+        os.system("sed -i  '0,/^[ \\t]*wsrep_cluster_address[ \\t]*=.*$/s|" 
+                  "^[ \\t]*wsrep_cluster_address[ \\t]*=.*$|wsrep_cluster_address="
+                  + wsrep_cluster_addr + "127.0.0.1:" + str(wsrep_port_no) + "|' "
+                  + workdir + '/conf/' + joiner + '.cnf')
+        os.system("sed -i  '0,/^[ \\t]*port[ \\t]*=.*$/s|"
+                  "^[ \\t]*port[ \\t]*=.*$|port="
+                  + str(port_no) + "|' " + workdir + '/conf/' + joiner + '.cnf')
+        os.system('sed -i  "0,/^[ \\t]*wsrep_provider_options[ \\t]*=.*$/s|'
+                  "^[ \\t]*wsrep_provider_options[ \\t]*=.*$|wsrep_provider_options="
+                  "'gmcast.listen_addr=tcp://127.0.0.1:" + str(wsrep_port_no) + "'"
+                  '|" ' + workdir + '/conf/' + joiner + '.cnf')
+        os.system("sed -i  '0,/^[ \\t]*server_id[ \\t]*=.*$/s|"
+                  "^[ \\t]*server_id[ \\t]*=.*$|server_id="
+                  "14|' " + workdir + '/conf/' + joiner + '.cnf')
+
+        shutil.copy(workdir + '/log/startup' + donor_node + '.sh',
+                    workdir + '/log/startup' + joiner_node + '.sh')
+        os.system("sed -i 's#" + donor + "#" + joiner + "#g' " + workdir +
+                  '/log/startup' + joiner_node + '.sh')
+        os.system("rm -rf " + workdir + '/' + joiner)
+        os.mkdir(workdir + '/' + joiner)
+        joiner_startup = "bash " + workdir + \
+            '/log/startup' + joiner_node + '.sh'
+        result = os.system(joiner_startup)
+        self.check_testcase(result, "Starting cluster " + joiner + "node")
+        self.pxc_startup_check(basedir, workdir, joiner_node)

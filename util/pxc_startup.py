@@ -25,7 +25,7 @@ class StartCluster:
         """
         # kill existing mysqld process
         os.system("ps -ef | grep '" + self.workdir + "/conf/node[0-9].cnf' | grep -v grep | "
-                  "awk '{print $2}' | xargs kill -9 >/dev/null 2>&1")
+                                                     "awk '{print $2}' | xargs kill -9 >/dev/null 2>&1")
         if not os.path.exists(self.workdir + '/log'):
             os.mkdir(self.workdir + '/log')
 
@@ -73,41 +73,25 @@ class StartCluster:
             if int(version) > int("050700"):
                 cnf_name.write('log_error_verbosity=3\n')
             cnf_name.write('port=' + str(port_list[i - 1]) + '\n')
-            if int(version) > int("080000"):
-                sanity.create_ssl_certificate(self.workdir)
+            if wsrep_extra == "ssl" or wsrep_extra == "encryption":
                 cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
                                + str(port_list[i - 1] + 8) + ';' + wsrep_provider_option + 'socket.ssl_key='
                                + self.workdir + '/cert/server-key.pem;socket.ssl_cert='
                                + self.workdir + '/cert/server-cert.pem;socket.ssl_ca='
                                + self.workdir + "/cert/ca.pem'\n")
+                cnf_name.write('!include ' + self.workdir + '/conf/ssl.cnf\n')
             else:
-                if wsrep_extra == "ssl" or wsrep_extra == "encryption":
-                    cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
-                                    + str(port_list[i - 1] + 8) + ';' + wsrep_provider_option + 'socket.ssl_key='
-                                    + self.workdir + '/cert/server-key.pem;socket.ssl_cert='
-                                    + self.workdir + '/cert/server-cert.pem;socket.ssl_ca='
-                                    + self.workdir + "/cert/ca.pem'\n")
-                else:
-                    cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
-                                    + str(port_list[i - 1] + 8) + ';' + wsrep_provider_option + "'\n")
+                cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
+                               + str(port_list[i - 1] + 8) + ';' + wsrep_provider_option + "'\n")
             cnf_name.write('socket = ' + self.workdir + '/node' + str(i) + '/mysql.sock\n')
             cnf_name.write('server_id=' + str(10 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
-            if int(version) > int("080000"):
-                cnf_name.write('!include ' + self.workdir + '/conf/ssl.cnf\n')
-            else:
-                if wsrep_extra == "ssl":
-                    # shutil.copy(self.scriptdir + '/conf/ssl.cnf', self.workdir + '/conf/ssl.cnf')
-                    cnf_name.write('!include ' + self.workdir + '/conf/ssl.cnf\n')
             if wsrep_extra == 'encryption':
                 shutil.copy(self.scriptdir + '/conf/encryption.cnf', self.workdir + '/conf/encryption.cnf')
                 cnf_name.write('!include ' + self.workdir + '/conf/encryption.cnf\n')
-                cnf_name.write('!include ' + self.workdir + '/conf/ssl.cnf\n')
-                if int(version) > int("050700"):
-                    cnf_name.write('pxc_encrypt_cluster_traffic = ON\n')
+                cnf_name.write('pxc_encrypt_cluster_traffic = ON\n')
             else:
-                if int(version) > int("050700"):
-                    cnf_name.write('pxc_encrypt_cluster_traffic = OFF\n')
+                cnf_name.write('pxc_encrypt_cluster_traffic = OFF\n')
             cnf_name.close()
         return 0
 
@@ -147,14 +131,14 @@ class StartCluster:
             if int(version) < int("050700"):
                 os.mkdir(self.workdir + '/node' + str(i))
                 initialize_node = self.basedir + '/scripts/mysql_install_db --no-defaults ' \
-                    '--basedir=' + self.basedir + ' --datadir=' + \
-                    self.workdir + '/node' + str(i) + ' > ' + \
-                    self.workdir + '/log/startup' + str(i) + '.log 2>&1'
+                                                 '--basedir=' + self.basedir + ' --datadir=' + \
+                                                 self.workdir + '/node' + str(i) + ' > ' + \
+                                                 self.workdir + '/log/startup' + str(i) + '.log 2>&1'
             else:
                 initialize_node = self.basedir + '/bin/mysqld --no-defaults ' \
-                    ' --initialize-insecure ' + init_extra + ' --basedir=' + self.basedir + \
-                    ' --datadir=' + self.workdir + '/node' + str(i) + ' > ' + \
-                    self.workdir + '/log/startup' + str(i) + '.log 2>&1'
+                                ' --initialize-insecure ' + init_extra + ' --basedir=' + self.basedir + \
+                                ' --datadir=' + self.workdir + '/node' + str(i) + ' > ' + \
+                                self.workdir + '/log/startup' + str(i) + '.log 2>&1'
             run_query = subprocess.call(initialize_node, shell=True, stderr=subprocess.DEVNULL)
             result = ("{}".format(run_query))
         return int(result)
@@ -172,7 +156,7 @@ class StartCluster:
                           '.cnf --datadir=' + self.workdir + '/node' + str(i) + \
                           ' --basedir=' + self.basedir + ' ' + my_extra + \
                           ' --wsrep-provider=' + self.basedir + \
-                          '/lib/libgalera_smm.so --wsrep-new-cluster --log-error=' + self.workdir +\
+                          '/lib/libgalera_smm.so --wsrep-new-cluster --log-error=' + self.workdir + \
                           '/log/node' + str(i) + '.err > ' + self.workdir + '/log/node' + str(i) + '.err 2>&1 &'
             else:
                 startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
@@ -186,18 +170,17 @@ class StartCluster:
             os.system(save_startup)
             subprocess.call(startup, shell=True, stderr=subprocess.DEVNULL)
             ping_query = self.basedir + '/bin/mysqladmin --user=root --socket=' + self.workdir + \
-                '/node' + str(i) + '/mysql.sock ping > /dev/null 2>&1'
+                         '/node' + str(i) + '/mysql.sock ping > /dev/null 2>&1'
             for startup_timer in range(120):
                 time.sleep(1)
                 ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
                 ping_status = ("{}".format(ping_check))
                 if int(ping_status) == 0:
                     query = self.basedir + '/bin/mysql --user=root ' \
-                        '--socket=' + self.workdir + '/node' + str(i) + '/mysql.sock -Bse"' \
-                        "delete from mysql.user where user='';" \
-                        '" > /dev/null 2>&1'
+                                           '--socket=' + self.workdir + '/node' + str(i) + '/mysql.sock -Bse"' \
+                                           "delete from mysql.user where user='';" \
+                                           '" > /dev/null 2>&1'
                     os.system(query)
                     break  # break the loop if mysqld is running
 
         return int(ping_status)
-

@@ -64,8 +64,13 @@ class ClusterInteraction:
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")
 
-    def sysbench_run(self, socket, db):
-        # Sysbench dataload for consistency test
+    def sysbench_run(self, socket, db, background_run=None):
+        # Sysbench dataload for cluster interaction test
+        if background_run is not None:
+            background_run = 'Yes'
+        else:
+            background_run = 'No'
+
         sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
                                             socket)
 
@@ -82,17 +87,15 @@ class ClusterInteraction:
                     '"; > /dev/null 2>&1'
                 os.system(encrypt_table)
 
-        result = sysbench.sysbench_oltp_read_write(db, SYSBENCH_TABLE_COUNT, SYSBENCH_TABLE_COUNT,
-                                                   SYSBENCH_NORMAL_TABLE_SIZE, SYSBENCH_RUN_TIME, 'Yes')
-        utility_cmd.check_testcase(result, "Initiated sysbench oltp run")
+        if background_run == "Yes":
+            result = sysbench.sysbench_oltp_read_write(db, SYSBENCH_TABLE_COUNT, SYSBENCH_TABLE_COUNT,
+                                                   SYSBENCH_NORMAL_TABLE_SIZE, SYSBENCH_RUN_TIME, background_run)
+            utility_cmd.check_testcase(result, "Initiated sysbench oltp run")
 
     def startup_check(self, cluster_node):
         """ This method will check the node
             startup status.
         """
-        recovery_startup = "bash " + self.workdir + \
-                           '/log/startup' + str(cluster_node) + '.sh'
-        os.system(recovery_startup)
         ping_query = self.basedir + '/bin/mysqladmin --user=root --socket=' + \
                      WORKDIR + '/node' + cluster_node + '/mysql.sock ping > /dev/null 2>&1'
         for startup_timer in range(120):
@@ -108,9 +111,10 @@ class ClusterInteraction:
             interaction using following test methods.
             1) Flow control
             2) IST
+            3) Node joining
         """
         utility_cmd.check_testcase(0, "Initiating flow control test")
-        self.sysbench_run(self.socket, 'test')
+        self.sysbench_run(self.socket, 'test', 'background_run')
         query = 'pidof sysbench'
         sysbench_pid = os.popen(query).read().rstrip()
         for j in range(1, int(self.node) + 1):
@@ -138,14 +142,23 @@ class ClusterInteraction:
         shutdown_node = self.basedir + '/bin/mysqladmin --user=root --socket=' + \
                         WORKDIR + '/node' + self.node + '/mysql.sock shutdown > /dev/null 2>&1'
         result = os.system(shutdown_node)
-        utility_cmd.check_testcase(result, "Shutdown cluster node for crash recovery")
-        time.sleep(5)
+        utility_cmd.check_testcase(result, "Shutdown cluster node IST test")
+        time.sleep(15)
         kill_sysbench = "kill -9 " + sysbench_pid + " > /dev/null 2>&1"
         os.system(kill_sysbench)
+        ist_startup = "bash " + self.workdir + \
+                           '/log/startup' + str(self.node) + '.sh'
+        os.system(ist_startup)
         self.startup_check(self.node)
 
         kill_sysbench = "kill -9 " + sysbench_pid + " > /dev/null 2>&1"
         os.system(kill_sysbench)
+
+        utility_cmd.check_testcase(0, "Initiating Node joining test")
+        self.sysbench_run(self.socket, 'test_one')
+        self.sysbench_run(self.socket, 'test_two')
+        self.sysbench_run(self.socket, 'test_three')
+        utility_cmd.node_joiner(self.workdir, self.basedir, str(3), str(4))
 
 
 cluster_interaction = ClusterInteraction(BASEDIR, WORKDIR, USER,

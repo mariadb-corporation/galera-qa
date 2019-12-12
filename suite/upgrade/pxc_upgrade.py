@@ -95,7 +95,7 @@ class PXCUpgrade:
             ' 2>/dev/null | awk \'{print $2}\''
         wsrep_cluster_addr = os.popen(query).read().rstrip()
         query = PXC_LOWER_BASE + "/bin/mysql --user=root --socket=" + \
-                WORKDIR + '/node3/mysql.sock -Bse"select @@port" 2>&1'
+            WORKDIR + '/node3/mysql.sock -Bse"select @@port" 2>&1'
         port_no = os.popen(query).read().rstrip()
         wsrep_port_no = int(port_no) + 108
         port_no = int(port_no) + 100

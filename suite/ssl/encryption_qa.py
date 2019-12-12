@@ -38,17 +38,17 @@ class EncryptionTest:
         rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER)
 
         encryption_tmp_ts = ['innodb_temp_tablespace_encrypt=ON', 'innodb_temp_tablespace_encrypt=OFF']
-        #encryption_bin_log = ['--binlog_encryption=ON', '--binlog_encryption=OFF']
+        encryption_bin_log = ['binlog_encryption=ON', 'binlog_encryption=OFF']
         encryption_default_tbl = ['default_table_encryption=ON', 'default_table_encryption=OFF']
         encryption_redo_log = ['innodb_redo_log_encrypt=ON', 'innodb_redo_log_encrypt=OFF']
         encryption_undo_log = ['innodb_undo_log_encrypt=ON', 'innodb_undo_log_encrypt=OFF']
         encryption_sys_ts = ['innodb_sys_tablespace_encrypt=ON', 'innodb_sys_tablespace_encrypt=OFF']
 
-        for encryption_tmp_ts_value, encryption_default_tbl_value, \
+        for encryption_tmp_ts_value, encryption_bin_log_value, encryption_default_tbl_value, \
             encryption_redo_log_value, encryption_undo_log_value, encryption_sys_ts_value in \
-            itertools.product(encryption_tmp_ts, encryption_default_tbl,
+            itertools.product(encryption_tmp_ts, encryption_bin_log, encryption_default_tbl,
                               encryption_redo_log, encryption_undo_log, encryption_sys_ts):
-            encryption_combination = encryption_tmp_ts_value + \
+            encryption_combination = encryption_tmp_ts_value + " " + encryption_bin_log_value + \
                                      " " + encryption_default_tbl_value + " " + encryption_redo_log_value + \
                                      " " + encryption_undo_log_value + " " + encryption_sys_ts_value
             utility_cmd.check_testcase(0, "Encryption options : " + encryption_combination)
@@ -64,6 +64,7 @@ class EncryptionTest:
             cnf_name.write("early-plugin-load=keyring_file.so" + '\n')
             cnf_name.write("keyring_file_data=keyring" + '\n')
             cnf_name.write(encryption_tmp_ts_value + '\n')
+            cnf_name.write(encryption_bin_log_value + '\n')
             cnf_name.write(encryption_default_tbl_value + '\n')
             cnf_name.write(encryption_redo_log_value + '\n')
             cnf_name.write(encryption_undo_log_value + '\n')
@@ -115,4 +116,3 @@ print("PXC Encryption test")
 print("-----------------------")
 encryption_test = EncryptionTest()
 encryption_test.encryption_qa()
-
