@@ -80,8 +80,6 @@ class ThreadPooling:
             result = server_startup.initialize_cluster()
             utility_cmd.check_testcase(result, "Initializing cluster")
             for i in range(1, int(NODE) + 1):
-                os.system("sed -i 's#pxc_encrypt_cluster_traffic = OFF#pxc_encrypt_cluster_traffic = ON#g' " +
-                          WORKDIR + '/conf/node' + str(i) + '.cnf')
                 n_name = open(WORKDIR + '/conf/node' + str(i) + '.cnf', 'a+')
                 n_name.write('admin_address=127.0.0.1\n')
                 n_name.write('admin_port=' + str(33062 + i) + '\n')
