@@ -80,6 +80,7 @@ class StartCluster:
                                + self.workdir + '/cert/server-cert.pem;socket.ssl_ca='
                                + self.workdir + "/cert/ca.pem'\n")
                 cnf_name.write('!include ' + self.workdir + '/conf/ssl.cnf\n')
+                sanity.create_ssl_certificate(self.workdir)
             else:
                 cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
                                + str(port_list[i - 1] + 8) + ';' + wsrep_provider_option + "'\n")

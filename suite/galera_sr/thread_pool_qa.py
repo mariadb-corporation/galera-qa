@@ -62,7 +62,7 @@ class ThreadPooling:
 
     def thread_pooling_qa(self, socket, db):
         # Thread Pooling QA
-        thread_handling_option = ['pool-of-threads', 'no-threads', 'one-thread-per-connection']
+        thread_handling_option = ['pool-of-threads', 'one-thread-per-connection']
         thread_pool_size = [2, 4, 8]
         thread_pool_max_threads = [2, 4, 8]
         for tp_option, tp_size, tp_max_thread in \
