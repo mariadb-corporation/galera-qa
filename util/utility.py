@@ -45,7 +45,7 @@ class Utility:
                                               int(version_info.split('.')[2]))
         return version
 
-    def create_custom_cnf(self, parent_dir, workdir ):
+    def create_custom_cnf(self, parent_dir, workdir):
         """ Add random mysqld options
         """
         with open(parent_dir + '/conf/mysql_options_pxc57.txt') as f:
