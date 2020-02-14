@@ -2,9 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2f61538d-cf49-45bd-91d9-d59998b6309a" name="Default" comment="">
+      <change afterPath="$PROJECT_DIR$/suite/random_qa/pquery_crash_recovery_qa.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/suite/random_qa/start_pxc.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/conf/encryption.cnf" beforeDir="false" afterPath="$PROJECT_DIR$/conf/encryption.cnf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/suite/galera_sr/thread_pool_qa.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/galera_sr/thread_pool_qa.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/suite/random_qa/pquery_random_qa.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/random_qa/pquery_random_qa.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
