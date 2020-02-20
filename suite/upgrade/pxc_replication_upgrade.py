@@ -263,7 +263,7 @@ print('-------------------------------------------------------------------------
 upgrade_qa.startup('gtid_replication.cnf')
 upgrade_qa.start_ps('1', 'gtid_replication.cnf')
 utility_cmd.invoke_replication(BASEDIR, '/tmp/psnode1.sock',
-                               WORKDIR + '/node3/mysql.sock', 'NONGTID', 'none')
+                               WORKDIR + '/node3/mysql.sock', 'GTID', 'none')
 utility_cmd.replication_io_status(BASEDIR, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
 utility_cmd.replication_sql_status(BASEDIR, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
 rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER)
