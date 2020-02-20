@@ -97,6 +97,13 @@ class CrashRecovery:
             ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
             ping_status = ("{}".format(ping_check))
             if int(ping_status) == 0:
+                wsrep_status = ""
+                while wsrep_status != "Synced":
+                    status_query = self.basedir + '/bin/mysql --user=root --socket=' + \
+                        WORKDIR + '/node' + cluster_node + \
+                        '/mysql.sock -Bse"show status like ' \
+                        "'wsrep_local_state_comment'\"  2>&1 | awk \'{print $2}\'"
+                    wsrep_status = os.popen(status_query).read().rstrip()
                 utility_cmd.check_testcase(int(ping_status), "Cluster recovery is successful")
                 break  # break the loop if mysqld is running
 
