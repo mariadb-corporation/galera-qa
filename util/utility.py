@@ -1,10 +1,15 @@
-from datetime import datetime
+#!/usr/bin/env python3
 import os
-import sys
+import random
 import shutil
 import subprocess
-import random
+import sys
+import time
+from datetime import datetime
 from distutils.spawn import find_executable
+from util import db_connection
+from util import pxc_startup
+from util import ps_startup
 
 
 class Utility:
@@ -24,9 +29,9 @@ class Utility:
 
     def check_python_version(self):
         """ Check python version. Raise error if the
-            version is 3.7 or greater
+            version is 3.5 or greater
         """
-        if sys.version_info < (3, 7):
+        if sys.version_info < (3, 5):
             print("\nError! You should use python 3.7 or greater\n")
             exit(1)
 
@@ -40,65 +45,7 @@ class Utility:
                                               int(version_info.split('.')[2]))
         return version
 
-    def create_ssl_certificate(self, workdir):
-        """ This will create SSL certificate
-            to test SSL and encryption features
-        """
-        if os.path.exists(workdir + '/cert'):
-            shutil.rmtree(workdir + '/cert')
-            os.mkdir(workdir + '/cert')
-        else:
-            os.mkdir(workdir + '/cert')
-        cwd = os.getcwd()
-        os.chdir(workdir + '/cert')
-        key_query = "openssl genrsa 2048 > ca-key.pem "
-        subprocess.call(key_query, shell=True, stderr=subprocess.DEVNULL)
-        key_query = "openssl req -new -x509 -nodes -days 3600 " \
-                    "-key ca-key.pem -out ca.pem -subj" \
-                    " '/CN=www.percona.com/O=Database Performance./C=US' "
-        subprocess.call(key_query, shell=True, stderr=subprocess.DEVNULL)
-        key_query = "openssl req -newkey rsa:2048 -days 3600 " \
-                    "-nodes -keyout server-key.pem -out server-req.pem -subj " \
-                    "'/CN=www.fb.com/O=Database Performance./C=AU' "
-        subprocess.call(key_query, shell=True, stderr=subprocess.DEVNULL)
-        key_query = "openssl rsa -in server-key.pem -out server-key.pem "
-        subprocess.call(key_query, shell=True, stderr=subprocess.DEVNULL)
-        key_query = "openssl x509 -req -in server-req.pem " \
-                    "-days 3600 -CA ca.pem -CAkey ca-key.pem " \
-                    "-set_serial 01 -out server-cert.pem "
-        subprocess.call(key_query, shell=True, stderr=subprocess.DEVNULL)
-        key_query = "openssl req -newkey rsa:2048 -days 3600 -nodes -keyout " \
-                    "client-key.pem -out client-req.pem -subj " \
-                    "'/CN=www.percona.com/O=Database Performance./C=IN' "
-        subprocess.call(key_query, shell=True, stderr=subprocess.DEVNULL)
-        key_query = "openssl rsa -in client-key.pem -out client-key.pem "
-        subprocess.call(key_query, shell=True, stderr=subprocess.DEVNULL)
-        key_query = "openssl x509 -req -in client-req.pem -days " \
-                    "3600 -CA ca.pem -CAkey ca-key.pem " \
-                    "-set_serial 01 -out client-cert.pem "
-        subprocess.call(key_query, shell=True, stderr=subprocess.DEVNULL)
-        if os.path.isfile(workdir + '/conf/ssl.cnf'):
-            os.remove(workdir + '/conf/ssl.cnf')
-        cnf_name = open(workdir + '/conf/ssl.cnf', 'a+')
-        cnf_name.write('\n')
-        cnf_name.write('[mysqld]\n')
-        cnf_name.write('ssl-ca = ' + workdir + '/cert/ca.pem\n')
-        cnf_name.write('ssl-cert = ' + workdir + '/cert/server-cert.pem\n')
-        cnf_name.write('ssl-key = ' + workdir + '/cert/server-key.pem\n')
-        cnf_name.write('[client]\n')
-        cnf_name.write('ssl-ca = ' + workdir + '/cert/ca.pem\n')
-        cnf_name.write('ssl-cert = ' + workdir + '/cert/client-cert.pem\n')
-        cnf_name.write('ssl-key = ' + workdir + '/cert/client-key.pem\n')
-        cnf_name.write('[sst]\n')
-        cnf_name.write('encrypt = 4\n')
-        cnf_name.write('ssl-ca = ' + workdir + '/cert/ca.pem\n')
-        cnf_name.write('ssl-cert = ' + workdir + '/cert/server-cert.pem\n')
-        cnf_name.write('ssl-key = ' + workdir + '/cert/server-key.pem\n')
-        cnf_name.close()
-        os.chdir(cwd)
-        return 0
-
-    def create_custom_cnf(self, parent_dir, workdir ):
+    def create_custom_cnf(self, parent_dir, workdir):
         """ Add random mysqld options
         """
         with open(parent_dir + '/conf/mysql_options_pxc57.txt') as f:
@@ -162,25 +109,32 @@ class Utility:
             print("ERROR!: Could not create xtrabackup user user : xbuser")
             exit(1)
 
-    def pxb_backup(self, workdir, source_datadir, socket, dest_datadir=None):
-        """ This method will backup PXB/PS data directory
+    def pxb_backup(self, workdir, source_datadir, socket, encryption, dest_datadir=None):
+        """ This method will backup PXC/PS data directory
             with the help of xtrabackup.
         """
+        if encryption == 'YES':
+            backup_extra = " --keyring-file-data=" + source_datadir +  \
+                           "/keyring --early-plugin-load='keyring_file=keyring_file.so'"
+        else:
+            backup_extra = ''
         backup_cmd = "xtrabackup --user=xbuser --password='test' --backup " \
-                     "--target-dir=" + workdir + "/backup -S " + \
-                     socket + " --datadir=" + source_datadir + " --lock-ddl >" + \
+                     " --target-dir=" + workdir + "/backup -S" + \
+                     socket + " --datadir=" + source_datadir + " " + backup_extra + " --lock-ddl >" + \
                      workdir + "/log/xb_backup.log 2>&1"
         os.system(backup_cmd)
         prepare_backup = "xtrabackup --prepare --target_dir=" + \
-                         workdir + "/backup --lock-ddl >" + \
+                         workdir + "/backup " + backup_extra + " --lock-ddl >" + \
                          workdir + "/log/xb_backup_prepare.log 2>&1"
         os.system(prepare_backup)
         if dest_datadir is not None:
             copy_backup = "xtrabackup --copy-back --target-dir=" + \
                           workdir + "/backup --datadir=" + \
-                          dest_datadir + " --lock-ddl >" + \
+                          dest_datadir + " " + backup_extra + " --lock-ddl >" + \
                           workdir + "/log/copy_backup.log 2>&1"
             os.system(copy_backup)
+        if encryption == 'YES':
+            os.system("cp " + source_datadir + "/keyring " + dest_datadir)
 
     def replication_io_status(self, basedir, socket, node, channel):
         """ This will check replication IO thread
@@ -296,3 +250,132 @@ class Utility:
         result = os.system(invoke_slave)
         self.check_testcase(result, "Initiated replication")
 
+    def start_pxc(self, parent_dir, workdir, basedir, node, socket, user, encryption, my_extra):
+        # Start PXC cluster
+        dbconnection_check = db_connection.DbConnection(user, socket)
+        server_startup = pxc_startup.StartCluster(parent_dir, workdir, basedir, int(node))
+        result = server_startup.sanity_check()
+        self.check_testcase(result, "Startup sanity check")
+        if encryption == 'YES':
+            result = server_startup.create_config('encryption')
+            self.check_testcase(result, "Configuration file creation")
+        else:
+            result = server_startup.create_config('none')
+            self.check_testcase(result, "Configuration file creation")
+        result = server_startup.initialize_cluster()
+        self.check_testcase(result, "Initializing cluster")
+        result = server_startup.start_cluster('--max-connections=1500 ' + my_extra)
+        self.check_testcase(result, "Cluster startup")
+        result = dbconnection_check.connection_check()
+        self.check_testcase(result, "Database connection")
+
+    def start_ps(self, parent_dir, workdir, basedir, node, socket, user, encryption, my_extra):
+        """ Start Percona Server. This method will
+            perform sanity checks for PS startup
+        """
+        # Start PXC cluster for replication test
+        dbconnection_check = db_connection.DbConnection(user, socket)
+        server_startup = ps_startup.StartPerconaServer(parent_dir, workdir, basedir, int(node))
+        result = server_startup.sanity_check()
+        self.check_testcase(result, "PS: Startup sanity check")
+        if encryption == 'YES':
+            result = server_startup.create_config('encryption')
+            self.check_testcase(result, "PS: Configuration file creation")
+        else:
+            result = server_startup.create_config()
+            self.check_testcase(result, "PS: Configuration file creation")
+        result = server_startup.initialize_cluster()
+        self.check_testcase(result, "PS: Initializing cluster")
+        result = server_startup.start_server('--max-connections=1500 ' + my_extra)
+        self.check_testcase(result, "PS: Cluster startup")
+        result = dbconnection_check.connection_check()
+        self.check_testcase(result, "PS: Database connection")
+
+    def stop_pxc(self, workdir, basedir, node):
+        # Stop PXC cluster
+        for i in range(int(node), 0, -1):
+            shutdown_node = basedir + '/bin/mysqladmin --user=root --socket=' + \
+                        workdir + '/node' + str(i) + '/mysql.sock shutdown > /dev/null 2>&1'
+            result = os.system(shutdown_node)
+            self.check_testcase(result, "PXC: shutting down cluster node" + str(i))
+
+    def stop_ps(self, workdir, basedir, node):
+        # Stop Percona Server
+        for i in range(int(node), 0, -1):
+            shutdown_node = basedir + '/bin/mysqladmin --user=root --socket=/tmp/psnode' + \
+                            str(i) + '.sock shutdown > /dev/null 2>&1'
+            result = os.system(shutdown_node)
+            self.check_testcase(result, "PS: shutting down cluster node" + str(i))
+
+    def pxc_startup_check(self, basedir, workdir, cluster_node):
+        """ This method will check the node
+            startup status.
+        """
+        query_cluster_status = basedir + '/bin/mysql --user=root --socket=' + \
+            workdir + '/node' + str(cluster_node) + \
+            '/mysql.sock -Bse"show status like \'wsrep_local_state_comment\';"' \
+            ' 2>/dev/null | awk \'{print $2}\''
+        ping_query = basedir + '/bin/mysqladmin --user=root --socket=' + \
+            workdir + '/node' + str(cluster_node) + \
+            '/mysql.sock ping > /dev/null 2>&1'
+        for startup_timer in range(300):
+            time.sleep(1)
+            cluster_status = os.popen(query_cluster_status).read().rstrip()
+            if cluster_status == 'Synced':
+                self.check_testcase(0, "Node startup is successful")
+                break
+            if startup_timer > 298:
+                self.check_testcase(0, "Warning! Node is not synced with cluster. "
+                                       "Check the error log to get more info")
+                ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
+                ping_status = ("{}".format(ping_check))
+                if int(ping_status) == 0:
+                    self.check_testcase(int(ping_status), "Node startup is successful "
+                                                          "(Node status:" + cluster_status + ")")
+                    break  # break the loop if mysqld is running
+
+    def node_joiner(self, workdir, basedir, donor_node, joiner_node):
+        # Starting PXC cluster node
+        donor = 'node' + donor_node
+        joiner = 'node' + joiner_node
+        shutil.copy(workdir + '/conf/' + donor + '.cnf',
+                    workdir + '/conf/' + joiner + '.cnf')
+        query = basedir + '/bin/mysql --user=root --socket=' + workdir + '/node' + donor_node + \
+            '/mysql.sock -Bse"show variables like \'wsrep_cluster_address\';"' \
+            ' 2>/dev/null | awk \'{print $2}\''
+        wsrep_cluster_addr = os.popen(query).read().rstrip()
+        query = basedir + "/bin/mysql --user=root --socket=" + \
+            workdir + '/node' + donor_node + '/mysql.sock -Bse"select @@port" 2>&1'
+        port_no = os.popen(query).read().rstrip()
+        wsrep_port_no = int(port_no) + 108
+        port_no = int(port_no) + 100
+        os.system("sed -i 's#" + donor + "#" + joiner + "#g' " + workdir +
+                  '/conf/' + joiner + '.cnf')
+        os.system("sed -i '/wsrep_sst_auth=root:/d' " + workdir +
+                  '/conf/' + joiner + '.cnf')
+        os.system("sed -i  '0,/^[ \\t]*wsrep_cluster_address[ \\t]*=.*$/s|" 
+                  "^[ \\t]*wsrep_cluster_address[ \\t]*=.*$|wsrep_cluster_address="
+                  + wsrep_cluster_addr + "127.0.0.1:" + str(wsrep_port_no) + "|' "
+                  + workdir + '/conf/' + joiner + '.cnf')
+        os.system("sed -i  '0,/^[ \\t]*port[ \\t]*=.*$/s|"
+                  "^[ \\t]*port[ \\t]*=.*$|port="
+                  + str(port_no) + "|' " + workdir + '/conf/' + joiner + '.cnf')
+        os.system('sed -i  "0,/^[ \\t]*wsrep_provider_options[ \\t]*=.*$/s|'
+                  "^[ \\t]*wsrep_provider_options[ \\t]*=.*$|wsrep_provider_options="
+                  "'gmcast.listen_addr=tcp://127.0.0.1:" + str(wsrep_port_no) + "'"
+                  '|" ' + workdir + '/conf/' + joiner + '.cnf')
+        os.system("sed -i  '0,/^[ \\t]*server_id[ \\t]*=.*$/s|"
+                  "^[ \\t]*server_id[ \\t]*=.*$|server_id="
+                  "14|' " + workdir + '/conf/' + joiner + '.cnf')
+
+        shutil.copy(workdir + '/log/startup' + donor_node + '.sh',
+                    workdir + '/log/startup' + joiner_node + '.sh')
+        os.system("sed -i 's#" + donor + "#" + joiner + "#g' " + workdir +
+                  '/log/startup' + joiner_node + '.sh')
+        os.system("rm -rf " + workdir + '/' + joiner)
+        os.mkdir(workdir + '/' + joiner)
+        joiner_startup = "bash " + workdir + \
+            '/log/startup' + joiner_node + '.sh'
+        result = os.system(joiner_startup)
+        self.check_testcase(result, "Starting cluster " + joiner + "node")
+        self.pxc_startup_check(basedir, workdir, joiner_node)

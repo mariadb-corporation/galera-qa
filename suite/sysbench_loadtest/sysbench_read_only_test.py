@@ -16,7 +16,7 @@ utility_cmd = utility.Utility()
 utility_cmd.check_python_version()
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC sysbench load test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='PXC sysbench read only test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 args = parser.parse_args()
@@ -26,7 +26,7 @@ else:
     encryption = 'NO'
 
 
-class SysbenchLoadTest:
+class SysbenchReadOnlyTest:
     def start_server(self, socket, node):
         if SERVER == "pxc":
             my_extra = "--innodb_buffer_pool_size=8G --innodb_log_file_size=1G"
@@ -37,34 +37,29 @@ class SysbenchLoadTest:
 
     def sysbench_run(self, socket, db):
         # Sysbench load test
-        threads = [32, 64, 128, 256, 1024]
+        threads = [32, 64, 128]
         version = utility_cmd.version_check(BASEDIR)
-        checksum = ""
         if int(version) < int("080000"):
             checksum = table_checksum.TableChecksum(PT_BASEDIR, BASEDIR, WORKDIR, NODE, socket)
             checksum.sanity_check()
+        sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
+                                            socket)
         for thread in threads:
-            sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
-                                                socket)
-            if thread == 32:
-                result = sysbench.sanity_check(db)
-                utility_cmd.check_testcase(result, "Sysbench run sanity check")
-            result = sysbench.sysbench_cleanup(db, thread, thread, SYSBENCH_LOAD_TEST_TABLE_SIZE)
-            utility_cmd.check_testcase(result, "Sysbench data cleanup (threads : " + str(thread) + ")")
-            result = sysbench.sysbench_load(db, thread, thread, SYSBENCH_LOAD_TEST_TABLE_SIZE)
-            utility_cmd.check_testcase(result, "Sysbench data load (threads : " + str(thread) + ")")
+            result = sysbench.sanity_check(db)
+            utility_cmd.check_testcase(result, "Sysbench run sanity check")
+            sysbench.sysbench_custom_read_qa(db, 5, thread, SYSBENCH_READ_QA_TABLE_SIZE)
             time.sleep(5)
-            #if int(version) < int("080000"):
-            #    checksum.data_consistency(db)
-            #else:
+#           if int(version) < int("080000"):
+#               checksum.data_consistency(db)
+#           else:
             result = utility_cmd.check_table_count(BASEDIR, db, socket, WORKDIR + '/node2/mysql.sock')
-            utility_cmd.check_testcase(result, "Checksum run for DB: test")
+            utility_cmd.check_testcase(result, "Checksum run for DB: " + db)
 
 
-print("-------------------------")
-print("\nPXC sysbench load test")
-print("------------------------")
-sysbench_loadtest = SysbenchLoadTest()
+print("-----------------------------")
+print("\nPXC sysbench read only test")
+print("-----------------------------")
+sysbench_loadtest = SysbenchReadOnlyTest()
 if SERVER == "pxc":
     sysbench_loadtest.start_server(WORKDIR + '/node1/mysql.sock', NODE)
     sysbench_loadtest.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')

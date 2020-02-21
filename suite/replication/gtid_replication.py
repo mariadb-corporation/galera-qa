@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 import os
 import sys
-import configparser
 import argparse
 cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
+from config import *
 from util import pxc_startup
 from util import db_connection
 from util import sysbench_run
@@ -17,7 +17,7 @@ utility_cmd = utility.Utility()
 utility_cmd.check_python_version()
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC replication test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='PXC GTID replication test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 args = parser.parse_args()
@@ -26,21 +26,7 @@ if args.encryption_run is True:
 else:
     encryption = 'NO'
 
-# Reading initial configuration
-config = configparser.ConfigParser()
-config.read(parent_dir + '/config.ini')
-workdir = config['config']['workdir']
-basedir = config['config']['basedir']
-node = config['config']['node']
-user = config['config']['user']
-node1_socket = config['config']['node1_socket']
-ps1_socket = config['config']['ps1_socket']
-ps2_socket = config['config']['ps2_socket']
-pt_basedir = config['config']['pt_basedir']
-sysbench_threads = 10
-sysbench_table_size = 1000
-sysbench_run_time = 10
-version = utility_cmd.version_check(basedir)
+version = utility_cmd.version_check(BASEDIR)
 
 class SetupReplication:
     def __init__(self, basedir, workdir, node):
@@ -58,13 +44,11 @@ class SetupReplication:
         if my_extra is None:
             my_extra = ''
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        dbconnection_check = db_connection.DbConnection(user, node1_socket)
-        server_startup = pxc_startup.StartCluster(parent_dir, workdir, basedir, int(self.node))
+        dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
+        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "PXC: Startup sanity check")
         if encryption == 'YES':
-            result = utility_cmd.create_ssl_certificate(workdir)
-            utility_cmd.check_testcase(result, "PXC: SSL Configuration")
             result = server_startup.create_config('encryption')
             utility_cmd.check_testcase(result, "PXC: Configuration file creation")
         else:
@@ -72,7 +56,7 @@ class SetupReplication:
             utility_cmd.check_testcase(result, "PXC: Configuration file creation")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "PXC: Initializing cluster")
-        result = server_startup.add_myextra_configuration(script_dir + '/gtid_replication.cnf')
+        result = server_startup.add_myextra_configuration(cwd + '/gtid_replication.cnf')
         utility_cmd.check_testcase(result, "PXC: Adding custom configuration")
         result = server_startup.start_cluster(my_extra)
         utility_cmd.check_testcase(result, "PXC: Cluster startup")
@@ -89,8 +73,8 @@ class SetupReplication:
             my_extra = ''
         # Start PXC cluster for replication test
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        dbconnection_check = db_connection.DbConnection(user, ps1_socket)
-        server_startup = ps_startup.StartPerconaServer(parent_dir, workdir, basedir, int(node))
+        dbconnection_check = db_connection.DbConnection(USER, PS1_SOCKET)
+        server_startup = ps_startup.StartPerconaServer(parent_dir, WORKDIR, BASEDIR, int(node))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "PS: Startup sanity check")
         if encryption == 'YES':
@@ -99,7 +83,7 @@ class SetupReplication:
         else:
             result = server_startup.create_config()
             utility_cmd.check_testcase(result, "PS: Configuration file creation")
-        result = server_startup.add_myextra_configuration(script_dir + '/gtid_replication.cnf')
+        result = server_startup.add_myextra_configuration(cwd + '/gtid_replication.cnf')
         utility_cmd.check_testcase(result, "PS: Adding custom configuration")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "PS: Initializing cluster")
@@ -110,16 +94,16 @@ class SetupReplication:
 
     def sysbench_run(self, socket, db, node):
         # Sysbench data load
-        sysbench = sysbench_run.SysbenchRun(basedir, workdir,
+        sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
                                             socket)
 
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, node + ": Replication QA sysbench run sanity check")
-        result = sysbench.sysbench_load(db, sysbench_threads, sysbench_threads, sysbench_table_size)
+        result = sysbench.sysbench_load(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS, SYSBENCH_NORMAL_TABLE_SIZE)
         utility_cmd.check_testcase(result, node + ": Replication QA sysbench data load")
         if encryption == 'YES':
-            for i in range(1, sysbench_threads + 1):
-                encrypt_table = basedir + '/bin/mysql --user=root ' \
+            for i in range(1, int(SYSBENCH_TABLE_COUNT) + 1):
+                encrypt_table = BASEDIR + '/bin/mysql --user=root ' \
                     '--socket=' + socket + ' -e "' \
                     ' alter table ' + db + '.sbtest' + str(i) + \
                     " encryption='Y'" \
@@ -157,43 +141,47 @@ class SetupReplication:
             self.start_pxc()
             self.start_ps(ps_node)
         if comment == "msr":
-            utility_cmd.invoke_replication(basedir, ps1_socket,
+            utility_cmd.invoke_replication(BASEDIR, PS1_SOCKET,
                                            slave_socket, 'GTID', "for channel 'master1'")
-            utility_cmd.invoke_replication(basedir, ps2_socket,
+            utility_cmd.invoke_replication(BASEDIR, PS2_SOCKET,
                                            slave_socket, 'GTID', "for channel 'master2'")
         else:
-            utility_cmd.invoke_replication(basedir, master_socket,
+            utility_cmd.invoke_replication(BASEDIR, master_socket,
                                            slave_socket, 'GTID', comment)
 
         replication_run.sysbench_run(master_socket, 'sbtest', master)
         replication_run.data_load('ps_dataload_db', master_socket, master)
-        rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir, user)
+        rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER)
         rqg_dataload.pxc_dataload(master_socket)
 
         if comment == "msr":
-            utility_cmd.replication_io_status(basedir, slave_socket, slave, 'master1')
-            utility_cmd.replication_sql_status(basedir, slave_socket, slave, 'master1')
-            utility_cmd.replication_io_status(basedir, slave_socket, slave, 'master2')
-            utility_cmd.replication_sql_status(basedir, slave_socket, slave, 'master2')
+            utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, 'master1')
+            utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, 'master1')
+            utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, 'master2')
+            utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, 'master2')
         else:
-            utility_cmd.replication_io_status(basedir, slave_socket, slave, comment)
-            utility_cmd.replication_sql_status(basedir, slave_socket, slave, comment)
+            utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, comment)
+            utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, comment)
 
 
-replication_run = SetupReplication(basedir, workdir, node)
+replication_run = SetupReplication(BASEDIR, WORKDIR, NODE)
 
 print("\nGTID PXC Node as Master and PS node as Slave")
 print("----------------------------------------------")
-replication_run.replication_testcase('1', 'PXC', 'PS', 'none', node1_socket, ps1_socket)
+replication_run.replication_testcase('1', 'PXC', 'PS', 'none',
+                                     WORKDIR + '/node1/mysql.sock', PS1_SOCKET)
 print("\nGTID PXC Node as Slave and PS node as Master")
 print("----------------------------------------------")
-replication_run.replication_testcase('1', 'PS', 'PXC', 'none', ps1_socket, node1_socket)
+replication_run.replication_testcase('1', 'PS', 'PXC', 'none', PS1_SOCKET,
+                                     WORKDIR + '/node1/mysql.sock')
 
 if int(version) > int("050700"):
     print("\nGTID PXC multi source replication")
     print("-----------------------------------")
-    replication_run.replication_testcase('2', 'PS', 'PXC', 'msr', ps1_socket, node1_socket)
+    replication_run.replication_testcase('2', 'PS', 'PXC', 'msr', PS1_SOCKET,
+                                         WORKDIR + '/node1/mysql.sock')
     print("\nGTID PXC multi thread replication")
     print("-----------------------------------")
-    replication_run.replication_testcase('1', 'PS', 'PXC', 'mtr', ps1_socket, node1_socket)
+    replication_run.replication_testcase('1', 'PS', 'PXC', 'mtr', PS1_SOCKET,
+                                         WORKDIR + '/node1/mysql.sock')
 

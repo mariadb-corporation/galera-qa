@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import os
 import sys
-import configparser
 import argparse
 import shutil
 cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
+from config import *
 from util import pxc_startup
 from util import db_connection
 from util import sysbench_run
@@ -18,7 +18,7 @@ utility_cmd = utility.Utility()
 utility_cmd.check_python_version()
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC replication test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='PXC replication test using PXB', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 args = parser.parse_args()
@@ -26,21 +26,6 @@ if args.encryption_run is True:
     encryption = 'YES'
 else:
     encryption = 'NO'
-
-# Reading initial configuration
-config = configparser.ConfigParser()
-config.read(parent_dir + '/config.ini')
-workdir = config['config']['workdir']
-basedir = config['config']['basedir']
-node = config['config']['node']
-user = config['config']['user']
-node1_socket = config['config']['node1_socket']
-ps1_socket = config['config']['ps1_socket']
-ps2_socket = config['config']['ps2_socket']
-pt_basedir = config['config']['pt_basedir']
-sysbench_threads = 10
-sysbench_table_size = 1000
-sysbench_run_time = 10
 
 
 class SetupReplication:
@@ -59,13 +44,11 @@ class SetupReplication:
         if my_extra is None:
             my_extra = ''
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        dbconnection_check = db_connection.DbConnection(user, node1_socket)
-        server_startup = pxc_startup.StartCluster(parent_dir, workdir, basedir, int(self.node))
+        dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
+        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "PXC: Startup sanity check")
         if encryption == 'YES':
-            result = utility_cmd.create_ssl_certificate(workdir)
-            utility_cmd.check_testcase(result, "PXC: SSL Configuration")
             result = server_startup.create_config('encryption')
             utility_cmd.check_testcase(result, "PXC: Configuration file creation")
         else:
@@ -86,10 +69,11 @@ class SetupReplication:
             This method will also do
             sanity check before backup
         """
-        utility_cmd.pxb_sanity_check(basedir, workdir, node1_socket)
-        if os.path.exists(workdir + '/psnode1'):
-            shutil.rmtree(workdir + '/psnode1')
-        utility_cmd.pxb_backup(workdir, workdir + '/node1', node1_socket, workdir + '/psnode1')
+        utility_cmd.pxb_sanity_check(BASEDIR, WORKDIR, WORKDIR + '/node1/mysql.sock')
+        if os.path.exists(WORKDIR + '/psnode1'):
+            shutil.rmtree(WORKDIR + '/psnode1')
+        utility_cmd.pxb_backup(WORKDIR, WORKDIR + '/node1', WORKDIR + '/node1/mysql.sock',
+                               encryption, WORKDIR + '/psnode1')
 
     def start_slave(self, node, my_extra=None):
         """ Start Percona Server. This method will
@@ -101,8 +85,8 @@ class SetupReplication:
             my_extra = ''
         # Start PXC cluster for replication test
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        dbconnection_check = db_connection.DbConnection(user, ps1_socket)
-        server_startup = ps_startup.StartPerconaServer(parent_dir, workdir, basedir, int(node))
+        dbconnection_check = db_connection.DbConnection(USER, PS1_SOCKET)
+        server_startup = ps_startup.StartPerconaServer(parent_dir, WORKDIR, BASEDIR, int(node))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "PS: Startup sanity check")
         if encryption == 'YES':
@@ -120,16 +104,16 @@ class SetupReplication:
 
     def sysbench_run(self, socket, db, node):
         # Sysbench data load
-        sysbench = sysbench_run.SysbenchRun(basedir, workdir,
+        sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
                                             socket)
 
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, node + ": Replication QA sysbench run sanity check")
-        result = sysbench.sysbench_load(db, sysbench_threads, sysbench_threads, sysbench_table_size)
+        result = sysbench.sysbench_load(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS, SYSBENCH_NORMAL_TABLE_SIZE)
         utility_cmd.check_testcase(result, node + ": Replication QA sysbench data load")
         if encryption == 'YES':
-            for i in range(1, sysbench_threads + 1):
-                encrypt_table = basedir + '/bin/mysql --user=root ' \
+            for i in range(1, int(SYSBENCH_TABLE_COUNT) + 1):
+                encrypt_table = BASEDIR + '/bin/mysql --user=root ' \
                     '--socket=' + socket + ' -e "' \
                     ' alter table ' + db + '.sbtest' + str(i) + \
                     " encryption='Y'" \
@@ -159,14 +143,14 @@ class SetupReplication:
         utility_cmd.check_testcase(result, node + ": Replication QA prepared statements dataload")
 
 
-replication_run = SetupReplication(basedir, workdir, node)
+replication_run = SetupReplication(BASEDIR, WORKDIR, NODE)
 print("\nSetup replication using Percona Xtrabackup")
 print("------------------------------------------")
 replication_run.start_pxc()
-replication_run.sysbench_run(node1_socket, 'pxcdb', 'PXC')
-replication_run.data_load('pxc_dataload_db', node1_socket, 'PXC')
+replication_run.sysbench_run(WORKDIR + '/node1/mysql.sock', 'pxcdb', 'PXC')
+replication_run.data_load('pxc_dataload_db', WORKDIR + '/node1/mysql.sock', 'PXC')
 replication_run.backup_pxc_node()
 replication_run.start_slave('1')
-utility_cmd.invoke_replication(basedir, node1_socket, ps1_socket, 'backup_slave', 'none')
-utility_cmd.replication_io_status(basedir, ps1_socket, 'PS', 'none')
-utility_cmd.replication_sql_status(basedir, ps1_socket, 'PS', 'none')
+utility_cmd.invoke_replication(BASEDIR, WORKDIR + '/node1/mysql.sock', PS1_SOCKET, 'backup_slave', 'none')
+utility_cmd.replication_io_status(BASEDIR, PS1_SOCKET, 'PS', 'none')
+utility_cmd.replication_sql_status(BASEDIR, PS1_SOCKET, 'PS', 'none')

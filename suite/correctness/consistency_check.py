@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 import os
 import sys
-import configparser
 import argparse
+import time
 cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
+from config import *
 from util import pxc_startup
 from util import db_connection
 from util import sysbench_run
@@ -17,7 +18,7 @@ utility_cmd = utility.Utility()
 utility_cmd.check_python_version()
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC replication test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='PXC consistency test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 args = parser.parse_args()
@@ -26,18 +27,6 @@ if args.encryption_run is True:
 else:
     encryption = 'NO'
 
-# Reading initial configuration
-config = configparser.ConfigParser()
-config.read(parent_dir + '/config.ini')
-workdir = config['config']['workdir']
-basedir = config['config']['basedir']
-node = config['config']['node']
-user = config['config']['user']
-node1_socket = config['config']['node1_socket']
-node2_socket = config['config']['node2_socket']
-pt_basedir = config['config']['pt_basedir']
-sysbench_threads = 10
-sysbench_table_size = 1000
 sysbench_run_time = 10
 
 
@@ -59,13 +48,11 @@ class ConsistencyCheck:
 
     def start_pxc(self):
         # Start PXC cluster for replication test
-        dbconnection_check = db_connection.DbConnection(user, node1_socket)
-        server_startup = pxc_startup.StartCluster(parent_dir, workdir, basedir, int(node))
+        dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
+        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
-            result = utility_cmd.create_ssl_certificate(workdir)
-            utility_cmd.check_testcase(result, "SSL Configuration")
             result = server_startup.create_config('encryption')
             utility_cmd.check_testcase(result, "Configuration file creation")
         else:
@@ -78,25 +65,25 @@ class ConsistencyCheck:
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")
 
-    def sysbench_run(self, node1_socket, db):
+    def sysbench_run(self, socket, db):
         # Sysbench dataload for consistency test
-        sysbench = sysbench_run.SysbenchRun(basedir, workdir,
-                                            node1_socket)
+        sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
+                                            socket)
 
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "Replication QA sysbench run sanity check")
-        result = sysbench.sysbench_load(db, sysbench_threads, sysbench_threads, sysbench_table_size)
+        result = sysbench.sysbench_load(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS, SYSBENCH_NORMAL_TABLE_SIZE)
         utility_cmd.check_testcase(result, "Replication QA sysbench data load")
         if encryption == 'YES':
-            for i in range(1, sysbench_threads + 1):
-                encrypt_table = basedir + '/bin/mysql --user=root ' \
-                    '--socket=' + node1_socket + ' -e "' \
+            for i in range(1, int(SYSBENCH_TABLE_COUNT) + 1):
+                encrypt_table = BASEDIR + '/bin/mysql --user=root ' \
+                    '--socket=' + socket + ' -e "' \
                     ' alter table ' + db + '.sbtest' + str(i) + \
                     " encryption='Y'" \
                     '"; > /dev/null 2>&1'
                 os.system(encrypt_table)
 
-    def data_load(self, db, node1_socket):
+    def data_load(self, db, socket):
         # Random dataload for consistency test
         if os.path.isfile(parent_dir + '/util/createsql.py'):
             generate_sql = createsql.GenerateSQL('/tmp/dataload.sql', 1000)
@@ -104,33 +91,32 @@ class ConsistencyCheck:
             generate_sql.CreateTable()
             sys.stdout = sys.__stdout__
             create_db = self.basedir + "/bin/mysql --user=root --socket=" + \
-                node1_socket + ' -Bse"drop database if exists ' + db + \
+                socket + ' -Bse"drop database if exists ' + db + \
                 ';create database ' + db + ';" 2>&1'
             result = os.system(create_db)
             utility_cmd.check_testcase(result, "Sample DB creation")
             data_load_query = self.basedir + "/bin/mysql --user=root --socket=" + \
-                node1_socket + ' ' + db + ' -f <  /tmp/dataload.sql >/dev/null 2>&1'
+                socket + ' ' + db + ' -f <  /tmp/dataload.sql >/dev/null 2>&1'
             result = os.system(data_load_query)
             utility_cmd.check_testcase(result, "Sample data load")
 
 
 print("\nPXC data consistency test between nodes")
 print("----------------------------------------")
-consistency_run = ConsistencyCheck(basedir, workdir, user, node1_socket, pt_basedir, node)
-rqg_dataload = rqg_datagen.RQGDataGen(basedir, workdir, user)
+consistency_run = ConsistencyCheck(BASEDIR, WORKDIR, USER, WORKDIR + '/node1/mysql.sock', PT_BASEDIR, NODE)
+rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER)
 consistency_run.start_pxc()
-consistency_run.sysbench_run(node1_socket, 'test')
-consistency_run.data_load('pxc_dataload_db', node1_socket)
-rqg_dataload.pxc_dataload(node1_socket)
-version = utility_cmd.version_check(basedir)
-if int(version) < int("080000"):
-    checksum = table_checksum.TableChecksum(pt_basedir, basedir, workdir, node, node1_socket)
-    checksum.sanity_check()
-    checksum.data_consistency('test,pxc_dataload_db,db_galera')
-else:
-    result = utility_cmd.check_table_count(basedir, 'test', node1_socket, node2_socket)
-    utility_cmd.check_testcase(result, "Checksum run for DB: test")
-    result = utility_cmd.check_table_count(basedir, 'pxc_dataload_db', node1_socket, node2_socket)
-    utility_cmd.check_testcase(result, "Checksum run for DB: pxc_dataload_db")
-    result = utility_cmd.check_table_count(basedir, 'db_galera', node1_socket, node2_socket)
-    utility_cmd.check_testcase(result, "Checksum run for DB: db_galera")
+consistency_run.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
+consistency_run.data_load('pxc_dataload_db', WORKDIR + '/node1/mysql.sock')
+rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
+version = utility_cmd.version_check(BASEDIR)
+time.sleep(5)
+result = utility_cmd.check_table_count(BASEDIR, 'test', WORKDIR + '/node1/mysql.sock',
+                                       WORKDIR + '/node2/mysql.sock')
+utility_cmd.check_testcase(result, "Checksum run for DB: test")
+result = utility_cmd.check_table_count(BASEDIR, 'pxc_dataload_db', WORKDIR + '/node1/mysql.sock',
+                                       WORKDIR + '/node2/mysql.sock')
+utility_cmd.check_testcase(result, "Checksum run for DB: pxc_dataload_db")
+result = utility_cmd.check_table_count(BASEDIR, 'db_galera', WORKDIR + '/node1/mysql.sock',
+                                       WORKDIR + '/node2/mysql.sock')
+utility_cmd.check_testcase(result, "Checksum run for DB: db_galera")

@@ -1,5 +1,9 @@
 [mysqld]
 encrypt_tmp_files = ON
-#innodb_temp_tablespace_encrypt = ON
+binlog_encryption = ON
+default_table_encryption = ON
+innodb_redo_log_encrypt = ON
+innodb_undo_log_encrypt = ON
+innodb_temp_tablespace_encrypt = ON
 early-plugin-load = keyring_file.so
 keyring_file_data = keyring

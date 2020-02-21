@@ -2,13 +2,10 @@
 import os
 import sys
 import argparse
-import time
 cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
 from config import *
-from util import pxc_startup
-from util import db_connection
 from util import sysbench_run
 from util import utility
 from util import table_checksum
@@ -16,9 +13,10 @@ utility_cmd = utility.Utility()
 utility_cmd.check_python_version()
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC sysbench load test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='PXC sysbench customized dataload test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
+
 args = parser.parse_args()
 if args.encryption_run is True:
     encryption = 'YES'
@@ -37,33 +35,23 @@ class SysbenchLoadTest:
 
     def sysbench_run(self, socket, db):
         # Sysbench load test
-        threads = [32, 64, 128, 256, 1024]
+        threads = [32, 64, 128]
         version = utility_cmd.version_check(BASEDIR)
-        checksum = ""
         if int(version) < int("080000"):
             checksum = table_checksum.TableChecksum(PT_BASEDIR, BASEDIR, WORKDIR, NODE, socket)
             checksum.sanity_check()
-        for thread in threads:
-            sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
-                                                socket)
-            if thread == 32:
-                result = sysbench.sanity_check(db)
-                utility_cmd.check_testcase(result, "Sysbench run sanity check")
-            result = sysbench.sysbench_cleanup(db, thread, thread, SYSBENCH_LOAD_TEST_TABLE_SIZE)
-            utility_cmd.check_testcase(result, "Sysbench data cleanup (threads : " + str(thread) + ")")
-            result = sysbench.sysbench_load(db, thread, thread, SYSBENCH_LOAD_TEST_TABLE_SIZE)
-            utility_cmd.check_testcase(result, "Sysbench data load (threads : " + str(thread) + ")")
-            time.sleep(5)
-            #if int(version) < int("080000"):
-            #    checksum.data_consistency(db)
-            #else:
-            result = utility_cmd.check_table_count(BASEDIR, db, socket, WORKDIR + '/node2/mysql.sock')
-            utility_cmd.check_testcase(result, "Checksum run for DB: test")
+        sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
+                                            socket)
+        result = sysbench.sanity_check(db)
+        utility_cmd.check_testcase(result, "Sysbench run sanity check")
+        result = sysbench.sysbench_custom_table(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
+                                                SYSBENCH_CUSTOMIZED_DATALOAD_TABLE_SIZE)
+        utility_cmd.check_testcase(result, "Sysbench data load")
 
 
-print("-------------------------")
-print("\nPXC sysbench load test")
-print("------------------------")
+print("----------------------------------------")
+print("\nPXC sysbench customized data load test")
+print("----------------------------------------")
 sysbench_loadtest = SysbenchLoadTest()
 if SERVER == "pxc":
     sysbench_loadtest.start_server(WORKDIR + '/node1/mysql.sock', NODE)
