@@ -11,6 +11,7 @@ from util import db_connection
 from util import sysbench_run
 from util import utility
 from util import createsql
+from util import rqg_datagen
 utility_cmd = utility.Utility()
 utility_cmd.check_python_version()
 
@@ -81,6 +82,10 @@ class RandomMySQLDOptionQA:
 print("------------------------------")
 print("PXC Random MySQLD options test")
 print("------------------------------")
-random_mysql_option_qa = RandomMySQLDOptionQA()
-random_mysql_option_qa.start_pxc()
-random_mysql_option_qa.data_load(WORKDIR + '/node1/mysql.sock', 'test')
+while True:
+    random_mysql_option_qa = RandomMySQLDOptionQA()
+    random_mysql_option_qa.start_pxc()
+    random_mysql_option_qa.data_load(WORKDIR + '/node1/mysql.sock', 'test')
+    rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER)
+    rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
+    utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
