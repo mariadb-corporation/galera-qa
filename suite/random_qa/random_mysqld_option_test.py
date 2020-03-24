@@ -2,6 +2,7 @@
 import os
 import sys
 import argparse
+import shutil
 cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
@@ -27,40 +28,14 @@ else:
 
 
 class RandomMySQLDOptionQA:
-    def start_pxc(self):
-        # Start PXC cluster for random mysqld options QA
-        dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE))
-        result = server_startup.sanity_check()
-        utility_cmd.check_testcase(result, "Startup sanity check")
-        if encryption == 'YES':
-            result = server_startup.create_config('encryption')
-            utility_cmd.check_testcase(result, "Configuration file creation")
-        else:
-            result = server_startup.create_config('none')
-            utility_cmd.check_testcase(result, "Configuration file creation")
-        result = utility_cmd.create_custom_cnf(parent_dir, WORKDIR)
-        utility_cmd.check_testcase(result, "Added random mysqld options")
-        result = server_startup.initialize_cluster()
-        utility_cmd.check_testcase(result, "Initializing cluster")
-        result = server_startup.start_cluster('--max-connections=1500')
-        utility_cmd.check_testcase(result, "Cluster startup")
-        result = dbconnection_check.connection_check()
-        utility_cmd.check_testcase(result, "Database connection")
 
     def data_load(self, socket, db):
         # Sysbench data load
         sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR, socket)
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
-        result = sysbench.sysbench_load(db, 64, 64, SYSBENCH_NORMAL_TABLE_SIZE)
+        result = sysbench.sysbench_load(db, 10, 10, SYSBENCH_NORMAL_TABLE_SIZE)
         utility_cmd.check_testcase(result, "Sysbench data load")
-        result = sysbench.sysbench_oltp_read_write(db, 64, 64, SYSBENCH_NORMAL_TABLE_SIZE, SYSBENCH_RUN_TIME)
-        utility_cmd.check_testcase(result, "Sysbench read write run")
-        result = sysbench.sysbench_oltp_write_only(db, 64, 64, SYSBENCH_NORMAL_TABLE_SIZE, SYSBENCH_RUN_TIME)
-        utility_cmd.check_testcase(result, "Sysbench write run")
-        result = sysbench.sysbench_oltp_read_only(db, 64, 64, SYSBENCH_NORMAL_TABLE_SIZE, SYSBENCH_RUN_TIME)
-        utility_cmd.check_testcase(result, "Sysbench read run")
 
         # Add prepared statement SQLs
         create_ps = BASEDIR + "/bin/mysql --user=root --socket=" + \
@@ -82,10 +57,45 @@ class RandomMySQLDOptionQA:
 print("------------------------------")
 print("PXC Random MySQLD options test")
 print("------------------------------")
-while True:
+mysql_options = open(parent_dir + '/conf/mysql_options_pxc80.txt')
+for mysql_option in mysql_options:
+    if os.path.exists(WORKDIR + '/random_mysql_error'):
+        os.system('rm -rf ' + WORKDIR + '/random_mysql_error >/dev/null 2>&1')
+        os.mkdir(WORKDIR + '/random_mysql_error')
     random_mysql_option_qa = RandomMySQLDOptionQA()
-    random_mysql_option_qa.start_pxc()
+    # Start PXC cluster for random mysqld options QA
+    dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
+    server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE))
+    result = server_startup.sanity_check()
+    utility_cmd.check_testcase(result, "Startup sanity check")
+    if encryption == 'YES':
+        result = server_startup.create_config('encryption')
+        utility_cmd.check_testcase(result, "Configuration file creation")
+    else:
+        result = server_startup.create_config('none')
+        utility_cmd.check_testcase(result, "Configuration file creation")
+
+    cnf_name = open(WORKDIR + '/conf/custom.cnf', 'a+')
+    cnf_name.write('\n')
+    cnf_name.write(mysql_option)
+    cnf_name.close()
+
+    # result = utility_cmd.create_custom_cnf(parent_dir, WORKDIR)
+    utility_cmd.check_testcase(0, "Added random mysqld option: " + mysql_option)
+    result = server_startup.initialize_cluster()
+    utility_cmd.check_testcase(result, "Initializing cluster")
+    result = server_startup.start_cluster('--max-connections=1500')
+    utility_cmd.check_testcase(result, "Cluster startup")
+    option = mysql_option.split('&')[0]
+    if result != 0:
+        os.mkdir(WORKDIR + '/random_mysql_error/' + option)
+        shutil.copy(WORKDIR + '/conf/custom.cnf', WORKDIR +
+                    '/random_mysql_error/' + option + '/custom.cnf')
+        shutil.copy(WORKDIR + '/log/*.err', WORKDIR +
+                    '/random_mysql_error/' + option)
+        break
+    result = dbconnection_check.connection_check()
+    utility_cmd.check_testcase(result, "Database connection")
     random_mysql_option_qa.data_load(WORKDIR + '/node1/mysql.sock', 'test')
-    rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER)
-    rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
     utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
+mysql_options.close()

@@ -173,7 +173,6 @@ class StartCluster:
             ping_query = self.basedir + '/bin/mysqladmin --user=root --socket=' + self.workdir + \
                          '/node' + str(i) + '/mysql.sock ping > /dev/null 2>&1'
             for startup_timer in range(120):
-                time.sleep(1)
                 ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
                 ping_status = ("{}".format(ping_check))
                 if int(ping_status) == 0:
@@ -183,5 +182,6 @@ class StartCluster:
                                            '" > /dev/null 2>&1'
                     os.system(query)
                     break  # break the loop if mysqld is running
+                time.sleep(1)
 
         return int(ping_status)
