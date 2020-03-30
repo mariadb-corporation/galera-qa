@@ -5,7 +5,8 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/conf/mysql_options_pxc80.txt" beforeDir="false" afterPath="$PROJECT_DIR$/conf/mysql_options_pxc80.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/suite/random_qa/random_mysqld_option_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/random_qa/random_mysqld_option_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/util/pxc_startup.py" beforeDir="false" afterPath="$PROJECT_DIR$/util/pxc_startup.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/suite/ssl/encryption_qa.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/ssl/encryption_qa.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/util/utility.py" beforeDir="false" afterPath="$PROJECT_DIR$/util/utility.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />

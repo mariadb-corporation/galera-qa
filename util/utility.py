@@ -17,7 +17,7 @@ class Utility:
         now = datetime.now().strftime("%H:%M:%S ")
         print(now + ' ' + f'{text:100}' + '[ ' + status + ' ]')
 
-    def check_testcase(self, result, testcase):
+    def check_testcase(self, result, testcase, is_terminate=None):
         now = datetime.now().strftime("%H:%M:%S ")
         if result == 0:
             print(now + ' ' + f'{testcase:100}' + '[ \u2713 ]')
@@ -25,7 +25,8 @@ class Utility:
         else:
             print(now + ' ' + f'{testcase:100}' + '[ \u2717 ]')
             #self.printit(testcase, u'\u2718')
-            exit(1)
+            if is_terminate is None:
+                exit(1)
 
     def check_python_version(self):
         """ Check python version. Raise error if the

@@ -57,7 +57,7 @@ class EncryptionTest:
             server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE))
             result = server_startup.sanity_check()
             utility_cmd.check_testcase(result, "Startup sanity check")
-            result = server_startup.create_config('none')
+            result = server_startup.create_config('encryption')
             utility_cmd.check_testcase(result, "Configuration file creation")
             cnf_name = open(WORKDIR + '/conf/random_encryption.cnf', 'w+')
             cnf_name.write('[mysqld]\n')

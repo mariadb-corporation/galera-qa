@@ -62,6 +62,8 @@ for mysql_option in mysql_options:
     if os.path.exists(WORKDIR + '/random_mysql_error'):
         os.system('rm -rf ' + WORKDIR + '/random_mysql_error >/dev/null 2>&1')
         os.mkdir(WORKDIR + '/random_mysql_error')
+    else:
+        os.mkdir(WORKDIR + '/random_mysql_error')
     random_mysql_option_qa = RandomMySQLDOptionQA()
     # Start PXC cluster for random mysqld options QA
     dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
@@ -85,15 +87,16 @@ for mysql_option in mysql_options:
     result = server_startup.initialize_cluster()
     utility_cmd.check_testcase(result, "Initializing cluster")
     result = server_startup.start_cluster('--max-connections=1500')
-    utility_cmd.check_testcase(result, "Cluster startup")
-    option = mysql_option.split('&')[0]
+    option = mysql_option.split('=')[0]
+    opt_value = mysql_option.split('=')[1]
+    opt_dir = option + '_' + opt_value
     if result != 0:
-        os.mkdir(WORKDIR + '/random_mysql_error/' + option)
+        os.mkdir(WORKDIR + '/random_mysql_error/' + opt_dir)
         shutil.copy(WORKDIR + '/conf/custom.cnf', WORKDIR +
-                    '/random_mysql_error/' + option + '/custom.cnf')
-        shutil.copy(WORKDIR + '/log/*.err', WORKDIR +
-                    '/random_mysql_error/' + option)
-        break
+                    '/random_mysql_error/' + opt_dir + '/custom.cnf')
+        shutil.copytree(WORKDIR + '/log', WORKDIR + '/random_mysql_error/' + opt_dir + '/log')
+        continue
+    utility_cmd.check_testcase(result, "Cluster startup", "Not terminate")
     result = dbconnection_check.connection_check()
     utility_cmd.check_testcase(result, "Database connection")
     random_mysql_option_qa.data_load(WORKDIR + '/node1/mysql.sock', 'test')
