@@ -38,18 +38,24 @@ class PXCUtil:
         server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE))
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
+        # Check encryption run
         if encryption == 'YES':
+            # Add encryption options
             result = server_startup.create_config('encryption')
             utility_cmd.check_testcase(result, "Configuration file creation")
         else:
             result = server_startup.create_config('none')
             utility_cmd.check_testcase(result, "Configuration file creation")
+        # Initialize cluster (create data directory)
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "Initializing cluster")
+        # Start cluster
         result = server_startup.start_cluster('--max-connections=1500 ')
         utility_cmd.check_testcase(result, "Cluster startup")
+        # Check DB connection
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")
+        # Create database test
         query = BASEDIR + "/bin/mysql --user=root --socket=" + \
                 WORKDIR + "/node1/mysql.sock -e'drop database if exists test " \
                           "; create database test ;' > /dev/null 2>&1"
@@ -60,6 +66,7 @@ class PXCUtil:
             exit(1)
         utility_cmd.check_testcase(0, "PXC connection string")
         for i in range(1, int(NODE) + 1):
+            # Print connection string
             print('\t' + BASEDIR + '/bin/mysql --user=root --socket=' +
                   WORKDIR + '/node' + str(i) + '/mysql.sock')
 
@@ -74,7 +81,9 @@ class PXCUtil:
 
 pxc_util = PXCUtil()
 if args.start is True:
+    # Start Cluster
     pxc_util.start_pxc()
 
 if args.stop is True:
+    # Stop cluster
     pxc_util.stop_pxc()

@@ -14,33 +14,32 @@ from util import ps_startup
 
 class Utility:
     def printit(self, text, status):
+        # print the testcase status
         now = datetime.now().strftime("%H:%M:%S ")
         print(now + ' ' + f'{text:100}' + '[ ' + status + ' ]')
 
     def check_testcase(self, result, testcase, is_terminate=None):
+        # print testcase status based on success/failure output.
         now = datetime.now().strftime("%H:%M:%S ")
         if result == 0:
             print(now + ' ' + f'{testcase:100}' + '[ \u2713 ]')
-            #self.printit(testcase, u'\u2713')
         else:
             print(now + ' ' + f'{testcase:100}' + '[ \u2717 ]')
-            #self.printit(testcase, u'\u2718')
             if is_terminate is None:
                 exit(1)
 
     def check_python_version(self):
         """ Check python version. Raise error if the
-            version is 3.5 or greater
+            version is 3.5 or lower
         """
-        if sys.version_info < (3, 5):
-            print("\nError! You should use python 3.7 or greater\n")
+        if sys.version_info < (3, 6):
+            print("\nError! You should use python 3.6 or greater\n")
             exit(1)
 
     def version_check(self, basedir):
         # Get database version number
-        version_info = os.popen(basedir +
-                                "/bin/mysqld --version 2>&1 "
-                                "| grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1").read()
+        version_info = os.popen(basedir + "/bin/mysqld --version 2>&1 "
+                                          "| grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1").read()
         version = "{:02d}{:02d}{:02d}".format(int(version_info.split('.')[0]),
                                               int(version_info.split('.')[1]),
                                               int(version_info.split('.')[2]))
@@ -49,10 +48,12 @@ class Utility:
     def create_custom_cnf(self, parent_dir, workdir):
         """ Add random mysqld options
         """
+        # Read 10 random mysqld options from the option file
         with open(parent_dir + '/conf/mysql_options_pxc57.txt') as f:
             lines = random.sample(f.readlines(), 10)
         cnf_name = open(workdir + '/conf/custom.cnf', 'a+')
         cnf_name.write('\n')
+        # Add the random option in custom.cnf
         for x in range(len(lines)):
             cnf_name.write(lines[x])
         cnf_name.close()
@@ -63,16 +64,17 @@ class Utility:
             count between two nodes
         """
         query = basedir + '/bin/mysql -uroot ' + db + ' --socket=' + \
-            socket1 + ' -Bse"show tables;"'
+                socket1 + ' -Bse"show tables;"'
         tables = os.popen(query).read().rstrip()
+        # Compare the table checksum between node1 and node2
         for table in tables.split('\n'):
             query = basedir + '/bin/mysql -uroot --socket=' + \
-                socket1 + ' -Bse"checksum table ' + \
-                db + '.' + table + ';"'
+                    socket1 + ' -Bse"checksum table ' + \
+                    db + '.' + table + ';"'
             table_count_node1 = os.popen(query).read().rstrip()
             query = basedir + '/bin/mysql -uroot --socket=' + \
-                socket2 + ' -Bse"checksum table ' + \
-                db + '.' + table + ';"'
+                    socket2 + ' -Bse"checksum table ' + \
+                    db + '.' + table + ';"'
             table_count_node2 = os.popen(query).read().rstrip()
             if table_count_node1 == table_count_node2:
                 return 0
@@ -84,27 +86,32 @@ class Utility:
         """ This method will check pxb installation and
             cleanup backup directory
         """
+        # Check xtrabackup installation
         if find_executable('xtrabackup') is None:
             print('\tERROR! Percona Xtrabackup is not installed.')
             exit(1)
+
+        # Recreate backup directory
         if os.path.exists(workdir + '/backup'):
             shutil.rmtree(workdir + '/backup')
             os.mkdir(workdir + '/backup')
         else:
             os.mkdir(workdir + '/backup')
+
+        # Check PXC version and create XB user with mysql_native_password plugin.
         version = self.version_check(basedir)
         if int(version) < int("050700"):
             create_user = basedir + "/bin/mysql --user=root " \
-                "--socket=" + socket + ' -e"create user xbuser' \
-                "@'localhost' identified by 'test" \
-                "';grant all on *.* to xbuser@'localhost'" \
-                ';" > /dev/null 2>&1'
+                                    "--socket=" + socket + ' -e"create user xbuser' \
+                                                           "@'localhost' identified by 'test" \
+                                                           "';grant all on *.* to xbuser@'localhost'" \
+                                                           ';" > /dev/null 2>&1'
         else:
             create_user = basedir + "/bin/mysql --user=root " \
-                "--socket=" + socket + ' -e"create user xbuser' \
-                "@'localhost' identified with  mysql_native_password by 'test" \
-                "';grant all on *.* to xbuser@'localhost'" \
-                ';" > /dev/null 2>&1'
+                                    "--socket=" + socket + ' -e"create user xbuser' \
+                                                           "@'localhost' identified with  mysql_native_password by 'test" \
+                                                           "';grant all on *.* to xbuser@'localhost'" \
+                                                           ';" > /dev/null 2>&1'
         query_status = os.system(create_user)
         if int(query_status) != 0:
             print("ERROR!: Could not create xtrabackup user user : xbuser")
@@ -114,26 +121,35 @@ class Utility:
         """ This method will backup PXC/PS data directory
             with the help of xtrabackup.
         """
+        # Enable keyring file plugin if it is encryption run
         if encryption == 'YES':
-            backup_extra = " --keyring-file-data=" + source_datadir +  \
+            backup_extra = " --keyring-file-data=" + source_datadir + \
                            "/keyring --early-plugin-load='keyring_file=keyring_file.so'"
         else:
             backup_extra = ''
+
+        # Backup data using xtrabackup
         backup_cmd = "xtrabackup --user=xbuser --password='test' --backup " \
                      " --target-dir=" + workdir + "/backup -S" + \
                      socket + " --datadir=" + source_datadir + " " + backup_extra + " --lock-ddl >" + \
                      workdir + "/log/xb_backup.log 2>&1"
         os.system(backup_cmd)
+
+        # Prepare backup for node startup
         prepare_backup = "xtrabackup --prepare --target_dir=" + \
                          workdir + "/backup " + backup_extra + " --lock-ddl >" + \
                          workdir + "/log/xb_backup_prepare.log 2>&1"
         os.system(prepare_backup)
+
+        # copy backup directory to destination
         if dest_datadir is not None:
             copy_backup = "xtrabackup --copy-back --target-dir=" + \
                           workdir + "/backup --datadir=" + \
                           dest_datadir + " " + backup_extra + " --lock-ddl >" + \
                           workdir + "/log/copy_backup.log 2>&1"
             os.system(copy_backup)
+
+        # Copy keyring file to destination directory for encryption startup
         if encryption == 'YES':
             os.system("cp " + source_datadir + "/keyring " + dest_datadir)
 
@@ -142,13 +158,14 @@ class Utility:
             running status
         """
         if channel == 'none':
-            channel = ""
+            channel = ""  # channel name is to identify the replication source
+        # Get slave status
         version = self.version_check(basedir)
         if int(version) < int("050700"):
             io_status = basedir + "/bin/mysql --user=root --socket=" + \
-                socket + ' -Bse"SHOW SLAVE STATUS\G" 2>&1 ' \
-                '| grep "Slave_IO_Running:" ' \
-                "| awk '{ print $2 }'"
+                        socket + ' -Bse"SHOW SLAVE STATUS\G" 2>&1 ' \
+                                 '| grep "Slave_IO_Running:" ' \
+                                 "| awk '{ print $2 }'"
             io_status = os.popen(io_status).read().rstrip()
             if io_status == "Yes":
                 check_slave_status = 'ON'
@@ -156,9 +173,9 @@ class Utility:
                 check_slave_status = 'OFF'
         else:
             check_slave_status = basedir + "/bin/mysql --user=root --socket=" + \
-                socket + ' -Bse"SELECT SERVICE_STATE ' \
-                'FROM performance_schema.replication_connection_status' \
-                " where channel_name='" + channel + "'" + '" 2>&1'
+                                 socket + ' -Bse"SELECT SERVICE_STATE ' \
+                                          'FROM performance_schema.replication_connection_status' \
+                                          " where channel_name='" + channel + "'" + '" 2>&1'
             check_slave_status = os.popen(check_slave_status).read().rstrip()
         if check_slave_status != 'ON':
             self.check_testcase(1, node + ": IO thread slave status")
@@ -172,13 +189,14 @@ class Utility:
             running status
         """
         if channel == 'none':
-            channel = ""
+            channel = ""  # channel name is to identify the replication source
+        # Get slave status
         version = self.version_check(basedir)
         if int(version) < int("050700"):
             sql_status = basedir + "/bin/mysql --user=root --socket=" + \
-                socket + ' -Bse"SHOW SLAVE STATUS\G" 2>&1 ' \
-                '| grep "Slave_SQL_Running:" ' \
-                "| awk '{ print $2 }'"
+                         socket + ' -Bse"SHOW SLAVE STATUS\G" 2>&1 ' \
+                                  '| grep "Slave_SQL_Running:" ' \
+                                  "| awk '{ print $2 }'"
             sql_status = os.popen(sql_status).read().rstrip()
             if sql_status == "Yes":
                 check_slave_status = 'ON'
@@ -211,15 +229,15 @@ class Utility:
         :param comment: Replication channel details
         """
         if comment == 'none':
-            comment = ""
+            comment = ""  # channel name is to identify the replication source
         # Setup async replication
         flush_log = basedir + "/bin/mysql --user=root --socket=" + \
-            master_socket + \
-            ' -Bse "flush logs" 2>&1'
+                    master_socket + \
+                    ' -Bse "flush logs" 2>&1'
         os.system(flush_log)
         if repl_mode == 'backup_slave':
             data_dir = basedir + "/bin/mysql --user=root --socket=" + \
-                slave_socket + " -Bse 'select @@datadir';"
+                       slave_socket + " -Bse 'select @@datadir';"
             data_dir = os.popen(data_dir).read().rstrip()
             query = "cat " + data_dir + "xtrabackup_binlog_pos_innodb | awk '{print $1}'"
             master_log_file = os.popen(query).read().rstrip()
@@ -227,27 +245,27 @@ class Utility:
             master_log_pos = os.popen(query).read().rstrip()
         else:
             master_log_file = basedir + "/bin/mysql --user=root --socket=" + \
-                master_socket + \
-                " -Bse 'show master logs' | awk '{print $1}' | tail -1 2>&1"
+                              master_socket + \
+                              " -Bse 'show master logs' | awk '{print $1}' | tail -1 2>&1"
             master_log_file = os.popen(master_log_file).read().rstrip()
             master_log_pos = 4
 
         master_port = basedir + "/bin/mysql --user=root --socket=" + \
-            master_socket + \
-            ' -Bse "select @@port" 2>&1'
+                      master_socket + \
+                      ' -Bse "select @@port" 2>&1'
         master_port = os.popen(master_port).read().rstrip()
         if repl_mode == 'GTID':
             invoke_slave = basedir + "/bin/mysql --user=root --socket=" + \
-                slave_socket + ' -Bse"CHANGE MASTER TO MASTER_HOST=' + \
-                "'127.0.0.1', MASTER_PORT=" + master_port + ", MASTER_USER='root'" + \
-                ", MASTER_AUTO_POSITION=1 " + comment + ' ; START SLAVE;" 2>&1'
+                           slave_socket + ' -Bse"CHANGE MASTER TO MASTER_HOST=' + \
+                           "'127.0.0.1', MASTER_PORT=" + master_port + ", MASTER_USER='root'" + \
+                           ", MASTER_AUTO_POSITION=1 " + comment + ' ; START SLAVE;" 2>&1'
         else:
             invoke_slave = basedir + "/bin/mysql --user=root --socket=" + \
-                slave_socket + ' -Bse"CHANGE MASTER TO MASTER_HOST=' + \
-                "'127.0.0.1', MASTER_PORT=" + master_port + ", MASTER_USER='root'" + \
-                ", MASTER_LOG_FILE='" + master_log_file + "'" + \
-                ', MASTER_LOG_POS=' + str(master_log_pos) + ' ' \
-                + comment + ';START SLAVE;" 2>&1'
+                           slave_socket + ' -Bse"CHANGE MASTER TO MASTER_HOST=' + \
+                           "'127.0.0.1', MASTER_PORT=" + master_port + ", MASTER_USER='root'" + \
+                           ", MASTER_LOG_FILE='" + master_log_file + "'" + \
+                           ', MASTER_LOG_POS=' + str(master_log_pos) + ' ' \
+                           + comment + ';START SLAVE;" 2>&1'
         result = os.system(invoke_slave)
         self.check_testcase(result, "Initiated replication")
 
@@ -296,7 +314,7 @@ class Utility:
         # Stop PXC cluster
         for i in range(int(node), 0, -1):
             shutdown_node = basedir + '/bin/mysqladmin --user=root --socket=' + \
-                        workdir + '/node' + str(i) + '/mysql.sock shutdown > /dev/null 2>&1'
+                            workdir + '/node' + str(i) + '/mysql.sock shutdown > /dev/null 2>&1'
             result = os.system(shutdown_node)
             self.check_testcase(result, "PXC: shutting down cluster node" + str(i))
 
@@ -313,12 +331,12 @@ class Utility:
             startup status.
         """
         query_cluster_status = basedir + '/bin/mysql --user=root --socket=' + \
-            workdir + '/node' + str(cluster_node) + \
-            '/mysql.sock -Bse"show status like \'wsrep_local_state_comment\';"' \
-            ' 2>/dev/null | awk \'{print $2}\''
+                               workdir + '/node' + str(cluster_node) + \
+                               '/mysql.sock -Bse"show status like \'wsrep_local_state_comment\';"' \
+                               ' 2>/dev/null | awk \'{print $2}\''
         ping_query = basedir + '/bin/mysqladmin --user=root --socket=' + \
-            workdir + '/node' + str(cluster_node) + \
-            '/mysql.sock ping > /dev/null 2>&1'
+                     workdir + '/node' + str(cluster_node) + \
+                     '/mysql.sock ping > /dev/null 2>&1'
         for startup_timer in range(300):
             time.sleep(1)
             cluster_status = os.popen(query_cluster_status).read().rstrip()
@@ -336,25 +354,27 @@ class Utility:
                     break  # break the loop if mysqld is running
 
     def node_joiner(self, workdir, basedir, donor_node, joiner_node):
-        # Starting PXC cluster node
-        donor = 'node' + donor_node
-        joiner = 'node' + joiner_node
+        # Add new node to existing cluster
+        donor = 'node' + donor_node     # Donor node
+        joiner = 'node' + joiner_node   # Joiner node
         shutil.copy(workdir + '/conf/' + donor + '.cnf',
                     workdir + '/conf/' + joiner + '.cnf')
         query = basedir + '/bin/mysql --user=root --socket=' + workdir + '/node' + donor_node + \
             '/mysql.sock -Bse"show variables like \'wsrep_cluster_address\';"' \
             ' 2>/dev/null | awk \'{print $2}\''
-        wsrep_cluster_addr = os.popen(query).read().rstrip()
+        wsrep_cluster_addr = os.popen(query).read().rstrip()    # Get cluster address
         query = basedir + "/bin/mysql --user=root --socket=" + \
             workdir + '/node' + donor_node + '/mysql.sock -Bse"select @@port" 2>&1'
-        port_no = os.popen(query).read().rstrip()
-        wsrep_port_no = int(port_no) + 108
-        port_no = int(port_no) + 100
+        port_no = os.popen(query).read().rstrip()   # Port number from Donor
+        wsrep_port_no = int(port_no) + 108          # New wsrep port number
+        port_no = int(port_no) + 100                # New Joiner port number
+        
+        # Create new cnf for joiner
         os.system("sed -i 's#" + donor + "#" + joiner + "#g' " + workdir +
                   '/conf/' + joiner + '.cnf')
         os.system("sed -i '/wsrep_sst_auth=root:/d' " + workdir +
                   '/conf/' + joiner + '.cnf')
-        os.system("sed -i  '0,/^[ \\t]*wsrep_cluster_address[ \\t]*=.*$/s|" 
+        os.system("sed -i  '0,/^[ \\t]*wsrep_cluster_address[ \\t]*=.*$/s|"
                   "^[ \\t]*wsrep_cluster_address[ \\t]*=.*$|wsrep_cluster_address="
                   + wsrep_cluster_addr + "127.0.0.1:" + str(wsrep_port_no) + "|' "
                   + workdir + '/conf/' + joiner + '.cnf')
@@ -363,12 +383,14 @@ class Utility:
                   + str(port_no) + "|' " + workdir + '/conf/' + joiner + '.cnf')
         os.system('sed -i  "0,/^[ \\t]*wsrep_provider_options[ \\t]*=.*$/s|'
                   "^[ \\t]*wsrep_provider_options[ \\t]*=.*$|wsrep_provider_options="
-                  "'gmcast.listen_addr=tcp://127.0.0.1:" + str(wsrep_port_no) + "'"
+                  "'gmcast.listen_addr=tcp://127.0.0.1:" + 
+                  str(wsrep_port_no) + "'"
                   '|" ' + workdir + '/conf/' + joiner + '.cnf')
         os.system("sed -i  '0,/^[ \\t]*server_id[ \\t]*=.*$/s|"
                   "^[ \\t]*server_id[ \\t]*=.*$|server_id="
                   "14|' " + workdir + '/conf/' + joiner + '.cnf')
 
+        # Create startup script for joiner.
         shutil.copy(workdir + '/log/startup' + donor_node + '.sh',
                     workdir + '/log/startup' + joiner_node + '.sh')
         os.system("sed -i 's#" + donor + "#" + joiner + "#g' " + workdir +
@@ -376,7 +398,8 @@ class Utility:
         os.system("rm -rf " + workdir + '/' + joiner)
         os.mkdir(workdir + '/' + joiner)
         joiner_startup = "bash " + workdir + \
-            '/log/startup' + joiner_node + '.sh'
+                         '/log/startup' + joiner_node + '.sh'
+        # Invoke joiner
         result = os.system(joiner_startup)
         self.check_testcase(result, "Starting cluster " + joiner + "node")
         self.pxc_startup_check(basedir, workdir, joiner_node)

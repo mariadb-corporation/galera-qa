@@ -26,12 +26,13 @@ class StartPerconaServer:
         # kill existing mysqld process
         os.system("ps -ef | grep '" + self.workdir + "/conf/ps[0-9].cnf'"
                   " | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1")
+        # Create log directory
         if not os.path.exists(self.workdir + '/log'):
             os.mkdir(self.workdir + '/log')
-
+        # Create configuration directory
         if not os.path.exists(self.workdir + '/conf'):
             os.mkdir(self.workdir + '/conf')
-
+        # Check mysqld file
         if not os.path.isfile(self.basedir + '/bin/mysqld'):
             print(self.basedir + '/bin/mysqld does not exist')
             return 1
@@ -54,16 +55,18 @@ class StartPerconaServer:
             For customised configuration please add your values
             in conf/custom.conf.
         """
-        version = sanity.version_check(self.basedir)
-        port = random.randint(21, 30) * 1000
+        version = sanity.version_check(self.basedir)    # Get server version
+        port = random.randint(21, 30) * 1004
         port_list = []
         for j in range(1, self.node + 1):
             port_list += [port + (j * 100)]
+        # Create PS configuration file
         if not os.path.isfile(self.scriptdir + '/conf/ps.cnf'):
             print('Default pxc.cnf is missing in ' + self.scriptdir + '/conf')
             return 1
         else:
             shutil.copy(self.scriptdir + '/conf/custom.cnf', self.workdir + '/conf/custom.cnf')
+        # Add custom mysqld options in configuration file
         for i in range(1, self.node + 1):
             shutil.copy(self.scriptdir + '/conf/ps.cnf', self.workdir + '/conf/ps' + str(i) + '.cnf')
             cnf_name = open(self.workdir + '/conf/ps' + str(i) + '.cnf', 'a+')
@@ -88,6 +91,7 @@ class StartPerconaServer:
         if not os.path.isfile(config_file):
             print('Custom config ' + config_file + ' is missing')
             return 1
+        # Add custom configurations
         config_file = config_file
         cnf_name = open(self.workdir + '/conf/custom.cnf', 'a+')
         cnf_name.write('\n')
@@ -101,14 +105,15 @@ class StartPerconaServer:
             using --initialize-insecure option for
             passwordless authentication.
         """
+        result = 1  # return value
         for i in range(1, self.node + 1):
             if os.path.exists(self.workdir + '/psnode' + str(i)):
                 os.system('rm -rf ' + self.workdir + '/psnode' + str(i) + ' >/dev/null 2>&1')
             if not os.path.isfile(self.workdir + '/conf/ps' + str(i) + '.cnf'):
                 print('Could not find config file /conf/ps' + str(i) + '.cnf')
                 exit(1)
-
-            version = self.version_check()
+            version = self.version_check()      # Get server version
+            # Initialize data directory
             if int(version) < int("050700"):
                 os.mkdir(self.workdir + '/psnode' + str(i))
                 initialize_node = self.basedir + '/scripts/mysql_install_db --no-defaults ' \
@@ -128,9 +133,11 @@ class StartPerconaServer:
         """ Method to start the cluster nodes. This method
             will also check the startup status.
         """
+        ping_status = 1     # return value
         if my_extra is None:
             my_extra = ''
         for i in range(1, self.node + 1):
+            # Start server
             startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + \
                 '/conf/ps' + str(i) + '.cnf --datadir=' + self.workdir + '/psnode' + str(i) + \
                 ' --basedir=' + self.basedir + ' ' + my_extra + \

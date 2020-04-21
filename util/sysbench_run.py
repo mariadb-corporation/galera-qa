@@ -25,7 +25,7 @@ class SysbenchRun:
         if check_sybench != 0:
             print("ERROR!: sysbench package is not installed")
             return 1
-
+        # Create schema for sysbench run
         query = self.basedir + "/bin/mysql --user=root --socket=" + \
             self.socket + " -e'drop database if exists " + \
             db + "; create database " + \
@@ -35,7 +35,8 @@ class SysbenchRun:
             #return 1
             print("ERROR!: Could not create sysbench test database(sbtest)")
             exit(1)
-        version = utility_cmd.version_check(self.basedir)
+        version = utility_cmd.version_check(self.basedir)   # Get version
+        # Create sysbench user
         if int(version) < int("050700"):
             create_user = self.basedir + "/bin/mysql --user=root " \
                 "--socket=" + self.socket + ' -e"create user ' + \

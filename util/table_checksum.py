@@ -70,6 +70,7 @@ class TableChecksum:
         return 0
 
     def error_status(self, error_code):
+        # Checking pt-table-checksum error
         if error_code == "0":
             utility_cmd.check_testcase(0, "pt-table-checksum run status")
         elif error_code == "1":
@@ -107,6 +108,7 @@ class TableChecksum:
             self.socket + ' -Bse"select @@port" 2>&1'
         port = os.popen(port).read().rstrip()
         version = utility_cmd.version_check(self.basedir)
+        # Disable pxc_strict_mode for pt-table-checksum run
         if int(version) > int("050700"):
             query = self.basedir + "/bin/mysql --user=root --socket=" + \
                 self.socket + ' -e"set global pxc_strict_mode=DISABLED;' \
@@ -120,6 +122,7 @@ class TableChecksum:
         checksum_status = os.popen(run_checksum).read().rstrip()
         self.error_status(checksum_status)
         if int(version) > int("050700"):
+            # Enable pxc_strict_mode after pt-table-checksum run
             query = self.basedir + "/bin/mysql --user=root --socket=" + \
                 self.socket + ' -e"set global pxc_strict_mode=ENFORCING;' \
                 '" > /dev/null 2>&1'

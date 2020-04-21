@@ -46,6 +46,7 @@ if lines == "":
 else:
     LINE_COUNT = lines
 
+# Generate random data
 OUTFILE = "/tmp/" + outfile
 generate_sql = createsql.GenerateSQL(OUTFILE, LINE_COUNT)
 generate_sql.OutFile()

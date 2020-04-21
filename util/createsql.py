@@ -34,6 +34,7 @@ class GenerateSQL:
             return ""
 
     def CreateTable(self):
+        # Create table with random data.
         for i in range(self.table_count):
             data_types = ""
             index_length = ""

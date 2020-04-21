@@ -176,73 +176,6 @@ class PXCUpgrade:
                                                             SYSBENCH_NORMAL_TABLE_SIZE, 1000, 'Yes')
             utility_cmd.check_testcase(result, "Initiated sysbench readonly run on node3")
 
-    def rolling_replacement(self):
-        # Start PXC cluster for rolling replacement test
-        for i in range(1, int(NODE) + 1):
-            shutil.copy(WORKDIR + '/conf/node' + str(int(i + 2)) + '.cnf',
-                        WORKDIR + '/conf/node' + str(int(i + 3)) + '.cnf')
-            query = PXC_LOWER_BASE + '/bin/mysql --user=root --socket=' + WORKDIR + \
-                '/node' + str(int(i + 2)) + '/mysql.sock -Bse"show variables like \'wsrep_cluster_address\';"' \
-                ' 2>/dev/null | awk \'{print $2}\''
-            wsrep_cluster_addr = os.popen(query).read().rstrip()
-            query = PXC_LOWER_BASE + "/bin/mysql --user=root --socket=" + \
-                WORKDIR + '/node' + str(int(i + 2)) + '/mysql.sock -Bse"select @@port" 2>&1'
-            port_no = os.popen(query).read().rstrip()
-            wsrep_port_no = int(port_no) + 108
-            port_no = int(port_no) + 100
-            os.system("sed -i 's#node" + str(int(i + 2)) +
-                      "#node" + str(int(i + 3)) + "#g' " +
-                      WORKDIR + '/conf/node' + str(int(i + 3)) + '.cnf')
-            os.system("sed -i '/wsrep_sst_auth=root:/d' " +
-                      WORKDIR + '/conf/node' + str(int(i + 3)) + '.cnf')
-            os.system("sed -i  '0,/^[ \\t]*wsrep_cluster_address[ \\t]*=.*$/s|"
-                      "^[ \\t]*wsrep_cluster_address[ \\t]*=.*$|wsrep_cluster_address="
-                      + wsrep_cluster_addr + "127.0.0.1:" + str(wsrep_port_no) + "|' "
-                      + WORKDIR + '/conf/node' + str(int(i + 3)) + '.cnf')
-            os.system("sed -i  '0,/^[ \\t]*port[ \\t]*=.*$/s|"
-                      "^[ \\t]*port[ \\t]*=.*$|port="
-                      + str(port_no) + "|' " + WORKDIR + '/conf/node' + str(int(i + 3)) + '.cnf')
-            os.system('sed -i  "0,/^[ \\t]*wsrep_provider_options[ \\t]*=.*$/s|'
-                      "^[ \\t]*wsrep_provider_options[ \\t]*=.*$|wsrep_provider_options="
-                      "'gmcast.listen_addr=tcp://127.0.0.1:" + str(wsrep_port_no) +
-                      "'|\" " + WORKDIR + '/conf/node' + str(int(i + 3)) + '.cnf')
-            os.system("sed -i  '0,/^[ \\t]*server_id[ \\t]*=.*$/s|"
-                      "^[ \\t]*server_id[ \\t]*=.*$|server_id="
-                      "14|' " + WORKDIR + '/conf/node' + str(int(i + 3)) + '.cnf')
-
-            create_startup = 'sed  "s#' + PXC_LOWER_BASE + '#' + PXC_UPPER_BASE + \
-                '#g" ' + WORKDIR + '/log/startup' + str(int(i + 2)) + '.sh > ' + \
-                WORKDIR + '/log/startup' + str(int(i + 3)) + '.sh'
-            os.system(create_startup)
-            os.system("sed -i 's#node" + str(int(i + 2)) +
-                      "#node" + str(int(i + 3)) + "#g' " + WORKDIR +
-                      '/log/startup' + str(int(i + 3)) + '.sh')
-            os.system("rm -rf " + WORKDIR + '/node' + str(int(i + 3)))
-            os.mkdir(WORKDIR + '/node' + str(int(i + 3)))
-            upgrade_startup = "bash " + WORKDIR + \
-                '/log/startup' + str(int(i + 3)) + '.sh'
-
-            status_query = BASEDIR + '/bin/mysql --user=root --socket=' + \
-                WORKDIR + '/node1/mysql.sock -Bse"show status like ' \
-                "'wsrep_local_state_comment'\"  2>&1 | awk \'{print $2}\'"
-            wsrep_status = os.popen(status_query).read().rstrip()
-            print(wsrep_status)
-            status_query = BASEDIR + '/bin/mysql --user=root --socket=' + \
-                           WORKDIR + '/node2/mysql.sock -Bse"show status like ' \
-                                     "'wsrep_local_state_comment'\"  2>&1 | awk \'{print $2}\'"
-            wsrep_status = os.popen(status_query).read().rstrip()
-            print(wsrep_status)
-            status_query = BASEDIR + '/bin/mysql --user=root --socket=' + \
-                           WORKDIR + '/node3/mysql.sock -Bse"show status like ' \
-                                     "'wsrep_local_state_comment'\"  2>&1 | awk \'{print $2}\'"
-            wsrep_status = os.popen(status_query).read().rstrip()
-            print(wsrep_status)
-            time.sleep(10)
-            result = os.system(upgrade_startup)
-            utility_cmd.check_testcase(result, "Starting PXC-8.0 cluster node" +
-                                       str(int(i + 3)) + " for upgrade testing")
-            self.startup_check(int(i + 3))
-
     def rolling_upgrade(self, upgrade_type):
         """ This function will upgrade
             Percona XtraDB Cluster to
@@ -367,7 +300,6 @@ upgrade_qa = PXCUpgrade()
 upgrade_qa.startup()
 rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER)
 rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
-#upgrade_qa.rolling_replacement()
 upgrade_qa.rolling_upgrade('none')
 print('------------------------------------------------------------------------------------')
 print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active readonly workload")

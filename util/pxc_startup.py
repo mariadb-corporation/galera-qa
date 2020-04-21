@@ -63,11 +63,9 @@ class StartCluster:
                         self.workdir + '/conf/node' + str(i) + '.cnf')
             cnf_name = open(self.workdir + '/conf/node' + str(i) + '.cnf', 'a+')
             cnf_name.write('wsrep_cluster_address=gcomm://' + addr_list + '\n')
-            """ Calling version check method to compare the version to 
-                add wsrep_sst_auth variable. This variable does not 
-                required starting from PXC-8.x 
-            """
-
+            # Calling version check method to compare the version to
+            # add wsrep_sst_auth variable. This variable does not
+            # required starting from PXC-8.x
             if int(version) < int("080000"):
                 cnf_name.write('wsrep_sst_auth=root:\n')
             if int(version) > int("050700"):
