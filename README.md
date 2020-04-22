@@ -1,12 +1,18 @@
-PQA Framework
-==============================================================================
+# PQA Framework
 
 This suite will help us to test Percona XtraDB Cluster/Percona Server with various testcases. 
 You can customize the testcases 
 using configuration files without disturbing main code.
 
-Configuration details
-------------------------------------------------------------------------------
+## Requirements
+
+Following binaries are required for framework to run:
+* sysbench
+* percona-xtrabackup
+* socat
+* percona-toolkit
+
+## Configuration details
 
 Basic configuration details are available in [config.ini](./config.ini) file. You need to change the configurations as 
 per your environment.
@@ -51,8 +57,7 @@ pxc_upper_base = /dev/shm/qa/Percona-XtraDB-Cluster-5.7.25-rel28-31.35.1.Linux.x
 If you need to start Percona XtraDB Cluster/Percona Server with custom configuration you should add the parameters 
 in [custom.cnf](./conf/custom.cnf)
 
-Initializing framework
---------------------------------------------
+## Initializing framework
 
 `python3 qa_framework.py --testname=suite/replication/replication.py`
 
