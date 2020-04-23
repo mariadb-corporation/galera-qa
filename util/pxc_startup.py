@@ -90,7 +90,8 @@ class StartCluster:
                 cnf_name.write('!include ' + self.workdir + '/conf/encryption.cnf\n')
                 cnf_name.write('pxc_encrypt_cluster_traffic = ON\n')
             else:
-                cnf_name.write('pxc_encrypt_cluster_traffic = OFF\n')
+                if int(version) > int("050700"):
+                    cnf_name.write('pxc_encrypt_cluster_traffic = OFF\n')
             cnf_name.close()
         return 0
 
@@ -169,7 +170,7 @@ class StartCluster:
             os.system(save_startup)
             subprocess.call(startup, shell=True, stderr=subprocess.DEVNULL)
             ping_query = self.basedir + '/bin/mysqladmin --user=root --socket=' + self.workdir + \
-                         '/node' + str(i) + '/mysql.sock ping > /dev/null 2>&1'
+                '/node' + str(i) + '/mysql.sock ping > /dev/null 2>&1'
             for startup_timer in range(120):
                 ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
                 ping_status = ("{}".format(ping_check))

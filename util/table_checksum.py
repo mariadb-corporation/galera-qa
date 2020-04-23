@@ -54,19 +54,18 @@ class TableChecksum:
         self.run_query(query)
 
         for i in range(1, int(self.node) + 1):
-            port = self.basedir + "/bin/mysql --user=root --socket=" + \
-                "/tmp/node" + str(i) + ".sock" + \
+            port = self.basedir + "/bin/mysql --user=root " + \
+                '--socket=' + self.workdir + '/node' + str(i) + '/mysql.sock' + \
                 ' -Bse"select @@port" 2>&1'
             port = os.popen(port).read().rstrip()
 
-            insert_query = self.basedir + "/bin/mysql --user=root --socket=" + \
-                "/tmp/node" + str(i) + ".sock" + \
+            insert_query = self.basedir + "/bin/mysql --user=root " + \
+                '--socket=' + self.socket + \
                 ' -e"insert into percona.dsns (id,dsn) values (' + \
                 str(i) + ",'h=127.0.0.1,P=" + str(port) + \
                 ",u=pt_user,p=test');" \
                 '"> /dev/null 2>&1'
-
-            query_status = os.system(insert_query)
+            self.run_query(insert_query)
         return 0
 
     def error_status(self, error_code):
