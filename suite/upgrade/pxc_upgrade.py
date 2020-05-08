@@ -63,10 +63,6 @@ class PXCUpgrade:
         """ This method will check the node
             startup status.
         """
-        query_cluster_status = PXC_LOWER_BASE + '/bin/mysql --user=root --socket=' + \
-            WORKDIR + '/node' + str(cluster_node) + \
-            '/mysql.sock -Bse"show status like \'wsrep_local_state_comment\';"' \
-            ' 2>/dev/null | awk \'{print $2}\''
         ping_query = PXC_LOWER_BASE + '/bin/mysqladmin --user=root --socket=' + \
             WORKDIR + '/node' + str(cluster_node) + \
             '/mysql.sock ping > /dev/null 2>&1'
@@ -75,15 +71,17 @@ class PXCUpgrade:
             ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
             ping_status = ("{}".format(ping_check))
             if int(ping_status) == 0:
-                wsrep_status = ""
-                while wsrep_status != "Synced":
-                    status_query = BASEDIR + '/bin/mysql --user=root --socket=' + \
-                        WORKDIR + '/node' + str(cluster_node) + \
-                        '/mysql.sock -Bse"show status like ' \
-                        "'wsrep_local_state_comment'\"  2>&1 | awk \'{print $2}\'"
-                    wsrep_status = os.popen(status_query).read().rstrip()
-                utility_cmd.check_testcase(int(ping_status), "Node startup is successful"
-                                           "(Node status:" + wsrep_status + ")")
+                version = utility_cmd.version_check(PXC_UPPER_BASE)
+                if int(version) > int("080000"):
+                    wsrep_status = ""
+                    while wsrep_status != "Synced":
+                        status_query = BASEDIR + '/bin/mysql --user=root --socket=' + \
+                            WORKDIR + '/node' + str(cluster_node) + \
+                            '/mysql.sock -Bse"show status like ' \
+                            "'wsrep_local_state_comment'\"  2>&1 | awk \'{print $2}\'"
+                        wsrep_status = os.popen(status_query).read().rstrip()
+                    utility_cmd.check_testcase(int(ping_status), "Node startup is successful"
+                                                                 "(Node status:" + wsrep_status + ")")
                 break  # break the loop if mysqld is running
             if startup_timer > 298:
                 utility_cmd.check_testcase(0, "ERROR! Node is not synced with cluster. "

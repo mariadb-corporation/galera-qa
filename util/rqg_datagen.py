@@ -57,7 +57,11 @@ class RQGDataGen:
         """
             RQG data load for PXC Server
         """
-        rqg_config = ['galera', 'transactions', 'partitioning', 'gis', 'runtime', 'temporal']
+        version = utility_cmd.version_check(self.basedir)
+        if int(version) < int("050700"):
+            rqg_config = ['galera', 'transactions', 'gis', 'runtime', 'temporal']
+        else:
+            rqg_config = ['galera', 'transactions', 'partitioning', 'gis', 'runtime', 'temporal']
         for config in rqg_config:
             self.initiate_rqg(config, 'db_' + config, socket)
 

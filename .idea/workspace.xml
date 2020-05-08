@@ -3,8 +3,8 @@
   <component name="ChangeListManager">
     <list default="true" id="2f61538d-cf49-45bd-91d9-d59998b6309a" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/util/pxc_startup.py" beforeDir="false" afterPath="$PROJECT_DIR$/util/pxc_startup.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/util/table_checksum.py" beforeDir="false" afterPath="$PROJECT_DIR$/util/table_checksum.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/suite/upgrade/pxc_upgrade.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/upgrade/pxc_upgrade.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/util/rqg_datagen.py" beforeDir="false" afterPath="$PROJECT_DIR$/util/rqg_datagen.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
