@@ -78,4 +78,4 @@ streaming_replication = StreamingReplication()
 streaming_replication.start_server(NODE)
 streaming_replication.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
 streaming_replication.streaming_replication_qa(WORKDIR + '/node1/mysql.sock', 'test')
-
+utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)

@@ -163,6 +163,9 @@ class SetupReplication:
             utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, comment)
             utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, comment)
 
+        utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
+        utility_cmd.stop_ps(WORKDIR, BASEDIR, ps_node)
+
 
 replication_run = SetupReplication(BASEDIR, WORKDIR, NODE)
 

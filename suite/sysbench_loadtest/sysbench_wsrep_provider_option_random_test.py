@@ -129,4 +129,4 @@ print("\nPXC WSREP provider random test")
 print("--------------------------------")
 sysbench_wsrep_provider_random_test = WSREPProviderRandomTest()
 sysbench_wsrep_provider_random_test.start_random_test(WORKDIR + '/node1/mysql.sock', 'test')
-
+utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)

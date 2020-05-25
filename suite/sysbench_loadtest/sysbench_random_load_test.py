@@ -69,6 +69,8 @@ sysbench_random_loadtest = SysbenchRandomLoadTest()
 if SERVER == "pxc":
     sysbench_random_loadtest.start_server(WORKDIR + '/node1/mysql.sock', NODE)
     sysbench_random_loadtest.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
+    utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
 elif SERVER == "ps":
     sysbench_random_loadtest.start_server(PS1_SOCKET, 1)
     sysbench_random_loadtest.sysbench_run(PS1_SOCKET, 'test')
+    utility_cmd.stop_ps(WORKDIR, BASEDIR, 1)

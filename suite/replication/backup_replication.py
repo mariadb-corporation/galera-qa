@@ -154,3 +154,6 @@ replication_run.start_slave('1')
 utility_cmd.invoke_replication(BASEDIR, WORKDIR + '/node1/mysql.sock', PS1_SOCKET, 'backup_slave', 'none')
 utility_cmd.replication_io_status(BASEDIR, PS1_SOCKET, 'PS', 'none')
 utility_cmd.replication_sql_status(BASEDIR, PS1_SOCKET, 'PS', 'none')
+
+utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
+utility_cmd.stop_ps(WORKDIR, BASEDIR, '1')

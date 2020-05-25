@@ -4,6 +4,7 @@
 
 import os
 import argparse
+import sys
 
 
 def main():
@@ -22,6 +23,9 @@ def main():
                         help='Specify suite name')
     parser.add_argument('-e', '--encryption-run', action='store_true',
                         help='This option will enable encryption options')
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
 
     args = parser.parse_args()
     if args.encryption_run is True:

@@ -269,3 +269,5 @@ utility_cmd.replication_sql_status(BASEDIR, WORKDIR + '/node3/mysql.sock', 'PXC 
 rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER)
 rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
 upgrade_qa.rolling_upgrade('none')
+utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
+utility_cmd.stop_ps(WORKDIR, BASEDIR, 1)

@@ -339,3 +339,5 @@ if int(version) > int("080000"):
     rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
     upgrade_qa.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test', 'readwrite')
     upgrade_qa.start_upper_version()
+
+utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
