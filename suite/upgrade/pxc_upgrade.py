@@ -15,26 +15,32 @@ from util import db_connection
 from util import sysbench_run
 from util import utility
 from util import rqg_datagen
-from util import table_checksum
-utility_cmd = utility.Utility()
-utility_cmd.check_python_version()
 
 # Read argument
 parser = argparse.ArgumentParser(prog='PXC upgrade test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
+parser.add_argument('-d', '--debug', action='store_true',
+                    help='This option will enable debug logging')
 args = parser.parse_args()
 if args.encryption_run is True:
     encryption = 'YES'
 else:
     encryption = 'NO'
+if args.debug is True:
+    debug = 'YES'
+else:
+    debug = 'NO'
+
+utility_cmd = utility.Utility(debug)
+utility_cmd.check_python_version()
 
 
 class PXCUpgrade:
     def startup(self, wsrep_extra=None):
         # Start PXC cluster for upgrade test
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, PXC_LOWER_BASE, int(NODE))
+        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, PXC_LOWER_BASE, int(NODE), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
@@ -63,28 +69,30 @@ class PXCUpgrade:
         """ This method will check the node
             startup status.
         """
-        query_cluster_status = PXC_LOWER_BASE + '/bin/mysql --user=root --socket=' + \
-            WORKDIR + '/node' + str(cluster_node) + \
-            '/mysql.sock -Bse"show status like \'wsrep_local_state_comment\';"' \
-            ' 2>/dev/null | awk \'{print $2}\''
         ping_query = PXC_LOWER_BASE + '/bin/mysqladmin --user=root --socket=' + \
             WORKDIR + '/node' + str(cluster_node) + \
             '/mysql.sock ping > /dev/null 2>&1'
         for startup_timer in range(300):
             time.sleep(1)
-            cluster_status = os.popen(query_cluster_status).read().rstrip()
-            if cluster_status == 'Synced':
-                utility_cmd.check_testcase(0, "Node startup is successful")
-                break
+            ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
+            ping_status = ("{}".format(ping_check))
+            if int(ping_status) == 0:
+                version = utility_cmd.version_check(PXC_UPPER_BASE)
+                if int(version) > int("080000"):
+                    wsrep_status = ""
+                    while wsrep_status != "Synced":
+                        status_query = BASEDIR + '/bin/mysql --user=root --socket=' + \
+                            WORKDIR + '/node' + str(cluster_node) + \
+                            '/mysql.sock -Bse"show status like ' \
+                            "'wsrep_local_state_comment'\"  2>&1 | awk \'{print $2}\'"
+                        wsrep_status = os.popen(status_query).read().rstrip()
+                    utility_cmd.check_testcase(int(ping_status), "Node startup is successful"
+                                                                 "(Node status:" + wsrep_status + ")")
+                break  # break the loop if mysqld is running
             if startup_timer > 298:
-                utility_cmd.check_testcase(0, "Warning! Node is not synced with cluster. "
+                utility_cmd.check_testcase(0, "ERROR! Node is not synced with cluster. "
                                               "Check the error log to get more info")
-                ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
-                ping_status = ("{}".format(ping_check))
-                if int(ping_status) == 0:
-                    utility_cmd.check_testcase(int(ping_status), "Node startup is successful "
-                                                                 "(Node status:" + cluster_status + ")")
-                    break  # break the loop if mysqld is running
+                exit(1)
 
     def start_upper_version(self):
         # Start PXC cluster for upgrade test
@@ -118,12 +126,16 @@ class PXCUpgrade:
         create_startup = 'sed  "s#' + PXC_LOWER_BASE + '#' + PXC_UPPER_BASE + \
                          '#g" ' + WORKDIR + '/log/startup3.sh > ' + \
                          WORKDIR + '/log/startup4.sh'
+        if debug == 'YES':
+            print(create_startup)
         os.system(create_startup)
         os.system("sed -i 's#node3#node4#g' " + WORKDIR + '/log/startup4.sh')
         os.system("rm -rf " + WORKDIR + '/node4')
         os.mkdir(WORKDIR + '/node4')
         upgrade_startup = "bash " + WORKDIR + \
                           '/log/startup4.sh'
+        if debug == 'YES':
+            print(upgrade_startup)
         result = os.system(upgrade_startup)
         utility_cmd.check_testcase(result, "Starting PXC-8.0 cluster node4 for upgrade testing")
         self.startup_check(4)
@@ -131,7 +143,7 @@ class PXCUpgrade:
     def sysbench_run(self, node1_socket, db, upgrade_type):
         # Sysbench dataload for consistency test
         sysbench_node1 = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
-                                            node1_socket)
+                                            node1_socket, debug)
 
         result = sysbench_node1.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
@@ -146,11 +158,13 @@ class PXCUpgrade:
                         ' alter table ' + db + '.sbtest' + str(i) + \
                         " encryption='Y'" \
                         '"; > /dev/null 2>&1'
+                    if debug == 'YES':
+                        print(encrypt_table)
                     os.system(encrypt_table)
         sysbench_node2 = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
-                                                  WORKDIR + '/node2/mysql.sock')
+                                                  WORKDIR + '/node2/mysql.sock', debug)
         sysbench_node3 = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
-                                                  WORKDIR + '/node3/mysql.sock')
+                                                  WORKDIR + '/node3/mysql.sock', debug)
         if upgrade_type == 'readwrite' or upgrade_type == 'readwrite_sst':
             result = sysbench_node1.sysbench_oltp_read_write(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
                                                              SYSBENCH_NORMAL_TABLE_SIZE, 1000, 'Yes')
@@ -185,16 +199,20 @@ class PXCUpgrade:
                                  str(i) + " | awk '{print $2}'"
             sysbench_pid = os.popen(query).read().rstrip()
             kill_sysbench = "kill -9 " + sysbench_pid + " > /dev/null 2>&1"
+            if debug == 'YES':
+                print("Terminating sysbench run : " + kill_sysbench)
             os.system(kill_sysbench)
             shutdown_node = PXC_LOWER_BASE + '/bin/mysqladmin --user=root --socket=' + \
                 WORKDIR + '/node' + str(i) + \
                 '/mysql.sock shutdown > /dev/null 2>&1'
+            if debug == 'YES':
+                print(shutdown_node)
             result = os.system(shutdown_node)
             utility_cmd.check_testcase(result, "Shutdown cluster node" + str(i) + " for upgrade testing")
             if i == 3:
                 if upgrade_type == 'readwrite_sst':
                     sysbench_node1 = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR, WORKDIR +
-                                                              '/node1/mysql.sock')
+                                                              '/node1/mysql.sock', debug)
                     sysbench_node1.sanity_check('test_one')
                     sysbench_node1.sanity_check('test_two')
                     sysbench_node1.sanity_check('test_three')
@@ -227,37 +245,49 @@ class PXCUpgrade:
                     ' --wsrep-provider=none --log-error=' + \
                     WORKDIR + '/log/upgrade_node' + str(i) + '.err >> ' + \
                     WORKDIR + '/log/upgrade_node' + str(i) + '.err 2>&1 &'
+            if debug == 'YES':
+                print(startup_cmd)
             os.system(startup_cmd)
             self.startup_check(i)
             if int(version) < int("080000"):
                 upgrade_cmd = PXC_UPPER_BASE + '/bin/mysql_upgrade -uroot --socket=' + \
                     WORKDIR + '/node' + str(i) + \
                     '/mysql.sock > ' + WORKDIR + '/log/node' + str(i) + '_upgrade.log 2>&1'
+                if debug == 'YES':
+                    print(upgrade_cmd)
                 result = os.system(upgrade_cmd)
                 utility_cmd.check_testcase(result, "Cluster node" + str(i) + " upgrade is successful")
                 shutdown_node = PXC_UPPER_BASE + '/bin/mysqladmin --user=root --socket=' + \
                     WORKDIR + '/node' + str(i) + \
                     '/mysql.sock shutdown > /dev/null 2>&1'
+                if debug == 'YES':
+                    print(shutdown_node)
                 result = os.system(shutdown_node)
                 utility_cmd.check_testcase(result, "Shutdown cluster node" + str(i) + " after upgrade run")
                 create_startup = 'sed  "s#' + PXC_LOWER_BASE + '#' + PXC_UPPER_BASE + \
                     '#g" ' + WORKDIR + '/log/startup' + str(i) + '.sh > ' + \
                     WORKDIR + '/log/upgrade_startup' + str(i) + '.sh'
+                if debug == 'YES':
+                    print(create_startup)
                 os.system(create_startup)
                 if i == 1:
                     remove_bootstrap_option = 'sed -i "s#--wsrep-new-cluster##g" ' + \
                         WORKDIR + '/log/upgrade_startup' + str(i) + '.sh'
+                    if debug == 'YES':
+                        print(remove_bootstrap_option)
                     os.system(remove_bootstrap_option)
                 time.sleep(5)
 
                 upgrade_startup = "bash " + WORKDIR + \
                                   '/log/upgrade_startup' + str(i) + '.sh'
+                if debug == 'YES':
+                    print(upgrade_startup)
                 result = os.system(upgrade_startup)
                 utility_cmd.check_testcase(result, "Starting cluster node" + str(i) + " after upgrade run")
                 self.startup_check(i)
         time.sleep(10)
         sysbench_node = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
-                                                  WORKDIR + '/node1/mysql.sock')
+                                                  WORKDIR + '/node1/mysql.sock', debug)
         result = sysbench_node.sysbench_oltp_read_write('test', SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
                                                 SYSBENCH_NORMAL_TABLE_SIZE, 100)
         utility_cmd.check_testcase(result, "Sysbench oltp run after upgrade")
@@ -279,7 +309,6 @@ class PXCUpgrade:
                                                WORKDIR + '/node1/mysql.sock',
                                                WORKDIR + '/node2/mysql.sock')
         utility_cmd.check_testcase(result, "Checksum run for DB: db_partitioning")
-
         utility_cmd.stop_pxc(WORKDIR, PXC_UPPER_BASE, NODE)
 
 
@@ -338,3 +367,5 @@ if int(version) > int("080000"):
     rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
     upgrade_qa.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test', 'readwrite')
     upgrade_qa.start_upper_version()
+
+utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)

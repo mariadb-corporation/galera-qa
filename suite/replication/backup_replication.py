@@ -13,19 +13,25 @@ from util import sysbench_run
 from util import ps_startup
 from util import utility
 from util import createsql
-from util import rqg_datagen
-utility_cmd = utility.Utility()
-utility_cmd.check_python_version()
 
 # Read argument
 parser = argparse.ArgumentParser(prog='PXC replication test using PXB', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
+parser.add_argument('-d', '--debug', action='store_true',
+                    help='This option will enable debug logging')
 args = parser.parse_args()
 if args.encryption_run is True:
     encryption = 'YES'
 else:
     encryption = 'NO'
+if args.debug is True:
+    debug = 'YES'
+else:
+    debug = 'NO'
+
+utility_cmd = utility.Utility(debug)
+utility_cmd.check_python_version()
 
 
 class SetupReplication:
@@ -45,7 +51,7 @@ class SetupReplication:
             my_extra = ''
         script_dir = os.path.dirname(os.path.realpath(__file__))
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node))
+        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "PXC: Startup sanity check")
         if encryption == 'YES':
@@ -86,7 +92,7 @@ class SetupReplication:
         # Start PXC cluster for replication test
         script_dir = os.path.dirname(os.path.realpath(__file__))
         dbconnection_check = db_connection.DbConnection(USER, PS1_SOCKET)
-        server_startup = ps_startup.StartPerconaServer(parent_dir, WORKDIR, BASEDIR, int(node))
+        server_startup = ps_startup.StartPerconaServer(parent_dir, WORKDIR, BASEDIR, int(node), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "PS: Startup sanity check")
         if encryption == 'YES':
@@ -118,6 +124,8 @@ class SetupReplication:
                     ' alter table ' + db + '.sbtest' + str(i) + \
                     " encryption='Y'" \
                     '"; > /dev/null 2>&1'
+                if debug == 'YES':
+                    print(encrypt_table)
                 os.system(encrypt_table)
 
     def data_load(self, db, socket, node):
@@ -130,15 +138,21 @@ class SetupReplication:
             create_db = self.basedir + "/bin/mysql --user=root --socket=" + \
                 socket + ' -Bse"drop database if exists ' + db + \
                 ';create database ' + db + ';" 2>&1'
+            if debug == 'YES':
+                print(create_db)
             result = os.system(create_db)
             utility_cmd.check_testcase(result, node + ": Replication QA sample DB creation")
             data_load_query = self.basedir + "/bin/mysql --user=root --socket=" + \
                 socket + ' ' + db + ' -f <  /tmp/dataload.sql >/dev/null 2>&1'
+            if debug == 'YES':
+                print(data_load_query)
             result = os.system(data_load_query)
             utility_cmd.check_testcase(result, node + ": Replication QA sample data load")
         # Add prepared statement SQLs
         create_ps = self.basedir + "/bin/mysql --user=root --socket=" + \
                     socket + ' < ' + parent_dir + '/util/prepared_statements.sql > /dev/null 2>&1'
+        if debug == 'YES':
+            print(create_db)
         result = os.system(create_ps)
         utility_cmd.check_testcase(result, node + ": Replication QA prepared statements dataload")
 
@@ -154,3 +168,6 @@ replication_run.start_slave('1')
 utility_cmd.invoke_replication(BASEDIR, WORKDIR + '/node1/mysql.sock', PS1_SOCKET, 'backup_slave', 'none')
 utility_cmd.replication_io_status(BASEDIR, PS1_SOCKET, 'PS', 'none')
 utility_cmd.replication_sql_status(BASEDIR, PS1_SOCKET, 'PS', 'none')
+
+utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
+utility_cmd.stop_ps(WORKDIR, BASEDIR, '1')

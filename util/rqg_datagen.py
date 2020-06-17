@@ -26,18 +26,22 @@ class RQGDataGen:
         """ Method to initiate RQD data load against
             Percona XtraDB cluster.
         """
+        # Get RQG module
         module = parent_dir + '/randgen/conf/' + module
         master_port = self.basedir + "/bin/mysql --user=root --socket=" + socket + \
             ' -Bse"select @@port" 2>&1'
         port = os.popen(master_port).read().rstrip()
+        # Create schema for RQG run
         create_db = self.basedir + "/bin/mysql --user=root --socket=" + socket + \
             ' -Bse"drop database if exists ' + db + \
             ';create database ' + db + ';" 2>&1'
         os.system(create_db)
+        # Checking RQG module
         os.chdir(parent_dir + '/randgen')
         if not os.path.exists(module):
             print(module + ' does not exist in RQG')
             exit(1)
+        # Run RQG
         for file in os.listdir(module):
             if file.endswith(".zz"):
                 rqg_command = "perl " + parent_dir + "/randgen/gendata.pl " \
@@ -53,7 +57,11 @@ class RQGDataGen:
         """
             RQG data load for PXC Server
         """
-        rqg_config = ['galera', 'transactions', 'partitioning', 'gis', 'runtime', 'temporal']
+        version = utility_cmd.version_check(self.basedir)
+        if int(version) < int("050700"):
+            rqg_config = ['galera', 'transactions', 'gis', 'runtime', 'temporal']
+        else:
+            rqg_config = ['galera', 'transactions', 'partitioning', 'gis', 'runtime', 'temporal']
         for config in rqg_config:
             self.initiate_rqg(config, 'db_' + config, socket)
 

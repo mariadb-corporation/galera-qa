@@ -10,18 +10,25 @@ from config import *
 from util import sysbench_run
 from util import utility
 from util import table_checksum
-utility_cmd = utility.Utility()
-utility_cmd.check_python_version()
 
 # Read argument
 parser = argparse.ArgumentParser(prog='PXC streaming replication test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
+parser.add_argument('-d', '--debug', action='store_true',
+                    help='This option will enable debug logging')
 args = parser.parse_args()
 if args.encryption_run is True:
     encryption = 'YES'
 else:
     encryption = 'NO'
+if args.debug is True:
+    debug = 'YES'
+else:
+    debug = 'NO'
+
+utility_cmd = utility.Utility(debug)
+utility_cmd.check_python_version()
 
 
 class StreamingReplication:
@@ -35,10 +42,10 @@ class StreamingReplication:
         version = utility_cmd.version_check(BASEDIR)
         checksum = ""
         if int(version) < int("080000"):
-            checksum = table_checksum.TableChecksum(PT_BASEDIR, BASEDIR, WORKDIR, NODE, socket)
+            checksum = table_checksum.TableChecksum(PT_BASEDIR, BASEDIR, WORKDIR, NODE, socket, debug)
             checksum.sanity_check()
 
-        sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR, socket)
+        sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR, socket, debug)
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
         result = sysbench.sysbench_load(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS, SYSBENCH_LOAD_TEST_TABLE_SIZE)
@@ -49,6 +56,8 @@ class StreamingReplication:
         # Create data insert procedure
         create_procedure = BASEDIR + "/bin/mysql --user=root --socket=" + socket + \
             ' ' + db + ' -Bse"source ' + cwd + '/sr_procedure.sql " 2>&1'
+        if debug == 'YES':
+            print(create_procedure)
         result = os.system(create_procedure)
         utility_cmd.check_testcase(result, "Creating streaming replication data insert procedure")
         wsrep_trx_fragment_unit = ['bytes', 'rows', 'statements']
@@ -60,6 +69,8 @@ class StreamingReplication:
                             ' -Bse"call ' + db + '.sr_procedure(' + str(rows) + \
                             ",'" + trx_fragment_unit + "'," + \
                             str(trx_fragment_size) + ')" 2>&1'
+            if debug == 'YES':
+                print(sr_procedure)
             result = os.system(sr_procedure)
             sr_combination = "DML row count " + str(rows) + ", fragment_unit : " + \
                              trx_fragment_unit + ", fragment_size : " + \
@@ -68,7 +79,9 @@ class StreamingReplication:
             if trx_fragment_unit == 'bytes':
                 delete_rows = BASEDIR + "/bin/mysql --user=root --socket=" + socket + \
                                    ' ' + db + ' -Bse"delete from sbtest1 limit ' + str(rows) + ';" 2>&1'
-                result = os.system(delete_rows)
+                if debug == 'YES':
+                    print(delete_rows)
+                os.system(delete_rows)
 
 
 print("--------------------------------")
@@ -78,4 +91,4 @@ streaming_replication = StreamingReplication()
 streaming_replication.start_server(NODE)
 streaming_replication.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
 streaming_replication.streaming_replication_qa(WORKDIR + '/node1/mysql.sock', 'test')
-
+utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)

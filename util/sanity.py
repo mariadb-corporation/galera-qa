@@ -62,6 +62,7 @@ def create_ssl_certificate(workdir):
                 "3600 -CA ca.pem -CAkey ca-key.pem " \
                 "-set_serial 01 -out client-cert.pem "
     subprocess.call(key_query, shell=True, stderr=subprocess.DEVNULL)
+    # Add SSL configuration in ssl.cnf
     if os.path.isfile(workdir + '/conf/ssl.cnf'):
         os.remove(workdir + '/conf/ssl.cnf')
     cnf_name = open(workdir + '/conf/ssl.cnf', 'a+')

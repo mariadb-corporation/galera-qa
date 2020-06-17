@@ -4,6 +4,7 @@
 
 import os
 import argparse
+import sys
 
 
 def main():
@@ -22,12 +23,21 @@ def main():
                         help='Specify suite name')
     parser.add_argument('-e', '--encryption-run', action='store_true',
                         help='This option will enable encryption options')
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='This option will enable debug logging')
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
 
     args = parser.parse_args()
     if args.encryption_run is True:
         encryption = '-e'
     else:
         encryption = ''
+    if args.debug is True:
+        debug = '-d'
+    else:
+        debug = ''
     test_name = args.testname
     suite = args.suite
 
@@ -38,7 +48,7 @@ def main():
         print("Running " + suite + " QA framework")
         for file in os.listdir(scriptdir + '/suite/' + suite):
             if file.endswith(".py"):
-                result = os.system(scriptdir + '/suite/' + suite + '/' + file + ' ' + encryption)
+                result = os.system(scriptdir + '/suite/' + suite + '/' + file + ' ' + encryption + ' ' + debug)
                 if result != 0:
                     print("Failed to run " + file + ", please check the error log")
                     exit(1)

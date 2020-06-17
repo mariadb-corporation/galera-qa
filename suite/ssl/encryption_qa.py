@@ -2,6 +2,7 @@
 import os
 import sys
 import itertools
+import argparse
 cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
@@ -13,7 +14,20 @@ from util import rqg_datagen
 from util import pxc_startup
 from util import db_connection
 from util import createsql
-utility_cmd = utility.Utility()
+
+# Read argument
+parser = argparse.ArgumentParser(prog='PXC replication test', usage='%(prog)s [options]')
+parser.add_argument('-e', '--encryption-run', action='store_true',
+                    help='This option will enable encryption options')
+parser.add_argument('-d', '--debug', action='store_true',
+                    help='This option will enable debug logging')
+args = parser.parse_args()
+if args.debug is True:
+    debug = 'YES'
+else:
+    debug = 'NO'
+
+utility_cmd = utility.Utility(debug)
 utility_cmd.check_python_version()
 
 
@@ -54,10 +68,10 @@ class EncryptionTest:
             utility_cmd.check_testcase(0, "Encryption options : " + encryption_combination)
             # Start PXC cluster for encryption test
             dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-            server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE))
+            server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
             result = server_startup.sanity_check()
             utility_cmd.check_testcase(result, "Startup sanity check")
-            result = server_startup.create_config('none')
+            result = server_startup.create_config('encryption')
             utility_cmd.check_testcase(result, "Configuration file creation")
             cnf_name = open(WORKDIR + '/conf/random_encryption.cnf', 'w+')
             cnf_name.write('[mysqld]\n')
@@ -96,6 +110,8 @@ class EncryptionTest:
             create_ps = BASEDIR + "/bin/mysql --user=root --socket=" + \
                 WORKDIR + '/node1/mysql.sock' + ' < ' + parent_dir + \
                 '/util/prepared_statements.sql > /dev/null 2>&1'
+            if debug == 'YES':
+                print(create_ps)
             result = os.system(create_ps)
             utility_cmd.check_testcase(result, "Creating prepared statements")
             # Random data load
@@ -106,6 +122,8 @@ class EncryptionTest:
                 sys.stdout = sys.__stdout__
                 data_load_query = BASEDIR + "/bin/mysql --user=root --socket=" + \
                     WORKDIR + '/node1/mysql.sock' + ' test -f <  /tmp/dataload.sql >/dev/null 2>&1'
+                if debug == 'YES':
+                    print(data_load_query)
                 result = os.system(data_load_query)
                 utility_cmd.check_testcase(result, "Sample data load")
             utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)

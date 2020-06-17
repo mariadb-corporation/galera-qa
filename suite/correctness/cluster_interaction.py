@@ -12,20 +12,26 @@ from util import pxc_startup
 from util import db_connection
 from util import sysbench_run
 from util import utility
-from util import table_checksum
-utility_cmd = utility.Utility()
-utility_cmd.check_python_version()
+
 
 # Read argument
 parser = argparse.ArgumentParser(prog='PXC cluster interaction test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
+parser.add_argument('-d', '--debug', action='store_true',
+                    help='This option will enable debug logging')
 args = parser.parse_args()
 if args.encryption_run is True:
     encryption = 'YES'
 else:
     encryption = 'NO'
+if args.debug is True:
+    debug = 'YES'
+else:
+    debug = 'NO'
 
+utility_cmd = utility.Utility(debug)
+utility_cmd.check_python_version()
 
 class ClusterInteraction:
     def __init__(self, basedir, workdir, user, node1_socket, pt_basedir, node):
@@ -46,7 +52,7 @@ class ClusterInteraction:
     def start_pxc(self):
         # Start PXC cluster for replication test
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node))
+        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
@@ -72,7 +78,7 @@ class ClusterInteraction:
             background_run = 'No'
 
         sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
-                                            socket)
+                                            socket, debug)
 
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
@@ -85,6 +91,8 @@ class ClusterInteraction:
                     ' alter table ' + db + '.sbtest' + str(i) + \
                     " encryption='Y'" \
                     '"; > /dev/null 2>&1'
+                if debug == 'YES':
+                    print(encrypt_table)
                 os.system(encrypt_table)
 
         if background_run == "Yes":
@@ -121,12 +129,16 @@ class ClusterInteraction:
             query = self.basedir + "/bin/mysql --user=root --socket=" + \
                     self.socket + ' -e"set global pxc_strict_mode=DISABLED;' \
                                   '" > /dev/null 2>&1'
+            if debug == 'YES':
+                print(query)
             self.run_query(query)
             query = self.basedir + \
                 '/bin/mysql ' \
                 ' --user=root --socket=' + WORKDIR + '/node1/mysql.sock test' \
                 ' -Bse"flush table sbtest1 with read lock;' \
                 'select sleep(120);unlock tables"  2>&1 &'
+            if debug == 'YES':
+                print(query)
             os.system(query)
             flow_control_status = 'OFF'
             while flow_control_status != 'OFF':
@@ -141,17 +153,25 @@ class ClusterInteraction:
         utility_cmd.check_testcase(0, "Initiating IST test")
         shutdown_node = self.basedir + '/bin/mysqladmin --user=root --socket=' + \
                         WORKDIR + '/node' + self.node + '/mysql.sock shutdown > /dev/null 2>&1'
+        if debug == 'YES':
+            print(shutdown_node)
         result = os.system(shutdown_node)
         utility_cmd.check_testcase(result, "Shutdown cluster node IST test")
         time.sleep(15)
         kill_sysbench = "kill -9 " + sysbench_pid + " > /dev/null 2>&1"
+        if debug == 'YES':
+            print("Terminating sysbench run : " + kill_sysbench)
         os.system(kill_sysbench)
         ist_startup = "bash " + self.workdir + \
-                           '/log/startup' + str(self.node) + '.sh'
+            '/log/startup' + str(self.node) + '.sh'
+        if debug == 'YES':
+            print(ist_startup)
         os.system(ist_startup)
         self.startup_check(self.node)
 
         kill_sysbench = "kill -9 " + sysbench_pid + " > /dev/null 2>&1"
+        if debug == 'YES':
+            print("Terminating sysbench run : " + kill_sysbench)
         os.system(kill_sysbench)
 
         utility_cmd.check_testcase(0, "Initiating Node joining test")

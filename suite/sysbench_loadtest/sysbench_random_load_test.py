@@ -7,24 +7,29 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
 from config import *
-from util import pxc_startup
-from util import db_connection
 from util import sysbench_run
 from util import utility
 from util import table_checksum
-utility_cmd = utility.Utility()
-utility_cmd.check_python_version()
 
 
 # Read argument
 parser = argparse.ArgumentParser(prog='PXC sysbench random load test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
+parser.add_argument('-d', '--debug', action='store_true',
+                    help='This option will enable debug logging')
 args = parser.parse_args()
 if args.encryption_run is True:
     encryption = 'YES'
 else:
     encryption = 'NO'
+if args.debug is True:
+    debug = 'YES'
+else:
+    debug = 'NO'
+
+utility_cmd = utility.Utility(debug)
+utility_cmd.check_python_version()
 
 
 class SysbenchRandomLoadTest:
@@ -43,10 +48,10 @@ class SysbenchRandomLoadTest:
         threads = [32, 64, 128, 256, 512, 1024]
         version = utility_cmd.version_check(BASEDIR)
         if int(version) < int("080000"):
-            checksum = table_checksum.TableChecksum(PT_BASEDIR, BASEDIR, WORKDIR, NODE, socket)
+            checksum = table_checksum.TableChecksum(PT_BASEDIR, BASEDIR, WORKDIR, NODE, socket, debug)
             checksum.sanity_check()
         sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
-                                            socket)
+                                            socket, debug)
         result = sysbench.sanity_check(db)
         for table_count in tables:
             utility_cmd.check_testcase(result, "Sysbench run sanity check")
@@ -69,6 +74,8 @@ sysbench_random_loadtest = SysbenchRandomLoadTest()
 if SERVER == "pxc":
     sysbench_random_loadtest.start_server(WORKDIR + '/node1/mysql.sock', NODE)
     sysbench_random_loadtest.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
+    utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
 elif SERVER == "ps":
     sysbench_random_loadtest.start_server(PS1_SOCKET, 1)
     sysbench_random_loadtest.sysbench_run(PS1_SOCKET, 'test')
+    utility_cmd.stop_ps(WORKDIR, BASEDIR, 1)

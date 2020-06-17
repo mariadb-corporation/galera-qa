@@ -11,11 +11,12 @@ from util import sanity
 
 
 class StartCluster:
-    def __init__(self, scriptdir, workdir, basedir, node):
+    def __init__(self, scriptdir, workdir, basedir, node, debug):
         self.scriptdir = scriptdir
         self.workdir = workdir
         self.basedir = basedir
         self.node = node
+        self.debug = debug
 
     def sanity_check(self):
         """ Sanity check method will remove existing
@@ -63,11 +64,9 @@ class StartCluster:
                         self.workdir + '/conf/node' + str(i) + '.cnf')
             cnf_name = open(self.workdir + '/conf/node' + str(i) + '.cnf', 'a+')
             cnf_name.write('wsrep_cluster_address=gcomm://' + addr_list + '\n')
-            """ Calling version check method to compare the version to 
-                add wsrep_sst_auth variable. This variable does not 
-                required starting from PXC-8.x 
-            """
-
+            # Calling version check method to compare the version to
+            # add wsrep_sst_auth variable. This variable does not
+            # required starting from PXC-8.x
             if int(version) < int("080000"):
                 cnf_name.write('wsrep_sst_auth=root:\n')
             if int(version) > int("050700"):
@@ -92,7 +91,8 @@ class StartCluster:
                 cnf_name.write('!include ' + self.workdir + '/conf/encryption.cnf\n')
                 cnf_name.write('pxc_encrypt_cluster_traffic = ON\n')
             else:
-                cnf_name.write('pxc_encrypt_cluster_traffic = OFF\n')
+                if int(version) > int("050700"):
+                    cnf_name.write('pxc_encrypt_cluster_traffic = OFF\n')
             cnf_name.close()
         return 0
 
@@ -140,6 +140,8 @@ class StartCluster:
                                 ' --initialize-insecure ' + init_extra + ' --basedir=' + self.basedir + \
                                 ' --datadir=' + self.workdir + '/node' + str(i) + ' > ' + \
                                 self.workdir + '/log/startup' + str(i) + '.log 2>&1'
+            if self.debug == 'YES':
+                print(initialize_node)
             run_query = subprocess.call(initialize_node, shell=True, stderr=subprocess.DEVNULL)
             result = ("{}".format(run_query))
         return int(result)
@@ -169,11 +171,12 @@ class StartCluster:
             save_startup = 'echo "' + startup + '" > ' + self.workdir + \
                            '/log/startup' + str(i) + '.sh'
             os.system(save_startup)
+            if self.debug == 'YES':
+                print(startup)
             subprocess.call(startup, shell=True, stderr=subprocess.DEVNULL)
             ping_query = self.basedir + '/bin/mysqladmin --user=root --socket=' + self.workdir + \
-                         '/node' + str(i) + '/mysql.sock ping > /dev/null 2>&1'
+                '/node' + str(i) + '/mysql.sock ping > /dev/null 2>&1'
             for startup_timer in range(120):
-                time.sleep(1)
                 ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
                 ping_status = ("{}".format(ping_check))
                 if int(ping_status) == 0:
@@ -181,7 +184,10 @@ class StartCluster:
                                            '--socket=' + self.workdir + '/node' + str(i) + '/mysql.sock -Bse"' \
                                            "delete from mysql.user where user='';" \
                                            '" > /dev/null 2>&1'
+                    if self.debug == 'YES':
+                        print(query)
                     os.system(query)
                     break  # break the loop if mysqld is running
+                time.sleep(1)
 
         return int(ping_status)

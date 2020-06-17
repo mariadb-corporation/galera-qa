@@ -18,6 +18,7 @@ class DataGenerator:
         return start + (end - start) * random.random()
 
     def getData(self):
+        # Get random data based on the column type.
         if self.data_type == "int":
             data = ''.join(random.choices(string.digits, k=random.randint(1, 9)))
             return data
