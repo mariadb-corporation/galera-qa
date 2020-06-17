@@ -15,26 +15,32 @@ from util import db_connection
 from util import sysbench_run
 from util import utility
 from util import rqg_datagen
-from util import table_checksum
-utility_cmd = utility.Utility()
-utility_cmd.check_python_version()
 
 # Read argument
 parser = argparse.ArgumentParser(prog='PXC upgrade test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
+parser.add_argument('-d', '--debug', action='store_true',
+                    help='This option will enable debug logging')
 args = parser.parse_args()
 if args.encryption_run is True:
     encryption = 'YES'
 else:
     encryption = 'NO'
+if args.debug is True:
+    debug = 'YES'
+else:
+    debug = 'NO'
+
+utility_cmd = utility.Utility(debug)
+utility_cmd.check_python_version()
 
 
 class PXCUpgrade:
     def startup(self, wsrep_extra=None):
         # Start PXC cluster for upgrade test
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, PXC_LOWER_BASE, int(NODE))
+        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, PXC_LOWER_BASE, int(NODE), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
@@ -130,6 +136,8 @@ class PXCUpgrade:
         create_startup = 'sed  "s#' + PXC_LOWER_BASE + '#' + PXC_UPPER_BASE + \
                          '#g" ' + WORKDIR + '/log/startup3.sh > ' + \
                          WORKDIR + '/log/startup4.sh'
+        if debug == 'YES':
+            print(create_startup)
         os.system(create_startup)
         os.system("sed -i 's#node3#node4#g' " + WORKDIR + '/log/startup4.sh')
         os.system("rm -rf " + WORKDIR + '/node4')
@@ -137,6 +145,8 @@ class PXCUpgrade:
         # start node4
         upgrade_startup = "bash " + WORKDIR + \
                           '/log/startup4.sh'
+        if debug == 'YES':
+            print(upgrade_startup)
         result = os.system(upgrade_startup)
         utility_cmd.check_testcase(result, "Starting PXC-8.0 cluster node4 for upgrade testing")
         self.startup_check(4)
@@ -144,7 +154,7 @@ class PXCUpgrade:
     def sysbench_run(self, node1_socket, db, upgrade_type):
         # Sysbench dataload for consistency test
         sysbench_node1 = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
-                                            node1_socket)
+                                            node1_socket, debug)
         # Sanity check for sysbench run
         result = sysbench_node1.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
@@ -161,6 +171,8 @@ class PXCUpgrade:
                         ' alter table ' + db + '.sbtest' + str(i) + \
                         " encryption='Y'" \
                         '"; > /dev/null 2>&1'
+                    if debug == 'YES':
+                        print(encrypt_table)
                     os.system(encrypt_table)
         sysbench_node2 = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
                                                   WORKDIR + '/node2/mysql.sock')
@@ -226,6 +238,8 @@ class PXCUpgrade:
             create_startup = 'sed  "s#' + PXC_LOWER_BASE + '#' + PXC_UPPER_BASE + \
                 '#g" ' + WORKDIR + '/log/startup' + str(int(i + 2)) + '.sh > ' + \
                 WORKDIR + '/log/startup' + str(int(i + 3)) + '.sh'
+            if debug == 'YES':
+                print(create_startup)
             os.system(create_startup)
             os.system("sed -i 's#node" + str(int(i + 2)) +
                       "#node" + str(int(i + 3)) + "#g' " + WORKDIR +
@@ -251,6 +265,8 @@ class PXCUpgrade:
             wsrep_status = os.popen(status_query).read().rstrip()
             print(wsrep_status)
             time.sleep(10)
+            if debug == 'YES':
+                print(upgrade_startup)
             result = os.system(upgrade_startup)
             utility_cmd.check_testcase(result, "Starting PXC-8.0 cluster node" +
                                        str(int(i + 3)) + " for upgrade testing")

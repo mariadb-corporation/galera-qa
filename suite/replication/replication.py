@@ -14,18 +14,25 @@ from util import ps_startup
 from util import utility
 from util import createsql
 from util import rqg_datagen
-utility_cmd = utility.Utility()
-utility_cmd.check_python_version()
 
 # Read argument
 parser = argparse.ArgumentParser(prog='PXC replication test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
+parser.add_argument('-d', '--debug', action='store_true',
+                    help='This option will enable debug logging')
 args = parser.parse_args()
 if args.encryption_run is True:
     encryption = 'YES'
 else:
     encryption = 'NO'
+if args.debug is True:
+    debug = 'YES'
+else:
+    debug = 'NO'
+
+utility_cmd = utility.Utility(debug)
+utility_cmd.check_python_version()
 
 version = utility_cmd.version_check(BASEDIR)
 
@@ -108,6 +115,8 @@ class SetupReplication:
                     ' alter table ' + db + '.sbtest' + str(i) + \
                     " encryption='Y'" \
                     '"; > /dev/null 2>&1'
+                if debug == 'YES':
+                    print(encrypt_table)
                 os.system(encrypt_table)
 
     def data_load(self, db, socket, node):
@@ -120,15 +129,21 @@ class SetupReplication:
             create_db = self.basedir + "/bin/mysql --user=root --socket=" + \
                 socket + ' -Bse"drop database if exists ' + db + \
                 ';create database ' + db + ';" 2>&1'
+            if debug == 'YES':
+                print(create_db)
             result = os.system(create_db)
             utility_cmd.check_testcase(result, node + ": Replication QA sample DB creation")
             data_load_query = self.basedir + "/bin/mysql --user=root --socket=" + \
                 socket + ' ' + db + ' -f <  /tmp/dataload.sql >/dev/null 2>&1'
+            if debug == 'YES':
+                print(data_load_query)
             result = os.system(data_load_query)
             utility_cmd.check_testcase(result, node + ": Replication QA sample data load")
         # Add prepared statement SQLs
         create_ps = self.basedir + "/bin/mysql --user=root --socket=" + \
             socket + ' < ' + parent_dir + '/util/prepared_statements.sql > /dev/null 2>&1'
+        if debug == 'YES':
+            print(create_ps)
         result = os.system(create_ps)
         utility_cmd.check_testcase(result, node + ": Replication QA prepared statements dataload")
 

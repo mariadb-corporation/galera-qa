@@ -12,8 +12,6 @@ from config import *
 from util import pxc_startup
 from util import db_connection
 from util import utility
-utility_cmd = utility.Utility()
-utility_cmd.check_python_version()
 
 # Read argument
 parser = argparse.ArgumentParser(prog='PXC Utility', usage='%(prog)s [options]')
@@ -23,12 +21,20 @@ parser.add_argument('--start', action='store_true',
                     help='Start PXC nodes')
 parser.add_argument('--stop', action='store_true',
                     help='Stop PXC nodes')
-
+parser.add_argument('-d', '--debug', action='store_true',
+                    help='This option will enable debug logging')
 args = parser.parse_args()
 if args.encryption_run is True:
     encryption = 'YES'
 else:
     encryption = 'NO'
+if args.debug is True:
+    debug = 'YES'
+else:
+    debug = 'NO'
+
+utility_cmd = utility.Utility(debug)
+utility_cmd.check_python_version()
 
 
 class PXCUtil:
@@ -59,6 +65,8 @@ class PXCUtil:
         query = BASEDIR + "/bin/mysql --user=root --socket=" + \
                 WORKDIR + "/node1/mysql.sock -e'drop database if exists test " \
                           "; create database test ;' > /dev/null 2>&1"
+        if debug == 'YES':
+            print(query)
         query_status = os.system(query)
         if int(query_status) != 0:
             # return 1

@@ -13,6 +13,9 @@ from util import ps_startup
 
 
 class Utility:
+    def __init__(self, debug):
+        self.debug = debug
+
     def printit(self, text, status):
         # print the testcase status
         now = datetime.now().strftime("%H:%M:%S ")
@@ -71,10 +74,14 @@ class Utility:
             query = basedir + '/bin/mysql -uroot --socket=' + \
                     socket1 + ' -Bse"checksum table ' + \
                     db + '.' + table + ';"'
+            if self.debug == 'YES':
+                print(query)
             table_count_node1 = os.popen(query).read().rstrip()
             query = basedir + '/bin/mysql -uroot --socket=' + \
                     socket2 + ' -Bse"checksum table ' + \
                     db + '.' + table + ';"'
+            if self.debug == 'YES':
+                print(query)
             table_count_node2 = os.popen(query).read().rstrip()
             if table_count_node1 == table_count_node2:
                 return 0
@@ -112,6 +119,8 @@ class Utility:
                                                            "@'localhost' identified with  mysql_native_password by 'test" \
                                                            "';grant all on *.* to xbuser@'localhost'" \
                                                            ';" > /dev/null 2>&1'
+        if self.debug == 'YES':
+            print(create_user)
         query_status = os.system(create_user)
         if int(query_status) != 0:
             print("ERROR!: Could not create xtrabackup user user : xbuser")
@@ -133,12 +142,16 @@ class Utility:
                      " --target-dir=" + workdir + "/backup -S" + \
                      socket + " --datadir=" + source_datadir + " " + backup_extra + " --lock-ddl >" + \
                      workdir + "/log/xb_backup.log 2>&1"
+        if self.debug == 'YES':
+            print(backup_cmd)
         os.system(backup_cmd)
 
         # Prepare backup for node startup
         prepare_backup = "xtrabackup --prepare --target_dir=" + \
                          workdir + "/backup " + backup_extra + " --lock-ddl >" + \
                          workdir + "/log/xb_backup_prepare.log 2>&1"
+        if self.debug == 'YES':
+            print(prepare_backup)
         os.system(prepare_backup)
 
         # copy backup directory to destination
@@ -147,6 +160,8 @@ class Utility:
                           workdir + "/backup --datadir=" + \
                           dest_datadir + " " + backup_extra + " --lock-ddl >" + \
                           workdir + "/log/copy_backup.log 2>&1"
+            if self.debug == 'YES':
+                print(copy_backup)
             os.system(copy_backup)
 
         # Copy keyring file to destination directory for encryption startup
@@ -166,6 +181,8 @@ class Utility:
                         socket + ' -Bse"SHOW SLAVE STATUS\G" 2>&1 ' \
                                  '| grep "Slave_IO_Running:" ' \
                                  "| awk '{ print $2 }'"
+            if self.debug == 'YES':
+                print(io_status)
             io_status = os.popen(io_status).read().rstrip()
             if io_status == "Yes":
                 check_slave_status = 'ON'
@@ -176,6 +193,8 @@ class Utility:
                                  socket + ' -Bse"SELECT SERVICE_STATE ' \
                                           'FROM performance_schema.replication_connection_status' \
                                           " where channel_name='" + channel + "'" + '" 2>&1'
+            if self.debug == 'YES':
+                print(check_slave_status)
             check_slave_status = os.popen(check_slave_status).read().rstrip()
         if check_slave_status != 'ON':
             self.check_testcase(1, node + ": IO thread slave status")
@@ -197,6 +216,8 @@ class Utility:
                          socket + ' -Bse"SHOW SLAVE STATUS\G" 2>&1 ' \
                                   '| grep "Slave_SQL_Running:" ' \
                                   "| awk '{ print $2 }'"
+            if self.debug == 'YES':
+                print(sql_status)
             sql_status = os.popen(sql_status).read().rstrip()
             if sql_status == "Yes":
                 check_slave_status = 'ON'
@@ -207,6 +228,8 @@ class Utility:
                                  socket + ' -Bse"SELECT SERVICE_STATE ' \
                                           'FROM performance_schema.replication_applier_status' \
                                           " where channel_name='" + channel + "'" + '" 2>&1'
+            if self.debug == 'YES':
+                print(check_slave_status)
             check_slave_status = os.popen(check_slave_status).read().rstrip()
         if check_slave_status != 'ON':
             self.check_testcase(1, node + ": SQL thread slave status")
@@ -232,12 +255,15 @@ class Utility:
             comment = ""  # channel name is to identify the replication source
         # Setup async replication
         flush_log = basedir + "/bin/mysql --user=root --socket=" + \
-                    master_socket + \
-                    ' -Bse "flush logs" 2>&1'
+            master_socket + ' -Bse "flush logs" 2>&1'
+        if self.debug == 'YES':
+            print(flush_log)
         os.system(flush_log)
         if repl_mode == 'backup_slave':
             data_dir = basedir + "/bin/mysql --user=root --socket=" + \
                        slave_socket + " -Bse 'select @@datadir';"
+            if self.debug == 'YES':
+                print(data_dir)
             data_dir = os.popen(data_dir).read().rstrip()
             query = "cat " + data_dir + "xtrabackup_binlog_pos_innodb | awk '{print $1}'"
             master_log_file = os.popen(query).read().rstrip()
@@ -247,6 +273,8 @@ class Utility:
             master_log_file = basedir + "/bin/mysql --user=root --socket=" + \
                               master_socket + \
                               " -Bse 'show master logs' | awk '{print $1}' | tail -1 2>&1"
+            if self.debug == 'YES':
+                print(master_log_file)
             master_log_file = os.popen(master_log_file).read().rstrip()
             master_log_pos = 4
 
@@ -266,13 +294,15 @@ class Utility:
                            ", MASTER_LOG_FILE='" + master_log_file + "'" + \
                            ', MASTER_LOG_POS=' + str(master_log_pos) + ' ' \
                            + comment + ';START SLAVE;" 2>&1'
+        if self.debug == 'YES':
+            print(invoke_slave)
         result = os.system(invoke_slave)
         self.check_testcase(result, "Initiated replication")
 
     def start_pxc(self, parent_dir, workdir, basedir, node, socket, user, encryption, my_extra):
         # Start PXC cluster
         dbconnection_check = db_connection.DbConnection(user, socket)
-        server_startup = pxc_startup.StartCluster(parent_dir, workdir, basedir, int(node))
+        server_startup = pxc_startup.StartCluster(parent_dir, workdir, basedir, int(node), self.debug)
         result = server_startup.sanity_check()
         self.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
@@ -315,6 +345,8 @@ class Utility:
         for i in range(int(node), 0, -1):
             shutdown_node = basedir + '/bin/mysqladmin --user=root --socket=' + \
                             workdir + '/node' + str(i) + '/mysql.sock shutdown > /dev/null 2>&1'
+            if self.debug == 'YES':
+                print(shutdown_node)
             result = os.system(shutdown_node)
             self.check_testcase(result, "PXC: shutting down cluster node" + str(i))
 
@@ -323,6 +355,8 @@ class Utility:
         for i in range(int(node), 0, -1):
             shutdown_node = basedir + '/bin/mysqladmin --user=root --socket=/tmp/psnode' + \
                             str(i) + '.sock shutdown > /dev/null 2>&1'
+            if self.debug == 'YES':
+                print(shutdown_node)
             result = os.system(shutdown_node)
             self.check_testcase(result, "PS: shutting down cluster node" + str(i))
 
@@ -331,12 +365,12 @@ class Utility:
             startup status.
         """
         query_cluster_status = basedir + '/bin/mysql --user=root --socket=' + \
-                               workdir + '/node' + str(cluster_node) + \
-                               '/mysql.sock -Bse"show status like \'wsrep_local_state_comment\';"' \
-                               ' 2>/dev/null | awk \'{print $2}\''
+            workdir + '/node' + str(cluster_node) + \
+            '/mysql.sock -Bse"show status like \'wsrep_local_state_comment\';"' \
+            ' 2>/dev/null | awk \'{print $2}\''
         ping_query = basedir + '/bin/mysqladmin --user=root --socket=' + \
-                     workdir + '/node' + str(cluster_node) + \
-                     '/mysql.sock ping > /dev/null 2>&1'
+            workdir + '/node' + str(cluster_node) + \
+            '/mysql.sock ping > /dev/null 2>&1'
         for startup_timer in range(300):
             time.sleep(1)
             cluster_status = os.popen(query_cluster_status).read().rstrip()
@@ -399,7 +433,9 @@ class Utility:
         os.mkdir(workdir + '/' + joiner)
         joiner_startup = "bash " + workdir + \
                          '/log/startup' + joiner_node + '.sh'
+        if self.debug == 'YES':
+            print(joiner_startup)
         # Invoke joiner
         result = os.system(joiner_startup)
-        self.check_testcase(result, "Starting cluster " + joiner + "node")
+        self.check_testcase(result, "Starting cluster " + joiner)
         self.pxc_startup_check(basedir, workdir, joiner_node)

@@ -13,18 +13,25 @@ from util import utility
 from util import createsql
 from util import rqg_datagen
 from util import table_checksum
-utility_cmd = utility.Utility()
-utility_cmd.check_python_version()
 
 # Read argument
 parser = argparse.ArgumentParser(prog='PXC SSL test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
+parser.add_argument('-d', '--debug', action='store_true',
+                    help='This option will enable debug logging')
 args = parser.parse_args()
 if args.encryption_run is True:
     encryption = 'YES'
 else:
     encryption = 'NO'
+if args.debug is True:
+    debug = 'YES'
+else:
+    debug = 'NO'
+
+utility_cmd = utility.Utility(debug)
+utility_cmd.check_python_version()
 
 
 class SSLCheck:
@@ -45,7 +52,7 @@ class SSLCheck:
     def start_pxc(self):
         # Start PXC cluster for SSL test
         dbconnection_check = db_connection.DbConnection(USER, self.socket)
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE))
+        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
@@ -63,7 +70,7 @@ class SSLCheck:
 
     def sysbench_run(self, node1_socket, db):
         sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
-                                            WORKDIR + '/node1/mysql.sock')
+                                            WORKDIR + '/node1/mysql.sock', debug)
 
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "SSL QA sysbench run sanity check")
@@ -77,6 +84,8 @@ class SSLCheck:
                     ' alter table ' + db + '.sbtest' + str(i) + \
                     " encryption='Y'" \
                     '"; > /dev/null 2>&1'
+                if debug == 'YES':
+                    print(encrypt_table)
                 os.system(encrypt_table)
 
     def data_load(self, db, node1_socket):
@@ -88,10 +97,14 @@ class SSLCheck:
             create_db = self.basedir + "/bin/mysql --user=root --socket=" + \
                 node1_socket + ' -Bse"drop database if exists ' + db + \
                 ';create database ' + db + ';" 2>&1'
+            if debug == 'YES':
+                print(create_db)
             result = os.system(create_db)
             utility_cmd.check_testcase(result, "SSL QA sample DB creation")
             data_load_query = self.basedir + "/bin/mysql --user=root --socket=" + \
                 node1_socket + ' ' + db + ' -f <  /tmp/dataload.sql >/dev/null 2>&1'
+            if debug == 'YES':
+                print(data_load_query)
             result = os.system(data_load_query)
             utility_cmd.check_testcase(result, "SSL QA sample data load")
 
@@ -107,7 +120,7 @@ rqg_dataload.initiate_rqg('examples', 'test', WORKDIR + '/node1/mysql.sock')
 version = utility_cmd.version_check(BASEDIR)
 if int(version) < int("080000"):
     checksum = table_checksum.TableChecksum(PT_BASEDIR, BASEDIR, WORKDIR,
-                                            NODE, WORKDIR + '/node1/mysql.sock')
+                                            NODE, WORKDIR + '/node1/mysql.sock', debug)
     checksum.sanity_check()
     checksum.data_consistency('test,pxc_dataload_db')
 else:

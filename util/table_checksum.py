@@ -1,15 +1,16 @@
 import os
 from util import utility
-utility_cmd = utility.Utility()
 
 
 class TableChecksum:
-    def __init__(self, pt_basedir, basedir, workdir, node, socket):
+    def __init__(self, pt_basedir, basedir, workdir, node, socket, debug):
         self.pt_basedir = pt_basedir
         self.basedir = basedir
         self.workdir = workdir
         self.node = node
         self.socket = socket
+        self.debug = debug
+        self.utility_cmd = utility.Utility(debug)
 
     def run_query(self, query):
         query_status = os.system(query)
@@ -27,7 +28,7 @@ class TableChecksum:
             print('pt-table-checksum is missing in percona toolkit basedir')
             return 1
 
-        version = utility_cmd.version_check(self.basedir)
+        version = self.utility_cmd.version_check(self.basedir)
         # Creating pt_user for database consistency check
         if int(version) < int("050700"):
             query = self.basedir + "/bin/mysql --user=root --socket=" + \
@@ -71,30 +72,30 @@ class TableChecksum:
     def error_status(self, error_code):
         # Checking pt-table-checksum error
         if error_code == "0":
-            utility_cmd.check_testcase(0, "pt-table-checksum run status")
+            self.utility_cmd.check_testcase(0, "pt-table-checksum run status")
         elif error_code == "1":
-            utility_cmd.check_testcase(1, "pt-table-checksum error code "
+            self.utility_cmd.check_testcase(1, "pt-table-checksum error code "
                                           ": A non-fatal error occurred")
         elif error_code == "2":
-            utility_cmd.check_testcase(1, "pt-table-checksum error code "
+            self.utility_cmd.check_testcase(1, "pt-table-checksum error code "
                                           ": --pid file exists and the PID is running")
         elif error_code == "4":
-            utility_cmd.check_testcase(1, "pt-table-checksum error code "
+            self.utility_cmd.check_testcase(1, "pt-table-checksum error code "
                                           ": Caught SIGHUP, SIGINT, SIGPIPE, or SIGTERM")
         elif error_code == "8":
-            utility_cmd.check_testcase(1, "pt-table-checksum error code "
+            self.utility_cmd.check_testcase(1, "pt-table-checksum error code "
                                           ": No replicas or cluster nodes were found")
         elif error_code == "16":
-            utility_cmd.check_testcase(1, "pt-table-checksum error code "
+            self.utility_cmd.check_testcase(1, "pt-table-checksum error code "
                                           ": At least one diff was found")
         elif error_code == "32":
-            utility_cmd.check_testcase(1, "pt-table-checksum error code "
+            self.utility_cmd.check_testcase(1, "pt-table-checksum error code "
                                           ": At least one chunk was skipped")
         elif error_code == "64":
-            utility_cmd.check_testcase(1, "pt-table-checksum error code "
+            self.utility_cmd.check_testcase(1, "pt-table-checksum error code "
                                           ": At least one table was skipped")
         else:
-            utility_cmd.check_testcase(1, "pt-table-checksum error code "
+            self.utility_cmd.check_testcase(1, "pt-table-checksum error code "
                                           ": Fatal error occurred. Please"
                                           "check error log for more info")
 
@@ -106,7 +107,7 @@ class TableChecksum:
         port = self.basedir + "/bin/mysql --user=root --socket=" + \
             self.socket + ' -Bse"select @@port" 2>&1'
         port = os.popen(port).read().rstrip()
-        version = utility_cmd.version_check(self.basedir)
+        version = self.utility_cmd.version_check(self.basedir)
         # Disable pxc_strict_mode for pt-table-checksum run
         if int(version) > int("050700"):
             query = self.basedir + "/bin/mysql --user=root --socket=" + \

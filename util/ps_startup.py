@@ -11,11 +11,12 @@ from util import sanity
 
 
 class StartPerconaServer:
-    def __init__(self, scriptdir, workdir, basedir, node):
+    def __init__(self, scriptdir, workdir, basedir, node, debug):
         self.scriptdir = scriptdir
         self.workdir = workdir
         self.basedir = basedir
         self.node = node
+        self.debug = debug
 
     def sanity_check(self):
         """ Sanity check method will remove existing
@@ -125,6 +126,8 @@ class StartPerconaServer:
                     ' --initialize-insecure --basedir=' + self.basedir + \
                     ' --datadir=' + self.workdir + '/psnode' + str(i) + ' > ' + \
                     self.workdir + '/log/ps_startup' + str(i) + '.log 2>&1'
+            if self.debug == 'YES':
+                print(initialize_node)
             run_query = subprocess.call(initialize_node, shell=True, stderr=subprocess.DEVNULL)
             result = ("{}".format(run_query))
         return int(result)
@@ -144,7 +147,8 @@ class StartPerconaServer:
                 ' --log-error=' + self.workdir + \
                 '/log/psnode' + str(i) + '.err > ' + self.workdir + \
                 '/log/psnode' + str(i) + '.err 2>&1 &'
-
+            if self.debug == 'YES':
+                print(startup)
             run_cmd = subprocess.call(startup, shell=True, stderr=subprocess.DEVNULL)
             result = ("{}".format(run_cmd))
             ping_query = self.basedir + '/bin/mysqladmin --user=root ' \

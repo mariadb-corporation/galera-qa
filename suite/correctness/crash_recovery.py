@@ -13,19 +13,26 @@ from util import db_connection
 from util import sysbench_run
 from util import utility
 from util import table_checksum
-utility_cmd = utility.Utility()
-utility_cmd.check_python_version()
+
 
 # Read argument
 parser = argparse.ArgumentParser(prog='PXC crash recovery test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
+parser.add_argument('-d', '--debug', action='store_true',
+                    help='This option will enable debug logging')
 args = parser.parse_args()
 if args.encryption_run is True:
     encryption = 'YES'
 else:
     encryption = 'NO'
+if args.debug is True:
+    debug = 'YES'
+else:
+    debug = 'NO'
 
+utility_cmd = utility.Utility(debug)
+utility_cmd.check_python_version()
 
 class CrashRecovery:
     def __init__(self, basedir, workdir, user, node1_socket, pt_basedir, node):
@@ -46,7 +53,7 @@ class CrashRecovery:
     def start_pxc(self):
         # Start PXC cluster for replication test
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node))
+        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
@@ -65,7 +72,7 @@ class CrashRecovery:
     def sysbench_run(self, socket, db):
         # Sysbench dataload for consistency test
         sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
-                                            WORKDIR + '/node1/mysql.sock')
+                                            WORKDIR + '/node1/mysql.sock', debug)
 
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
@@ -78,6 +85,8 @@ class CrashRecovery:
                     ' alter table ' + db + '.sbtest' + str(i) + \
                     " encryption='Y'" \
                     '"; > /dev/null 2>&1'
+                if debug == 'YES':
+                    print(encrypt_table)
                 os.system(encrypt_table)
         result = sysbench.sysbench_oltp_read_write(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
                                                    SYSBENCH_NORMAL_TABLE_SIZE, SYSBENCH_RUN_TIME, 'Yes')
@@ -89,6 +98,8 @@ class CrashRecovery:
         """
         recovery_startup = "bash " + self.workdir + \
                            '/log/startup' + str(cluster_node) + '.sh'
+        if debug == 'YES':
+            print(recovery_startup)
         os.system(recovery_startup)
         ping_query = self.basedir + '/bin/mysqladmin --user=root --socket=' + \
                      WORKDIR + '/node' + cluster_node + '/mysql.sock ping > /dev/null 2>&1'
@@ -128,39 +139,60 @@ class CrashRecovery:
                 pid_list += [os.popen(query).read().rstrip()]
             time.sleep(10)
             kill_mysqld = "kill -9 " + pid_list[j - 1]
+            if debug == 'YES':
+                print("Terminating mysqld : " + kill_mysqld)
             result = os.system(kill_mysqld)
             utility_cmd.check_testcase(result, "Killed cluster node for crash recovery")
             time.sleep(5)
             kill_sysbench = "kill -9 " + sysbench_pid
+            if debug == 'YES':
+                print("Terminating sysbench run : " + kill_sysbench)
             os.system(kill_sysbench)
             self.startup_check(self.node)
         elif test_name == "single_restart":
             shutdown_node = self.basedir + '/bin/mysqladmin --user=root --socket=' + \
                             WORKDIR + '/node' + self.node + '/mysql.sock shutdown > /dev/null 2>&1'
+            if debug == 'YES':
+                print(shutdown_node)
             result = os.system(shutdown_node)
             utility_cmd.check_testcase(result, "Shutdown cluster node for crash recovery")
             time.sleep(5)
             kill_sysbench = "kill -9 " + sysbench_pid
+            if debug == 'YES':
+                print("Terminating sysbench run : " + kill_sysbench)
             os.system(kill_sysbench)
             self.startup_check(self.node)
         elif test_name == "multi_restart":
             for j in range(1, 3):
                 shutdown_node = self.basedir + '/bin/mysqladmin --user=root --socket=' + \
                                 WORKDIR + '/node' + self.node + '/mysql.sock shutdown > /dev/null 2>&1'
+                if debug == 'YES':
+                    print(shutdown_node)
                 result = os.system(shutdown_node)
-                utility_cmd.check_testcase(result, "Restarted cluster node for crash recovery")
+                utility_cmd.check_testcase(result, "Shutdown cluster node for crash recovery")
                 time.sleep(5)
                 self.startup_check(self.node)
                 query = 'pidof sysbench'
                 sysbench_pid = os.popen(query).read().rstrip()
+                time.sleep(5)
                 if not sysbench_pid:
                     self.sysbench_run(self.socket, 'test')
                     query = 'pidof sysbench'
                     sysbench_pid = os.popen(query).read().rstrip()
+                    time.sleep(5)
+                    kill_sysbench = "kill -9 " + sysbench_pid
+                    if debug == 'YES':
+                        print("Terminating sysbench run : " + kill_sysbench)
+                    os.system(kill_sysbench)
+                else:
+                    kill_sysbench = "kill -9 " + sysbench_pid
+                    if debug == 'YES':
+                        print("Terminating sysbench run : " + kill_sysbench)
+                    os.system(kill_sysbench)
 
 
 crash_recovery_run = CrashRecovery(BASEDIR, WORKDIR, USER, WORKDIR + '/node1/mysql.sock', PT_BASEDIR, NODE)
-checksum = table_checksum.TableChecksum(PT_BASEDIR, BASEDIR, WORKDIR, NODE, WORKDIR + '/node1/mysql.sock')
+checksum = table_checksum.TableChecksum(PT_BASEDIR, BASEDIR, WORKDIR, NODE, WORKDIR + '/node1/mysql.sock', debug)
 version = utility_cmd.version_check(BASEDIR)
 print('---------------------------------------------------')
 print('Crash recovery QA using forceful mysqld termination')
@@ -183,7 +215,7 @@ print('Crash recovery QA using multiple restart')
 print('----------------------------------------')
 crash_recovery_run.start_pxc()
 crash_recovery_run.crash_recovery('multi_restart')
-time.sleep(5)
+time.sleep(10)
 result = utility_cmd.check_table_count(BASEDIR, 'test', WORKDIR + '/node1/mysql.sock',
                                        WORKDIR + '/node2/mysql.sock')
 utility_cmd.check_testcase(result, "Checksum run for DB: test")

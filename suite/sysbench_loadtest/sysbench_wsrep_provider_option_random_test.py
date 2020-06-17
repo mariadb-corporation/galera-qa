@@ -14,19 +14,26 @@ from util import sysbench_run
 from util import utility
 from util import db_connection
 from util import pxc_startup
-utility_cmd = utility.Utility()
-utility_cmd.check_python_version()
 
 
 # Read argument
 parser = argparse.ArgumentParser(prog='PXC WSREP provider random test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
+parser.add_argument('-d', '--debug', action='store_true',
+                    help='This option will enable debug logging')
 args = parser.parse_args()
 if args.encryption_run is True:
     encryption = 'YES'
 else:
     encryption = 'NO'
+if args.debug is True:
+    debug = 'YES'
+else:
+    debug = 'NO'
+
+utility_cmd = utility.Utility(debug)
+utility_cmd.check_python_version()
 
 
 class WSREPProviderRandomTest:
@@ -50,7 +57,7 @@ class WSREPProviderRandomTest:
     def start_random_test(self, socket, db):
         my_extra = "--innodb_buffer_pool_size=8G --innodb_log_file_size=1G"
         dbconnection_check = db_connection.DbConnection(USER, socket)
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE))
+        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         result = server_startup.initialize_cluster()
@@ -67,7 +74,7 @@ class WSREPProviderRandomTest:
         utility_cmd.check_testcase(result, "Database connection")
         # Sysbench load test
         sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
-                                            socket)
+                                            socket, debug)
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
         result = sysbench.sysbench_load(db, 64, 64, SYSBENCH_LOAD_TEST_TABLE_SIZE)
@@ -110,10 +117,14 @@ class WSREPProviderRandomTest:
             time.sleep(100)
             shutdown_node = BASEDIR + '/bin/mysqladmin --user=root --socket=' + \
                             WORKDIR + '/node3/mysql.sock shutdown > /dev/null 2>&1'
+            if debug == 'YES':
+                print(shutdown_node)
             result = os.system(shutdown_node)
             utility_cmd.check_testcase(result, "Shutdown cluster node for IST/SST check")
             time.sleep(5)
             kill_sysbench = "kill -9 " + sysbench_pid
+            if debug == 'YES':
+                print("Terminating sysbench run : " + kill_sysbench)
             os.system(kill_sysbench)
             self.startup_check(3)
 
