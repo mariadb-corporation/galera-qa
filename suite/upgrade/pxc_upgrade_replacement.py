@@ -285,7 +285,7 @@ print(datetime.now().strftime("%H:%M:%S ") + " Rolling replacement upgrade witho
 print('--------------------------------------------------------------------------------------------')
 upgrade_qa = PXCUpgrade()
 upgrade_qa.startup()
-rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER)
+rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER, debug)
 rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
 upgrade_qa.rolling_replacement()
 utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)

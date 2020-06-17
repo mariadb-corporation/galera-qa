@@ -13,14 +13,14 @@ basedir = config['config']['basedir']
 user = config['config']['user']
 node1_socket = config['config']['node1_socket']
 
-utility_cmd = utility.Utility()
-
 
 class RQGDataGen:
-    def __init__(self, basedir, workdir, user):
+    def __init__(self, basedir, workdir, user, debug):
         self.basedir = basedir
         self.workdir = workdir
         self.user = user
+        self.debug = debug
+        self.utility_cmd = utility.Utility(debug)
 
     def initiate_rqg(self, module, db, socket):
         """ Method to initiate RQD data load against
@@ -51,13 +51,13 @@ class RQGDataGen:
                               module + '/' + file + " > " + \
                               self.workdir + "/log/rqg_run.log 2>&1"
                 result = os.system(rqg_command)
-                utility_cmd.check_testcase(result, "RQG data load (DB: " + db + ")")
+                self.utility_cmd.check_testcase(result, "RQG data load (DB: " + db + ")")
 
     def pxc_dataload(self, socket):
         """
             RQG data load for PXC Server
         """
-        version = utility_cmd.version_check(self.basedir)
+        version = self.utility_cmd.version_check(self.basedir)
         if int(version) < int("050700"):
             rqg_config = ['galera', 'transactions', 'gis', 'runtime', 'temporal']
         else:

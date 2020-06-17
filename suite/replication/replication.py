@@ -53,7 +53,7 @@ class SetupReplication:
         if my_extra is None:
             my_extra = ''
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node))
+        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "PXC: Startup sanity check")
         if encryption == 'YES':
@@ -81,7 +81,7 @@ class SetupReplication:
             my_extra = ''
         # Start PXC cluster for replication test
         dbconnection_check = db_connection.DbConnection(USER, PS1_SOCKET)
-        server_startup = ps_startup.StartPerconaServer(parent_dir, WORKDIR, BASEDIR, int(node))
+        server_startup = ps_startup.StartPerconaServer(parent_dir, WORKDIR, BASEDIR, int(node), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "PS: Startup sanity check")
         if encryption == 'YES':
@@ -102,7 +102,7 @@ class SetupReplication:
     def sysbench_run(self, socket, db, node):
         # Sysbench data load
         sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
-                                            socket)
+                                            socket, debug)
 
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, node + ": Replication QA sysbench run sanity check")
@@ -166,7 +166,7 @@ class SetupReplication:
 
         replication_run.sysbench_run(master_socket, 'sbtest', master)
         replication_run.data_load('ps_dataload_db', master_socket, master)
-        rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER)
+        rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER, debug)
         rqg_dataload.pxc_dataload(master_socket)
 
         if comment == "msr":

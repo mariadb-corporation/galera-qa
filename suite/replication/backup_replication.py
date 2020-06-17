@@ -111,7 +111,7 @@ class SetupReplication:
     def sysbench_run(self, socket, db, node):
         # Sysbench data load
         sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
-                                            socket)
+                                            socket, debug)
 
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, node + ": Replication QA sysbench run sanity check")
@@ -150,9 +150,9 @@ class SetupReplication:
             utility_cmd.check_testcase(result, node + ": Replication QA sample data load")
         # Add prepared statement SQLs
         create_ps = self.basedir + "/bin/mysql --user=root --socket=" + \
-                    socket + ' < ' + parent_dir + '/util/prepared_statements.sql > /dev/null 2>&1'
+            socket + ' < ' + parent_dir + '/util/prepared_statements.sql > /dev/null 2>&1'
         if debug == 'YES':
-            print(create_db)
+            print(create_ps)
         result = os.system(create_ps)
         utility_cmd.check_testcase(result, node + ": Replication QA prepared statements dataload")
 

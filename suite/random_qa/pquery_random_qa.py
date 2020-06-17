@@ -54,7 +54,7 @@ class RandomPQueryQA:
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")
         query = BASEDIR + "/bin/mysql --user=root --socket=" + \
-                WORKDIR + "/node1/mysql.sock -e'drop database if exists test " \
+            WORKDIR + "/node1/mysql.sock -e'drop database if exists test " \
                           "; create database test ;' > /dev/null 2>&1"
         if debug == 'YES':
             print(query)
@@ -74,14 +74,14 @@ class RandomPQueryQA:
         for thread, table, record, seed in \
                 itertools.product(threads, tables, records, seeds):
             self.start_pxc()
-            PQUERY_CMD = PQUERY_BIN + " --database=" + db + " --threads=" + str(table) + " --logdir=" + \
-                         WORKDIR + "/log --log-all-queries --log-failed-queries --user=root --socket=" + \
-                         socket + " --seed " + str(seed) + " --tables " + str(table) + " " + \
-                         PQUERY_EXTRA + " --seconds 300  --sql-file " + \
-                         PQUERY_GRAMMER_FILE + " --records " + str(record) + "> " + \
-                         WORKDIR + "/log/pquery_run.log"
-            utility_cmd.check_testcase(0, "PQUERY RUN command : " + PQUERY_CMD)
-            query_status = os.system(PQUERY_CMD)
+            pquery_cmd = PQUERY_BIN + " --database=" + db + " --threads=" + str(table) + " --logdir=" + \
+                WORKDIR + "/log --log-all-queries --log-failed-queries --user=root --socket=" + \
+                socket + " --seed " + str(seed) + " --tables " + str(table) + " " + \
+                PQUERY_EXTRA + " --seconds 300  --sql-file " + \
+                PQUERY_GRAMMER_FILE + " --records " + str(record) + "> " + \
+                WORKDIR + "/log/pquery_run.log"
+            utility_cmd.check_testcase(0, "PQUERY RUN command : " + pquery_cmd)
+            query_status = os.system(pquery_cmd)
             if int(query_status) != 0:
                 utility_cmd.check_testcase(1, "ERROR!: PQUERY run is failed")
 

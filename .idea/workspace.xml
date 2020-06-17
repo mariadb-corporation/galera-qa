@@ -2,41 +2,19 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2f61538d-cf49-45bd-91d9-d59998b6309a" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/sysbench_lua/tpcc.lua" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sysbench_lua/tpcc_check.lua" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sysbench_lua/tpcc_common.lua" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sysbench_lua/tpcc_run.lua" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/qa_framework.py" beforeDir="false" afterPath="$PROJECT_DIR$/qa_framework.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/suite/correctness/chaosmonkey-test.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/correctness/chaosmonkey-test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/suite/correctness/cluster_interaction.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/correctness/cluster_interaction.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/suite/correctness/consistency_check.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/correctness/consistency_check.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/suite/correctness/crash_recovery.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/correctness/crash_recovery.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/suite/galera_sr/galera_basic_sr_qa.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/galera_sr/galera_basic_sr_qa.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/suite/galera_sr/thread_pool_qa.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/galera_sr/thread_pool_qa.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/suite/random_qa/pquery_crash_recovery_qa.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/random_qa/pquery_crash_recovery_qa.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/suite/random_qa/pquery_random_qa.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/random_qa/pquery_random_qa.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/suite/random_qa/pxc_util.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/random_qa/pxc_util.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/suite/random_qa/random_mysqld_option_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/random_qa/random_mysqld_option_test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/suite/replication/backup_replication.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/replication/backup_replication.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/suite/replication/gtid_replication.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/replication/gtid_replication.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/suite/replication/replication.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/replication/replication.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/suite/ssl/encryption_qa.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/ssl/encryption_qa.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/suite/ssl/ssl_qa.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/ssl/ssl_qa.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/suite/sysbench_loadtest/sysbench_customized_dataload_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/sysbench_loadtest/sysbench_customized_dataload_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/suite/sysbench_loadtest/sysbench_load_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/sysbench_loadtest/sysbench_load_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/suite/sysbench_loadtest/sysbench_oltp_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/sysbench_loadtest/sysbench_oltp_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/suite/sysbench_loadtest/sysbench_random_load_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/sysbench_loadtest/sysbench_random_load_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/suite/sysbench_loadtest/sysbench_read_only_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/sysbench_loadtest/sysbench_read_only_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/suite/sysbench_loadtest/sysbench_wsrep_provider_option_random_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/sysbench_loadtest/sysbench_wsrep_provider_option_random_test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/suite/upgrade/pxc_replication_upgrade.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/upgrade/pxc_replication_upgrade.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/suite/upgrade/pxc_upgrade.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/upgrade/pxc_upgrade.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/suite/upgrade/pxc_upgrade_replacement.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/upgrade/pxc_upgrade_replacement.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/util/ps_startup.py" beforeDir="false" afterPath="$PROJECT_DIR$/util/ps_startup.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/util/pxc_startup.py" beforeDir="false" afterPath="$PROJECT_DIR$/util/pxc_startup.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/util/sysbench_run.py" beforeDir="false" afterPath="$PROJECT_DIR$/util/sysbench_run.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/util/table_checksum.py" beforeDir="false" afterPath="$PROJECT_DIR$/util/table_checksum.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/util/utility.py" beforeDir="false" afterPath="$PROJECT_DIR$/util/utility.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/util/rqg_datagen.py" beforeDir="false" afterPath="$PROJECT_DIR$/util/rqg_datagen.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />

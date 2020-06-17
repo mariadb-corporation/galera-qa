@@ -37,7 +37,7 @@ class EncryptionTest:
         version = utility_cmd.version_check(BASEDIR)
         checksum = ""
         if int(version) < int("080000"):
-            checksum = table_checksum.TableChecksum(PT_BASEDIR, BASEDIR, WORKDIR, NODE, socket)
+            checksum = table_checksum.TableChecksum(PT_BASEDIR, BASEDIR, WORKDIR, NODE, socket, debug)
             checksum.sanity_check()
 
         sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR, socket)
