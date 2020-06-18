@@ -115,7 +115,7 @@ ssl_run = SSLCheck(BASEDIR, WORKDIR, USER, WORKDIR + '/node1/mysql.sock', NODE)
 ssl_run.start_pxc()
 ssl_run.sysbench_run(WORKDIR + '/node1/mysql.sock', 'sbtest')
 ssl_run.data_load('pxc_dataload_db', WORKDIR + '/node1/mysql.sock')
-rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER)
+rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER, debug)
 rqg_dataload.initiate_rqg('examples', 'test', WORKDIR + '/node1/mysql.sock')
 version = utility_cmd.version_check(BASEDIR)
 if int(version) < int("080000"):

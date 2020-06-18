@@ -41,7 +41,7 @@ class PXCUtil:
     def start_pxc(self):
         # Start PXC cluster
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE))
+        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         # Check encryption run
@@ -63,7 +63,7 @@ class PXCUtil:
         utility_cmd.check_testcase(result, "Database connection")
         # Create database test
         query = BASEDIR + "/bin/mysql --user=root --socket=" + \
-                WORKDIR + "/node1/mysql.sock -e'drop database if exists test " \
+            WORKDIR + "/node1/mysql.sock -e'drop database if exists test " \
                           "; create database test ;' > /dev/null 2>&1"
         if debug == 'YES':
             print(query)

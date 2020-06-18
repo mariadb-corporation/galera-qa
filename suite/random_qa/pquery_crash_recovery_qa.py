@@ -55,7 +55,7 @@ class RandomPQueryQA:
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")
         query = BASEDIR + "/bin/mysql --user=root --socket=" + \
-                WORKDIR + "/node1/mysql.sock -e'drop database if exists test " \
+            WORKDIR + "/node1/mysql.sock -e'drop database if exists test " \
                           "; create database test ;' > /dev/null 2>&1"
         if debug == 'YES':
             print(query)

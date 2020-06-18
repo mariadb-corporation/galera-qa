@@ -19,8 +19,8 @@ def main():
                         help='Specify product(PXC/PS) name to test')
     parser.add_argument('-s', '--suite', default='',
                         choices=['sysbench_loadtest', 'replication', 'correctness', 'ssl', 'upgrade',
-                                 'random_qa', 'galera_sr'],
-                        help='Specify suite name')
+                                 'random_qa', 'galera_sr'], required=True,
+                        help='Specify suite name', nargs='*')
     parser.add_argument('-e', '--encryption-run', action='store_true',
                         help='This option will enable encryption options')
     parser.add_argument('-d', '--debug', action='store_true',
@@ -40,18 +40,18 @@ def main():
         debug = ''
     test_name = args.testname
     suite = args.suite
-
-    if suite:
-        if not os.path.exists(scriptdir + '/suite/' + suite):
-            print('Suite ' + suite + '(' + scriptdir + '/suite/' + suite + ') does not exist')
-            exit(1)
-        print("Running " + suite + " QA framework")
-        for file in os.listdir(scriptdir + '/suite/' + suite):
-            if file.endswith(".py"):
-                result = os.system(scriptdir + '/suite/' + suite + '/' + file + ' ' + encryption + ' ' + debug)
-                if result != 0:
-                    print("Failed to run " + file + ", please check the error log")
-                    exit(1)
+    for i in suite:
+        if i:
+            if not os.path.exists(scriptdir + '/suite/' + i):
+                print('Suite ' + i + '(' + scriptdir + '/suite/' + i + ') does not exist')
+                exit(1)
+            print("Running " + i + " QA framework")
+            for file in os.listdir(scriptdir + '/suite/' + i):
+                if file.endswith(".py"):
+                    result = os.system(scriptdir + '/suite/' + suite + '/' + file + ' ' + encryption + ' ' + debug)
+                    if result != 0:
+                        print("Failed to run " + file + ", please check the error log")
+                        exit(1)
 
     if test_name is not None:
         if not os.path.isfile(test_name):

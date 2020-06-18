@@ -166,7 +166,7 @@ class SetupReplication:
 
         replication_run.sysbench_run(master_socket, 'sbtest', master)
         replication_run.data_load('ps_dataload_db', master_socket, master)
-        rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER)
+        rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER, debug)
         rqg_dataload.pxc_dataload(master_socket)
 
         if comment == "msr":
