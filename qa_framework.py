@@ -48,7 +48,7 @@ def main():
             print("Running " + i + " QA framework")
             for file in os.listdir(scriptdir + '/suite/' + i):
                 if file.endswith(".py"):
-                    result = os.system(scriptdir + '/suite/' + suite + '/' + file + ' ' + encryption + ' ' + debug)
+                    result = os.system(scriptdir + '/suite/' + i + '/' + file + ' ' + encryption + ' ' + debug)
                     if result != 0:
                         print("Failed to run " + file + ", please check the error log")
                         exit(1)
