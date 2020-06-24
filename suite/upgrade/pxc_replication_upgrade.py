@@ -269,10 +269,10 @@ print('-------------------------------------------------------------------------
 upgrade_qa = PXCUpgrade()
 upgrade_qa.startup('replication.cnf')
 upgrade_qa.start_ps('1', 'replication.cnf')
-utility_cmd.invoke_replication(BASEDIR, '/tmp/psnode1.sock',
+utility_cmd.invoke_replication(PXC_LOWER_BASE, '/tmp/psnode1.sock',
                                WORKDIR + '/node3/mysql.sock', 'NONGTID', 'none')
-utility_cmd.replication_io_status(BASEDIR, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
-utility_cmd.replication_sql_status(BASEDIR, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
+utility_cmd.replication_io_status(PXC_LOWER_BASE, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
+utility_cmd.replication_sql_status(PXC_LOWER_BASE, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
 rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER, debug)
 rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
 upgrade_qa.rolling_upgrade('none')
@@ -283,10 +283,10 @@ print("\nPXC Asyc gtid replication upgrade test : Upgrading from PXC-" + lower_v
 print('------------------------------------------------------------------------------------')
 upgrade_qa.startup('gtid_replication.cnf')
 upgrade_qa.start_ps('1', 'gtid_replication.cnf')
-utility_cmd.invoke_replication(BASEDIR, '/tmp/psnode1.sock',
+utility_cmd.invoke_replication(PXC_LOWER_BASE, '/tmp/psnode1.sock',
                                WORKDIR + '/node3/mysql.sock', 'GTID', 'none')
-utility_cmd.replication_io_status(BASEDIR, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
-utility_cmd.replication_sql_status(BASEDIR, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
+utility_cmd.replication_io_status(PXC_LOWER_BASE, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
+utility_cmd.replication_sql_status(PXC_LOWER_BASE, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
 rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER, debug)
 rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
 upgrade_qa.rolling_upgrade('none')

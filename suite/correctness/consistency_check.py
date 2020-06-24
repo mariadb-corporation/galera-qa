@@ -115,7 +115,7 @@ class ConsistencyCheck:
 print("\nPXC data consistency test between nodes")
 print("----------------------------------------")
 consistency_run = ConsistencyCheck(BASEDIR, WORKDIR, USER, WORKDIR + '/node1/mysql.sock', PT_BASEDIR, NODE)
-rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER)
+rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER, debug)
 consistency_run.start_pxc()
 consistency_run.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
 consistency_run.data_load('pxc_dataload_db', WORKDIR + '/node1/mysql.sock')

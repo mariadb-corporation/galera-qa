@@ -12,9 +12,6 @@ from util import pxc_startup
 from util import db_connection
 from util import sysbench_run
 from util import utility
-from util import table_checksum
-utility_cmd = utility.Utility()
-utility_cmd.check_python_version()
 
 # Read argument
 parser = argparse.ArgumentParser(prog='PXC chaosmonkey test', usage='%(prog)s [options]')
@@ -35,6 +32,8 @@ else:
 # Initial configuration
 node = '6'
 
+utility_cmd = utility.Utility(debug)
+utility_cmd.check_python_version()
 
 class ChaosMonkeyQA:
     def startup(self):
