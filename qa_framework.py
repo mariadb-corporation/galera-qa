@@ -12,6 +12,7 @@ def main():
         We can initiate complete test suite or individual
         testcase using this function.
     """
+    tc_output = open('qa_framework_tc_status.out', 'w')
     scriptdir = os.path.dirname(os.path.realpath(__file__))
     parser = argparse.ArgumentParser(prog='QA Framework', usage='%(prog)s [options]')
     parser.add_argument('-t', '--testname', help='Specify test file location')
@@ -49,10 +50,11 @@ def main():
             for file in os.listdir(scriptdir + '/suite/' + i):
                 if file.endswith(".py"):
                     result = os.system(scriptdir + '/suite/' + i + '/' + file + ' ' + encryption + ' ' + debug)
-                    if result != 0:
-                        print("Failed to run " + file + ", please check the error log")
-                        exit(1)
-
+                    if result == 0:
+                        tc_output.write('Test run ' + f'{file:50}' + 'passed\n')
+                    else:
+                        tc_output.write('Test run ' + f'{file:50}' + 'failed\n')
+    tc_output.close()
     if test_name is not None:
         if not os.path.isfile(test_name):
             print(test_name + ' does not exist')
