@@ -5,7 +5,7 @@
 import os
 import argparse
 import sys
-
+from config import *
 
 def main():
     """ This function will help us to run PS/PXC QA scripts.
@@ -54,6 +54,8 @@ def main():
                         tc_output.write('Test run ' + f'{file:50}' + 'passed\n')
                     else:
                         tc_output.write('Test run ' + f'{file:50}' + 'failed\n')
+                        os.system('tar -czf ' + WORKDIR + '/' + i + '_' + file + '.tar.gz ' + WORKDIR + '/log/*')
+
     tc_output.close()
     if test_name is not None:
         if not os.path.isfile(test_name):
