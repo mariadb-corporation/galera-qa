@@ -42,8 +42,10 @@ def main():
     test_name = args.testname
     suite = args.suite
     if len(suite) != 0:
-        if not os.path.exists(WORKDIR + '/log'):
+        if not os.path.exists(WORKDIR + '/failed_logs'):
             os.rmdir(WORKDIR + '/failed_logs')
+            os.mkdir(WORKDIR + '/failed_logs')
+        else:
             os.mkdir(WORKDIR + '/failed_logs')
     for i in suite:
         if i:
