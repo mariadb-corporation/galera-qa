@@ -41,6 +41,10 @@ def main():
         debug = ''
     test_name = args.testname
     suite = args.suite
+    if len(suite) != 0:
+        if not os.path.exists(WORKDIR + '/log'):
+            os.rmdir(WORKDIR + '/failed_logs')
+            os.mkdir(WORKDIR + '/failed_logs')
     for i in suite:
         if i:
             if not os.path.exists(scriptdir + '/suite/' + i):
@@ -54,7 +58,8 @@ def main():
                         tc_output.write('Test run ' + f'{file:50}' + 'passed\n')
                     else:
                         tc_output.write('Test run ' + f'{file:50}' + 'failed\n')
-                        os.system('tar -czf ' + WORKDIR + '/' + i + '_' + file + '.tar.gz ' + WORKDIR + '/log/*')
+                        os.system('tar -czf ' + WORKDIR + '/failed_logs/' + i + '_' +
+                                  file + '.tar.gz ' + WORKDIR + '/log/*')
 
     tc_output.close()
     if test_name is not None:
