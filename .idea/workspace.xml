@@ -2,7 +2,14 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2f61538d-cf49-45bd-91d9-d59998b6309a" name="Default" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/qa_framework.py" beforeDir="false" afterPath="$PROJECT_DIR$/qa_framework.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/suite/sysbench_loadtest/sysbench_customized_dataload_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/sysbench_run/sysbench_customized_dataload_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/suite/sysbench_loadtest/sysbench_load_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/loadtest/sysbench_load_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/suite/sysbench_loadtest/sysbench_oltp_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/sysbench_run/sysbench_oltp_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/suite/sysbench_loadtest/sysbench_random_load_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/loadtest/sysbench_random_load_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/suite/sysbench_loadtest/sysbench_read_only_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/sysbench_run/sysbench_read_only_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/suite/sysbench_loadtest/sysbench_wsrep_provider_option_random_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/loadtest/sysbench_wsrep_provider_option_random_test.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -29,11 +36,12 @@
   <component name="PropertiesComponent">
     <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../haritham" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../git_qa/jenkins-pipelines" />
     <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/suite/loadtest" />
       <recent name="C:\Users\ramesh\Documents\GitHub\pxc-qa\test" />
       <recent name="C:\Users\ramesh\Documents\GitHub\pxc-qa\util" />
       <recent name="C:\Users\ramesh\Documents\GitHub\pxc-qa\suite" />
