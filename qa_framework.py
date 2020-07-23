@@ -69,7 +69,7 @@ def main():
             print(test_name + ' does not exist')
             exit(1)
         else:
-            os.system(scriptdir + '/' + test_name + ' ' + encryption)
+            os.system(scriptdir + '/' + test_name + ' ' + encryption + ' ' + debug)
 
 
 if __name__ == "__main__":
