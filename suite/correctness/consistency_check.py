@@ -76,9 +76,9 @@ class ConsistencyCheck:
                                             socket, debug)
 
         result = sysbench.sanity_check(db)
-        utility_cmd.check_testcase(result, "Replication QA sysbench run sanity check")
+        utility_cmd.check_testcase(result, "Sysbench run sanity check")
         result = sysbench.sysbench_load(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS, SYSBENCH_NORMAL_TABLE_SIZE)
-        utility_cmd.check_testcase(result, "Replication QA sysbench data load")
+        utility_cmd.check_testcase(result, "Sysbench data load")
         if encryption == 'YES':
             for i in range(1, int(SYSBENCH_TABLE_COUNT) + 1):
                 encrypt_table = BASEDIR + '/bin/mysql --user=root ' \
@@ -115,7 +115,7 @@ class ConsistencyCheck:
 print("\nPXC data consistency test between nodes")
 print("----------------------------------------")
 consistency_run = ConsistencyCheck(BASEDIR, WORKDIR, USER, WORKDIR + '/node1/mysql.sock', PT_BASEDIR, NODE)
-rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER)
+rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER, debug)
 consistency_run.start_pxc()
 consistency_run.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
 consistency_run.data_load('pxc_dataload_db', WORKDIR + '/node1/mysql.sock')
@@ -128,6 +128,3 @@ utility_cmd.check_testcase(result, "Checksum run for DB: test")
 result = utility_cmd.check_table_count(BASEDIR, 'pxc_dataload_db', WORKDIR + '/node1/mysql.sock',
                                        WORKDIR + '/node2/mysql.sock')
 utility_cmd.check_testcase(result, "Checksum run for DB: pxc_dataload_db")
-result = utility_cmd.check_table_count(BASEDIR, 'db_galera', WORKDIR + '/node1/mysql.sock',
-                                       WORKDIR + '/node2/mysql.sock')
-utility_cmd.check_testcase(result, "Checksum run for DB: db_galera")

@@ -1,5 +1,4 @@
 [mysqld]
-wsrep-debug=1
 wsrep_node_incoming_address=127.0.0.1
 wsrep_node_address=127.0.0.1
 innodb_file_per_table

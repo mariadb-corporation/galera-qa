@@ -15,17 +15,16 @@ config.ini
 ```
 [config]
 workdir = /dev/shm/qa
-basedir = /dev/shm/qa/Percona-XtraDB-Cluster-5.7.25-rel28-31.35.1.Linux.x86_64.ssl100
+basedir = /dev/shm/qa/Percona-XtraDB-Cluster_8.0.19-10.1_Linux.x86_64.el7
 server=pxc
 node = 3
 user = root
-node1_socket = /tmp/node1.sock
-node2_socket = /tmp/node2.sock
-node3_socket = /tmp/node3.sock
 ps1_socket = /tmp/psnode1.sock
 ps2_socket = /tmp/psnode2.sock
 ps3_socket = /tmp/psnode3.sock
 pt_basedir = /dev/shm/qa/percona-toolkit-3.0.10
+pquery_bin = /dev/shm/qa/pquery3-pxc
+pquery_grammer_file = /dev/shm/qa/grammer.sql
 
 [sysbench]
 sysbench_user=sysbench
@@ -66,8 +65,9 @@ optional arguments:
                         Specify test file location
   -p {pxc,ps}, --product {pxc,ps}
                         Specify product(PXC/PS) name to test
-  -s {sysbench_loadtest,replication,correctness,ssl,upgrade,random_qa,galera_sr}, --suite {sysbench_loadtest,replication,correctness,ssl,upgrade,random_qa,galera_sr}
+  -s [{sysbench_run,loadtest,replication,correctness,ssl,upgrade,random_qa,galera_sr} [{sysbench_run,loadtest,replication,correctness,ssl,upgrade,random_qa,galera_sr} ...]], --suite [{sysbench_run,loadtest,replication,correctness,ssl,upgrade,random_qa,galera_sr} [{sysbench_run,loadtest,replication,correctness,ssl,upgrade,random_qa,galera_sr} ...]]
                         Specify suite name
   -e, --encryption-run  This option will enable encryption options
+  -d, --debug           This option will enable debug logging
 
 ```

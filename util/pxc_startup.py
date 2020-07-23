@@ -63,6 +63,8 @@ class StartCluster:
             shutil.copy(self.scriptdir + '/conf/pxc.cnf',
                         self.workdir + '/conf/node' + str(i) + '.cnf')
             cnf_name = open(self.workdir + '/conf/node' + str(i) + '.cnf', 'a+')
+            if self.debug == 'YES':
+                cnf_name.write('wsrep-debug=1\n')
             cnf_name.write('wsrep_cluster_address=gcomm://' + addr_list + '\n')
             # Calling version check method to compare the version to
             # add wsrep_sst_auth variable. This variable does not

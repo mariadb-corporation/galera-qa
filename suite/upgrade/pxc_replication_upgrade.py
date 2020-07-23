@@ -153,7 +153,6 @@ class PXCUpgrade:
             latest version and perform
             table checksum.
         """
-        self.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test', upgrade_type)
         self.sysbench_run('/tmp/psnode1.sock', 'sbtest', upgrade_type)
         time.sleep(10)
         for i in range(int(NODE), 0, -1):
@@ -231,15 +230,15 @@ class PXCUpgrade:
         utility_cmd.replication_sql_status(BASEDIR, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
         sysbench_node = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
                                                  WORKDIR + '/node1/mysql.sock', debug)
-        result = sysbench_node.sysbench_oltp_read_write('test', SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
+        result = sysbench_node.sysbench_oltp_read_write('sbtest', SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
                                                         SYSBENCH_NORMAL_TABLE_SIZE, 100)
         utility_cmd.check_testcase(result, "Sysbench oltp run after upgrade")
         time.sleep(5)
 
-        result = utility_cmd.check_table_count(PXC_UPPER_BASE, 'test',
+        result = utility_cmd.check_table_count(PXC_UPPER_BASE, 'sbtest',
                                                WORKDIR + '/node1/mysql.sock',
                                                WORKDIR + '/node2/mysql.sock')
-        utility_cmd.check_testcase(result, "Checksum run for DB: test")
+        utility_cmd.check_testcase(result, "Checksum run for DB: sbtest")
         result = utility_cmd.check_table_count(PXC_UPPER_BASE, 'db_galera',
                                                WORKDIR + '/node1/mysql.sock',
                                                WORKDIR + '/node2/mysql.sock')
@@ -269,10 +268,10 @@ print('-------------------------------------------------------------------------
 upgrade_qa = PXCUpgrade()
 upgrade_qa.startup('replication.cnf')
 upgrade_qa.start_ps('1', 'replication.cnf')
-utility_cmd.invoke_replication(BASEDIR, '/tmp/psnode1.sock',
+utility_cmd.invoke_replication(PXC_LOWER_BASE, '/tmp/psnode1.sock',
                                WORKDIR + '/node3/mysql.sock', 'NONGTID', 'none')
-utility_cmd.replication_io_status(BASEDIR, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
-utility_cmd.replication_sql_status(BASEDIR, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
+utility_cmd.replication_io_status(PXC_LOWER_BASE, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
+utility_cmd.replication_sql_status(PXC_LOWER_BASE, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
 rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER, debug)
 rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
 upgrade_qa.rolling_upgrade('none')
@@ -283,12 +282,10 @@ print("\nPXC Asyc gtid replication upgrade test : Upgrading from PXC-" + lower_v
 print('------------------------------------------------------------------------------------')
 upgrade_qa.startup('gtid_replication.cnf')
 upgrade_qa.start_ps('1', 'gtid_replication.cnf')
-utility_cmd.invoke_replication(BASEDIR, '/tmp/psnode1.sock',
+utility_cmd.invoke_replication(PXC_LOWER_BASE, '/tmp/psnode1.sock',
                                WORKDIR + '/node3/mysql.sock', 'GTID', 'none')
-utility_cmd.replication_io_status(BASEDIR, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
-utility_cmd.replication_sql_status(BASEDIR, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
+utility_cmd.replication_io_status(PXC_LOWER_BASE, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
+utility_cmd.replication_sql_status(PXC_LOWER_BASE, WORKDIR + '/node3/mysql.sock', 'PXC slave', 'none')
 rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER, debug)
 rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
 upgrade_qa.rolling_upgrade('none')
-utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
-utility_cmd.stop_ps(WORKDIR, BASEDIR, 1)
