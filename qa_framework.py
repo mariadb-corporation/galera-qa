@@ -4,6 +4,7 @@
 
 import os
 import argparse
+import shutil
 import sys
 from config import *
 
@@ -45,7 +46,7 @@ def main():
         if not os.path.exists(WORKDIR + '/failed_logs'):
             os.mkdir(WORKDIR + '/failed_logs')
         else:
-            os.rmdir(WORKDIR + '/failed_logs')
+            shutil.rmtree(WORKDIR + '/failed_logs', ignore_errors=True)
             os.mkdir(WORKDIR + '/failed_logs')
     for i in suite:
         if i:
