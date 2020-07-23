@@ -11,7 +11,6 @@ config.read(parent_dir + '/config.ini')
 workdir = config['config']['workdir']
 basedir = config['config']['basedir']
 user = config['config']['user']
-node1_socket = config['config']['node1_socket']
 
 
 class RQGDataGen:
