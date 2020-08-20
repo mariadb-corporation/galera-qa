@@ -74,15 +74,17 @@ class Utility:
             query = basedir + '/bin/mysql -uroot --socket=' + \
                     socket1 + ' -Bse"checksum table ' + \
                     db + '.' + table + ';"'
+            table_count_node1 = os.popen(query).read().rstrip()
             if self.debug == 'YES':
                 print(query)
-            table_count_node1 = os.popen(query).read().rstrip()
+                print('Table count ' + table_count_node1)
             query = basedir + '/bin/mysql -uroot --socket=' + \
                     socket2 + ' -Bse"checksum table ' + \
                     db + '.' + table + ';"'
+            table_count_node2 = os.popen(query).read().rstrip()
             if self.debug == 'YES':
                 print(query)
-            table_count_node2 = os.popen(query).read().rstrip()
+                print('Table count ' + table_count_node2)
             if table_count_node1 == table_count_node2:
                 return 0
             else:
