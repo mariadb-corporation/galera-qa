@@ -401,6 +401,8 @@ class Utility:
         wsrep_cluster_addr = os.popen(query).read().rstrip()    # Get cluster address
         query = basedir + "/bin/mysql --user=root --socket=" + \
             workdir + '/node' + donor_node + '/mysql.sock -Bse"select @@port" 2>&1'
+        if self.debug == 'YES':
+            print(query)
         port_no = os.popen(query).read().rstrip()   # Port number from Donor
         wsrep_port_no = int(port_no) + 108          # New wsrep port number
         port_no = int(port_no) + 100                # New Joiner port number

@@ -32,6 +32,8 @@ else:
 
 utility_cmd = utility.Utility(debug)
 utility_cmd.check_python_version()
+version = utility_cmd.version_check(BASEDIR)
+
 
 class ClusterInteraction:
     def __init__(self, basedir, workdir, user, node1_socket, pt_basedir, node):
@@ -121,34 +123,35 @@ class ClusterInteraction:
             2) IST
             3) Node joining
         """
-        utility_cmd.check_testcase(0, "Initiating flow control test")
         self.sysbench_run(self.socket, 'test', 'background_run')
         query = 'pidof sysbench'
         sysbench_pid = os.popen(query).read().rstrip()
-        for j in range(1, int(self.node) + 1):
-            query = self.basedir + "/bin/mysql --user=root --socket=" + \
+        if int(version) > int("050700"):
+            utility_cmd.check_testcase(0, "Initiating flow control test")
+            for j in range(1, int(self.node) + 1):
+                query = self.basedir + "/bin/mysql --user=root --socket=" + \
                     self.socket + ' -e"set global pxc_strict_mode=DISABLED;' \
                                   '" > /dev/null 2>&1'
-            if debug == 'YES':
-                print(query)
-            self.run_query(query)
-            query = self.basedir + \
-                '/bin/mysql ' \
-                ' --user=root --socket=' + WORKDIR + '/node1/mysql.sock test' \
-                ' -Bse"flush table sbtest1 with read lock;' \
-                'select sleep(120);unlock tables"  2>&1 &'
-            if debug == 'YES':
-                print(query)
-            os.system(query)
-            flow_control_status = 'OFF'
-            while flow_control_status != 'OFF':
+                if debug == 'YES':
+                    print(query)
+                self.run_query(query)
                 query = self.basedir + \
-                    '/bin/mysql  --user=root --socket=' + WORKDIR + '/node1/mysql.sock' \
-                    ' -Bse"show status like ' \
-                    "'wsrep_flow_control_status';" + '"' \
-                    "| awk '{ print $2 }'  2>/dev/null"
-                flow_control_status = os.popen(query).read().rstrip()
-                time.sleep(1)
+                    '/bin/mysql ' \
+                    ' --user=root --socket=' + WORKDIR + '/node1/mysql.sock test' \
+                    ' -Bse"flush table sbtest1 with read lock;' \
+                    'select sleep(120);unlock tables"  2>&1 &'
+                if debug == 'YES':
+                    print(query)
+                os.system(query)
+                flow_control_status = 'OFF'
+                while flow_control_status != 'OFF':
+                    query = self.basedir + \
+                        '/bin/mysql  --user=root --socket=' + WORKDIR + '/node1/mysql.sock' \
+                        ' -Bse"show status like ' \
+                        "'wsrep_flow_control_status';" + '"' \
+                        "| awk '{ print $2 }'  2>/dev/null"
+                    flow_control_status = os.popen(query).read().rstrip()
+                    time.sleep(1)
 
         utility_cmd.check_testcase(0, "Initiating IST test")
         shutdown_node = self.basedir + '/bin/mysqladmin --user=root --socket=' + \

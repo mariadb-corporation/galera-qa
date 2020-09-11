@@ -35,6 +35,7 @@ node = '6'
 utility_cmd = utility.Utility(debug)
 utility_cmd.check_python_version()
 
+
 class ChaosMonkeyQA:
     def startup(self):
         # Start PXC cluster for ChaosMonkey test

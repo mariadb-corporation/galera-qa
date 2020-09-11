@@ -33,16 +33,16 @@ class SysbenchRun:
         if self.debug == 'YES':
             print(query)
         query_status = os.system(query)
+        print(query_status)
         if int(query_status) != 0:
-            print("ERROR!: Could not create sysbench test database(sbtest)")
+            print("ERROR!: Could not create sysbench test database(" + db + ")")
             exit(1)
         version = self.utility_cmd.version_check(self.basedir)   # Get version
         # Create sysbench user
         if int(version) < int("050700"):
             create_user = self.basedir + "/bin/mysql --user=root " \
-                "--socket=" + self.socket + ' -e"create user ' + \
-                SYSBENCH_USER + "@'localhost' identified by '" + SYSBENCH_PASS + \
-                "';grant all on *.* to " + SYSBENCH_USER + "@'localhost'" \
+                "--socket=" + self.socket + ' -e"grant all on *.* to ' + \
+                SYSBENCH_USER + "@'localhost' identified by '" + SYSBENCH_PASS + "'" \
                 ';" > /dev/null 2>&1'
         else:
             create_user = self.basedir + "/bin/mysql --user=root --socket=" + \
