@@ -2,10 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="2f61538d-cf49-45bd-91d9-d59998b6309a" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/suite/correctness/chaosmonkey-test.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/correctness/chaosmonkey-test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/suite/correctness/cluster_interaction.py" beforeDir="false" afterPath="$PROJECT_DIR$/suite/correctness/cluster_interaction.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/util/sysbench_run.py" beforeDir="false" afterPath="$PROJECT_DIR$/util/sysbench_run.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/util/utility.py" beforeDir="false" afterPath="$PROJECT_DIR$/util/utility.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sample_scripts/argpass_sample.py" beforeDir="false" afterPath="$PROJECT_DIR$/sample_scripts/argpass_sample.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -32,7 +30,7 @@
   <component name="PropertiesComponent">
     <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../git_qa/jenkins-pipelines" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
   </component>
   <component name="RecentsManager">
@@ -56,7 +54,28 @@
       </list>
     </option>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Python.argpass_sample">
+    <configuration name="argpass_sample" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="pxc-qa" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/sample_scripts" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/sample_scripts/argpass_sample.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="utility" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="pxc-qa" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -80,6 +99,7 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.argpass_sample" />
         <item itemvalue="Python.utility" />
       </list>
     </recent_temporary>
