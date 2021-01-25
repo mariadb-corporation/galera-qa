@@ -40,16 +40,17 @@ class EncryptionTest:
             checksum = table_checksum.TableChecksum(PT_BASEDIR, BASEDIR, WORKDIR, NODE, socket, debug)
             checksum.sanity_check()
 
-        sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR, socket)
+        sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR, socket, debug)
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
         result = sysbench.sysbench_load(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS, SYSBENCH_LOAD_TEST_TABLE_SIZE)
         utility_cmd.check_testcase(result, "Sysbench data load (threads : " + str(SYSBENCH_THREADS) + ")")
+        sysbench.sysbench_ts_encryption(db, SYSBENCH_THREADS)
 
     def encryption_qa(self):
         # Encryption QA
         # Create data insert procedure
-        rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER)
+        rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER, debug)
 
         encryption_tmp_ts = ['innodb_temp_tablespace_encrypt=ON', 'innodb_temp_tablespace_encrypt=OFF']
         encryption_bin_log = ['binlog_encryption=ON', 'binlog_encryption=OFF']
