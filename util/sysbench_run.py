@@ -27,13 +27,12 @@ class SysbenchRun:
             print("ERROR!: sysbench package is not installed")
         # Create schema for sysbench run
         query = self.basedir + "/bin/mysql --user=root --socket=" + \
-            self.socket + " -e'drop database if exists " + \
+            self.socket + ' -e"drop database if exists ' + \
             db + "; create database " + \
-            db + ";' > /dev/null 2>&1"
+            db + ';" > /dev/null 2>&1'
         if self.debug == 'YES':
             print(query)
         query_status = os.system(query)
-        print(query_status)
         if int(query_status) != 0:
             print("ERROR!: Could not create sysbench test database(" + db + ")")
             exit(1)
@@ -92,51 +91,57 @@ class SysbenchRun:
             print(check_table_encryption)
         check_table_encryption = os.popen(check_table_encryption).read().rstrip()
 
-        for i in range(1, int(threads) - 5):
+        for i in range(1, int(threads) - 4):
             query = self.basedir + "/bin/mysql --user=root --socket=" + \
                 self.socket + ' -e"CREATE TABLESPACE ts' + \
                 str(i) + " ADD DATAFILE 'ts" + str(i) + ".ibd' encryption='Y';\" > /dev/null 2>&1"
             if self.debug == 'YES':
-                print(query)
+                print("CREATE TABLESPACE ts" + str(i) + " ADD DATAFILE 'ts" + str(i) + ".ibd' encryption='Y';")
             query_status = os.system(query)
-            print(query_status)
             if int(query_status) != 0:
                 print("ERROR!: Could not create tablespace ts" + str(i))
                 exit(1)
-            if check_table_encryption == 'OFF':
+            if check_table_encryption == 'ON':
                 query = self.basedir + "/bin/mysql --user=root --socket=" + \
                     self.socket + ' -e"ALTER TABLE ' + db + '.sbtest' + \
                     str(i) + ' tablespace ts' + str(i) + ' ;" > /dev/null 2>&1'
                 if self.debug == 'YES':
-                    print(query)
+                    print("ALTER TABLE " + db + '.sbtest' + str(i) + ' tablespace ts' + str(i) + ';')
                 query_status = os.system(query)
-                print(query_status)
                 if int(query_status) != 0:
                     print("ERROR!: Could not alter table sbtest" + str(i))
                     exit(1)
             if check_system_ts_encryption == 'Y':
-                query = self.basedir + "/bin/mysql --user=root --socket=" + \
-                        self.socket + ' -e"ALTER TABLE ' + db + '.sbtest' + \
-                        str(i+5) + " encryption='Y' ;\" > /dev/null 2>&1"
-                if self.debug == 'YES':
-                    print(query)
-                query_status = os.system(query)
-                print(query_status)
-                query = self.basedir + "/bin/mysql --user=root --socket=" + \
-                    self.socket + ' -e"ALTER TABLE ' + db + '.sbtest' + \
-                    str(i + 5) + ' tablespace=innodb_system;" > /dev/null 2>&1'
-            else:
                 if check_table_encryption == 'OFF':
                     query = self.basedir + "/bin/mysql --user=root --socket=" + \
                         self.socket + ' -e"ALTER TABLE ' + db + '.sbtest' + \
+                        str(i+5) + " encryption='Y' ;\" > /dev/null 2>&1"
+                    if self.debug == 'YES':
+                        print("ALTER TABLE " + db + '.sbtest' + str(i+5) + "encryption='Y';" )
+                    query_status = os.system(query)
+                    if int(query_status) != 0:
+                        print("ERROR!: Could not alter table sbtest" + str(i))
+                        exit(1)
+                    query = self.basedir + "/bin/mysql --user=root --socket=" + \
+                        self.socket + ' -e"ALTER TABLE ' + db + '.sbtest' + \
                         str(i + 5) + ' tablespace=innodb_system;" > /dev/null 2>&1'
-            if self.debug == 'YES':
-                print(query)
-            query_status = os.system(query)
-            print(query_status)
-            if int(query_status) != 0:
-                print("ERROR!: Could not alter table sbtest" + str(i))
-                exit(1)
+                    if self.debug == 'YES':
+                        print("ALTER TABLE " + db + '.sbtest' + str(i + 5) + ' tablespace=innodb_system;')
+                    query_status = os.system(query)
+                    if int(query_status) != 0:
+                        print("ERROR!: Could not alter table sbtest" + str(i))
+                        exit(1)
+                else:
+                    if check_table_encryption == 'ON':
+                        query = self.basedir + "/bin/mysql --user=root --socket=" + \
+                            self.socket + ' -e"ALTER TABLE ' + db + '.sbtest' + \
+                            str(i + 5) + ' tablespace=innodb_system;" > /dev/null 2>&1'
+                        if self.debug == 'YES':
+                            print("ALTER TABLE " + db + '.sbtest' + str(i + 5) + ' tablespace=innodb_system;')
+                        query_status = os.system(query)
+                        if int(query_status) != 0:
+                            print("ERROR!: Could not alter table sbtest" + str(i))
+                            exit(1)
         return 0
 
     def sysbench_custom_oltp_load(self, db, table_count, thread, table_size):
