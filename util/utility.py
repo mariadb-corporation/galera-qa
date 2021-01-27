@@ -74,15 +74,17 @@ class Utility:
             query = basedir + '/bin/mysql -uroot --socket=' + \
                     socket1 + ' -Bse"checksum table ' + \
                     db + '.' + table + ';"'
+            table_count_node1 = os.popen(query).read().rstrip()
             if self.debug == 'YES':
                 print(query)
-            table_count_node1 = os.popen(query).read().rstrip()
+                print('Table count ' + table_count_node1)
             query = basedir + '/bin/mysql -uroot --socket=' + \
                     socket2 + ' -Bse"checksum table ' + \
                     db + '.' + table + ';"'
+            table_count_node2 = os.popen(query).read().rstrip()
             if self.debug == 'YES':
                 print(query)
-            table_count_node2 = os.popen(query).read().rstrip()
+                print('Table count ' + table_count_node2)
             if table_count_node1 == table_count_node2:
                 return 0
             else:
@@ -399,6 +401,8 @@ class Utility:
         wsrep_cluster_addr = os.popen(query).read().rstrip()    # Get cluster address
         query = basedir + "/bin/mysql --user=root --socket=" + \
             workdir + '/node' + donor_node + '/mysql.sock -Bse"select @@port" 2>&1'
+        if self.debug == 'YES':
+            print(query)
         port_no = os.popen(query).read().rstrip()   # Port number from Donor
         wsrep_port_no = int(port_no) + 108          # New wsrep port number
         port_no = int(port_no) + 100                # New Joiner port number
