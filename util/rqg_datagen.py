@@ -20,6 +20,7 @@ class RQGDataGen:
         self.user = user
         self.debug = debug
         self.utility_cmd = utility.Utility(debug)
+        self.version = self.utility_cmd.version_check(self.basedir)
 
     def initiate_rqg(self, module, db, socket):
         """ Method to initiate RQD data load against
@@ -35,6 +36,11 @@ class RQGDataGen:
             ' -Bse"drop database if exists ' + db + \
             ';create database ' + db + ';" 2>&1'
         os.system(create_db)
+        if int(self.version) > int("050700"):
+            create_user = self.basedir + "/bin/mysql --user=root --socket=" + socket + \
+                ' -Bse"create user rqg_test@\'%\' identified with mysql_native_password by \'\'; ' \
+                'grant all on *.* to rqg_test@\'%\';" 2>&1'
+            os.system(create_user)
         # Checking RQG module
         os.chdir(parent_dir + '/randgen')
         if not os.path.exists(module):
@@ -45,8 +51,7 @@ class RQGDataGen:
             if file.endswith(".zz"):
                 rqg_command = "perl " + parent_dir + "/randgen/gendata.pl " \
                               "--dsn=dbi:mysql:host=127.0.0.1:port=" \
-                              + port + ":user=" + self.user + \
-                              ":database=" + db + " --spec=" + \
+                              + port + ":user=" + self.user + ":database=" + db + " --spec=" + \
                               module + '/' + file + " > " + \
                               self.workdir + "/log/rqg_run.log 2>&1"
                 result = os.system(rqg_command)
@@ -56,12 +61,9 @@ class RQGDataGen:
         """
             RQG data load for PXC Server
         """
-        version = self.utility_cmd.version_check(self.basedir)
-        if int(version) < int("050700"):
+        if int(self.version) < int("050700"):
             rqg_config = ['galera', 'transactions', 'gis', 'runtime', 'temporal']
         else:
             rqg_config = ['galera', 'transactions', 'partitioning', 'gis', 'runtime', 'temporal']
         for config in rqg_config:
             self.initiate_rqg(config, 'db_' + config, socket)
-
-
