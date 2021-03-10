@@ -7,15 +7,15 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
 from config import *
-from util import pxc_startup
+from util import galera_startup
 from util import db_connection
 from util import sysbench_run
-from util import ps_startup
+from util import md_startup
 from util import utility
 from util import createsql
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC replication test using PXB', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='Galera replication test using PXB', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -40,18 +40,18 @@ class SetupReplication:
         self.workdir = workdir
         self.node = node
 
-    def start_pxc(self, my_extra=None):
-        """ Start Percona XtraDB Cluster. This method will
+    def start_galera(self, my_extra=None):
+        """ Start MariaDB Galera Cluster. This method will
             perform sanity checks for cluster startup
-            :param my_extra: We can pass extra PXC startup option
+            :param my_extra: We can pass extra Galera startup option
                              with this parameter
         """
-        # Start PXC cluster for replication test
+        # Start Galera cluster for replication test
         if my_extra is None:
             my_extra = ''
         script_dir = os.path.dirname(os.path.realpath(__file__))
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node), debug)
+        server_startup = galera_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "PXC: Startup sanity check")
         if encryption == 'YES':
@@ -69,44 +69,44 @@ class SetupReplication:
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "PXC: Database connection")
 
-    def backup_pxc_node(self):
+    def backup_galera_node(self):
         """ Backup Cluster node using
             Percona XtraBackup tool.
             This method will also do
             sanity check before backup
         """
         utility_cmd.pxb_sanity_check(BASEDIR, WORKDIR, WORKDIR + '/node1/mysql.sock')
-        if os.path.exists(WORKDIR + '/psnode1'):
-            shutil.rmtree(WORKDIR + '/psnode1')
+        if os.path.exists(WORKDIR + '/mdnode1'):
+            shutil.rmtree(WORKDIR + '/mdnode1')
         utility_cmd.pxb_backup(WORKDIR, WORKDIR + '/node1', WORKDIR + '/node1/mysql.sock',
-                               encryption, WORKDIR + '/psnode1')
+                               encryption, WORKDIR + '/mdnode1')
 
     def start_slave(self, node, my_extra=None):
-        """ Start Percona Server. This method will
+        """ Start MariaDB Server. This method will
             perform sanity checks for PS startup
-            :param my_extra: We can pass extra PS startup
+            :param my_extra: We can pass extra MD startup
                              option with this parameter
         """
         if my_extra is None:
             my_extra = ''
-        # Start PXC cluster for replication test
+        # Start Galera cluster for replication test
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        dbconnection_check = db_connection.DbConnection(USER, PS1_SOCKET)
-        server_startup = ps_startup.StartPerconaServer(parent_dir, WORKDIR, BASEDIR, int(node), debug)
+        dbconnection_check = db_connection.DbConnection(USER, MD1_SOCKET)
+        server_startup = md_startup.StartPerconaServer(parent_dir, WORKDIR, BASEDIR, int(node), debug)
         result = server_startup.sanity_check()
-        utility_cmd.check_testcase(result, "PS: Startup sanity check")
+        utility_cmd.check_testcase(result, "MD: Startup sanity check")
         if encryption == 'YES':
             result = server_startup.create_config('encryption')
-            utility_cmd.check_testcase(result, "PS: Configuration file creation")
+            utility_cmd.check_testcase(result, "MD: Configuration file creation")
         else:
             result = server_startup.create_config()
-            utility_cmd.check_testcase(result, "PS: Configuration file creation")
+            utility_cmd.check_testcase(result, "MD: Configuration file creation")
         result = server_startup.add_myextra_configuration(script_dir + '/replication.cnf')
-        utility_cmd.check_testcase(result, "PS: Adding custom configuration")
+        utility_cmd.check_testcase(result, "MD: Adding custom configuration")
         result = server_startup.start_server(my_extra)
-        utility_cmd.check_testcase(result, "PS: Cluster startup")
+        utility_cmd.check_testcase(result, "MD: Cluster startup")
         result = dbconnection_check.connection_check()
-        utility_cmd.check_testcase(result, "PS: Database connection")
+        utility_cmd.check_testcase(result, "MD: Database connection")
 
     def sysbench_run(self, socket, db, node):
         # Sysbench data load
@@ -160,14 +160,14 @@ class SetupReplication:
 replication_run = SetupReplication(BASEDIR, WORKDIR, NODE)
 print("\nSetup replication using Percona Xtrabackup")
 print("------------------------------------------")
-replication_run.start_pxc()
-replication_run.sysbench_run(WORKDIR + '/node1/mysql.sock', 'pxcdb', 'PXC')
-replication_run.data_load('pxc_dataload_db', WORKDIR + '/node1/mysql.sock', 'PXC')
-replication_run.backup_pxc_node()
+replication_run.start_galera()
+replication_run.sysbench_run(WORKDIR + '/node1/mysql.sock', 'galeradb', 'Galera')
+replication_run.data_load('mdg_dataload_db', WORKDIR + '/node1/mysql.sock', 'Galera')
+replication_run.backup_galera_node()
 replication_run.start_slave('1')
-utility_cmd.invoke_replication(BASEDIR, WORKDIR + '/node1/mysql.sock', PS1_SOCKET, 'backup_slave', 'none')
-utility_cmd.replication_io_status(BASEDIR, PS1_SOCKET, 'PS', 'none')
-utility_cmd.replication_sql_status(BASEDIR, PS1_SOCKET, 'PS', 'none')
+utility_cmd.invoke_replication(BASEDIR, WORKDIR + '/node1/mysql.sock', MD1_SOCKET, 'backup_slave', 'none')
+utility_cmd.replication_io_status(BASEDIR, MD1_SOCKET, 'MD', 'none')
+utility_cmd.replication_sql_status(BASEDIR, MD1_SOCKET, 'MD', 'none')
 
-utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
-utility_cmd.stop_ps(WORKDIR, BASEDIR, '1')
+utility_cmd.stop_galera(WORKDIR, BASEDIR, NODE)
+utility_cmd.stop_md(WORKDIR, BASEDIR, '1')

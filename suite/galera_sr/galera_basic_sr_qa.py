@@ -12,7 +12,7 @@ from util import utility
 from util import table_checksum
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC streaming replication test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='Galera streaming replication test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -34,17 +34,11 @@ utility_cmd.check_python_version()
 class StreamingReplication:
     def start_server(self, node):
         my_extra = "--innodb_buffer_pool_size=2G --innodb_log_file_size=1G"
-        utility_cmd.start_pxc(parent_dir, WORKDIR, BASEDIR, node,
-                              WORKDIR + '/node1/mysql.sock', USER, encryption, my_extra)
+        utility_cmd.start_galera(parent_dir, WORKDIR, BASEDIR, node,
+                                 WORKDIR + '/node1/mysql.sock', USER, encryption, my_extra)
 
     def sysbench_run(self, socket, db):
         # Sysbench data load
-        version = utility_cmd.version_check(BASEDIR)
-        checksum = ""
-        if int(version) < int("080000"):
-            checksum = table_checksum.TableChecksum(PT_BASEDIR, BASEDIR, WORKDIR, NODE, socket, debug)
-            checksum.sanity_check()
-
         sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR, socket, debug)
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
@@ -84,11 +78,11 @@ class StreamingReplication:
                 os.system(delete_rows)
 
 
-print("--------------------------------")
-print("\nPXC Streaming Replication test")
-print("--------------------------------")
+print("-----------------------------------")
+print("\nGalera Streaming Replication test")
+print("-----------------------------------")
 streaming_replication = StreamingReplication()
 streaming_replication.start_server(NODE)
 streaming_replication.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
 streaming_replication.streaming_replication_qa(WORKDIR + '/node1/mysql.sock', 'test')
-utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
+utility_cmd.stop_galera(WORKDIR, BASEDIR, NODE)

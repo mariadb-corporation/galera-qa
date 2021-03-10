@@ -9,7 +9,7 @@ SSL QA run log
 ```
 $ python3 pxc_qa_framework.py  --suite=ssl
 
-PXC SSL test
+Galera SSL test
 --------------
 07:27:59  Startup sanity check                                                                                [ ✔ ]
 07:27:59  SSL Configuration                                                                                   [ ✔ ]

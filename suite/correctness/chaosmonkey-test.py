@@ -8,13 +8,13 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
 from config import *
-from util import pxc_startup
+from util import galera_startup
 from util import db_connection
 from util import sysbench_run
 from util import utility
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC chaosmonkey test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='Galera chaosmonkey test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -38,9 +38,9 @@ utility_cmd.check_python_version()
 
 class ChaosMonkeyQA:
     def startup(self):
-        # Start PXC cluster for ChaosMonkey test
+        # Start Galera cluster for ChaosMonkey test
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(node), debug)
+        server_startup = galera_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(node), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
@@ -117,7 +117,7 @@ class ChaosMonkeyQA:
             time.sleep(5)
 
 
-print("\nPXC ChaosMonkey Style test")
+print("\nGalera ChaosMonkey Style test")
 print("----------------------------")
 chaosmonkey_qa = ChaosMonkeyQA()
 chaosmonkey_qa.startup()

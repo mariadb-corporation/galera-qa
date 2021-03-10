@@ -8,7 +8,7 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
 from config import *
-from util import pxc_startup
+from util import galera_startup
 from util import db_connection
 from util import sysbench_run
 from util import utility
@@ -16,7 +16,7 @@ from util import table_checksum
 
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC crash recovery test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='Galera crash recovery test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -34,6 +34,7 @@ else:
 utility_cmd = utility.Utility(debug)
 utility_cmd.check_python_version()
 
+
 class CrashRecovery:
     def __init__(self, basedir, workdir, user, node1_socket, pt_basedir, node):
         self.workdir = workdir
@@ -50,10 +51,10 @@ class CrashRecovery:
             return 1
         return 0
 
-    def start_pxc(self):
-        # Start PXC cluster for replication test
+    def start_galera(self):
+        # Start Galera cluster for replication test
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node), debug)
+        server_startup = galera_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
@@ -138,7 +139,7 @@ class CrashRecovery:
                         '/node' + str(j) + '/mysql.sock -Bse"select @@pid_file"  2>&1`'
                 pid_list += [os.popen(query).read().rstrip()]
             time.sleep(10)
-            kill_mysqld = "kill -9 " + pid_list[j - 1]
+            kill_mysqld = "kill -9 " + pid_list[int(self.node) - 1]
             if debug == 'YES':
                 print("Terminating mysqld : " + kill_mysqld)
             result = os.system(kill_mysqld)
@@ -197,23 +198,23 @@ version = utility_cmd.version_check(BASEDIR)
 print('---------------------------------------------------')
 print('Crash recovery QA using forceful mysqld termination')
 print('---------------------------------------------------')
-crash_recovery_run.start_pxc()
+crash_recovery_run.start_galera()
 crash_recovery_run.crash_recovery('with_force_kill')
 result = utility_cmd.check_table_count(BASEDIR, 'test', WORKDIR + '/node1/mysql.sock',
-                                           WORKDIR + '/node2/mysql.sock')
+                                       WORKDIR + '/node2/mysql.sock')
 utility_cmd.check_testcase(result, "Checksum run for DB: test")
 print('-------------------------------')
 print('Crash recovery QA using single restart')
 print('-------------------------------')
-crash_recovery_run.start_pxc()
+crash_recovery_run.start_galera()
 crash_recovery_run.crash_recovery('single_restart')
 result = utility_cmd.check_table_count(BASEDIR, 'test', WORKDIR + '/node1/mysql.sock',
-                                           WORKDIR + '/node2/mysql.sock')
+                                       WORKDIR + '/node2/mysql.sock')
 utility_cmd.check_testcase(result, "Checksum run for DB: test")
 print('----------------------------------------')
 print('Crash recovery QA using multiple restart')
 print('----------------------------------------')
-crash_recovery_run.start_pxc()
+crash_recovery_run.start_galera()
 crash_recovery_run.crash_recovery('multi_restart')
 time.sleep(10)
 result = utility_cmd.check_table_count(BASEDIR, 'test', WORKDIR + '/node1/mysql.sock',

@@ -7,14 +7,14 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
 from config import *
-from util import pxc_startup
+from util import galera_startup
 from util import db_connection
 from util import sysbench_run
 from util import utility
 from util import createsql
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC random mysqld option test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='Galera random mysqld option test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -60,9 +60,9 @@ class RandomMySQLDOptionQA:
             utility_cmd.check_testcase(result, "Sample data load")
 
 
-print("------------------------------")
-print("PXC Random MySQLD options test")
-print("------------------------------")
+print("---------------------------------")
+print("Galera Random MySQLD options test")
+print("---------------------------------")
 mysql_options = open(parent_dir + '/conf/mysql_options_pxc80.txt')
 for mysql_option in mysql_options:
     if os.path.exists(WORKDIR + '/random_mysql_error'):
@@ -71,9 +71,9 @@ for mysql_option in mysql_options:
     else:
         os.mkdir(WORKDIR + '/random_mysql_error')
     random_mysql_option_qa = RandomMySQLDOptionQA()
-    # Start PXC cluster for random mysqld options QA
+    # Start Galera cluster for random mysqld options QA
     dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-    server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
+    server_startup = galera_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
     result = server_startup.sanity_check()
     utility_cmd.check_testcase(result, "Startup sanity check")
     if encryption == 'YES':
@@ -106,5 +106,5 @@ for mysql_option in mysql_options:
     result = dbconnection_check.connection_check()
     utility_cmd.check_testcase(result, "Database connection")
     random_mysql_option_qa.data_load(WORKDIR + '/node1/mysql.sock', 'test')
-    utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
+    utility_cmd.stop_galera(WORKDIR, BASEDIR, NODE)
 mysql_options.close()

@@ -11,12 +11,12 @@ from util import sysbench_run
 from util import utility
 from util import table_checksum
 from util import rqg_datagen
-from util import pxc_startup
+from util import galera_startup
 from util import db_connection
 from util import createsql
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC replication test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='Galera replication test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -67,9 +67,9 @@ class EncryptionTest:
                                      " " + encryption_default_tbl_value + " " + encryption_redo_log_value + \
                                      " " + encryption_undo_log_value + " " + encryption_sys_ts_value
             utility_cmd.check_testcase(0, "Encryption options : " + encryption_combination)
-            # Start PXC cluster for encryption test
+            # Start Galera cluster for encryption test
             dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-            server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
+            server_startup = galera_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
             result = server_startup.sanity_check()
             utility_cmd.check_testcase(result, "Startup sanity check")
             result = server_startup.create_config('encryption')
@@ -106,7 +106,7 @@ class EncryptionTest:
             result = dbconnection_check.connection_check()
             utility_cmd.check_testcase(result, "Database connection")
             self.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
-            rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
+            rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
             # Add prepared statement SQLs
             create_ps = BASEDIR + "/bin/mysql --user=root --socket=" + \
                 WORKDIR + '/node1/mysql.sock' + ' < ' + parent_dir + \
@@ -127,11 +127,11 @@ class EncryptionTest:
                     print(data_load_query)
                 result = os.system(data_load_query)
                 utility_cmd.check_testcase(result, "Sample data load")
-            utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
+            utility_cmd.stop_galera(WORKDIR, BASEDIR, NODE)
 
 
 print("-----------------------")
-print("PXC Encryption test")
+print("Galera Encryption test")
 print("-----------------------")
 encryption_test = EncryptionTest()
 encryption_test.encryption_qa()

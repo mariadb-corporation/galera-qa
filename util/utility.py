@@ -8,8 +8,8 @@ import time
 from datetime import datetime
 from distutils.spawn import find_executable
 from util import db_connection
-from util import pxc_startup
-from util import ps_startup
+from util import galera_startup
+from util import md_startup
 
 
 class Utility:
@@ -42,10 +42,9 @@ class Utility:
     def version_check(self, basedir):
         # Get database version number
         version_info = os.popen(basedir + "/bin/mysqld --version 2>&1 "
-                                          "| grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1").read()
-        version = "{:02d}{:02d}{:02d}".format(int(version_info.split('.')[0]),
-                                              int(version_info.split('.')[1]),
-                                              int(version_info.split('.')[2]))
+                                          "| grep -oe '10\.[1-6]' | head -n1").read()
+        version = "{:02d}{:02d}".format(int(version_info.split('.')[0]),
+                                        int(version_info.split('.')[1]))
         return version
 
     def create_custom_cnf(self, parent_dir, workdir):
@@ -72,15 +71,15 @@ class Utility:
         # Compare the table checksum between node1 and node2
         for table in tables.split('\n'):
             query = basedir + '/bin/mysql -uroot --socket=' + \
-                    socket1 + ' -Bse"checksum table ' + \
-                    db + '.' + table + ';"'
+                socket1 + ' -Bse"checksum table ' + \
+                db + '.' + table + ';"'
             table_count_node1 = os.popen(query).read().rstrip()
             if self.debug == 'YES':
                 print(query)
                 print('Table count ' + table_count_node1)
             query = basedir + '/bin/mysql -uroot --socket=' + \
-                    socket2 + ' -Bse"checksum table ' + \
-                    db + '.' + table + ';"'
+                socket2 + ' -Bse"checksum table ' + \
+                db + '.' + table + ';"'
             table_count_node2 = os.popen(query).read().rstrip()
             if self.debug == 'YES':
                 print(query)
@@ -109,18 +108,11 @@ class Utility:
 
         # Check PXC version and create XB user with mysql_native_password plugin.
         version = self.version_check(basedir)
-        if int(version) < int("050700"):
-            create_user = basedir + "/bin/mysql --user=root " \
-                                    "--socket=" + socket + ' -e"create user xbuser' \
-                                                           "@'localhost' identified by 'test" \
-                                                           "';grant all on *.* to xbuser@'localhost'" \
-                                                           ';" > /dev/null 2>&1'
-        else:
-            create_user = basedir + "/bin/mysql --user=root " \
-                                    "--socket=" + socket + ' -e"create user xbuser' \
-                                                           "@'localhost' identified with  mysql_native_password by 'test" \
-                                                           "';grant all on *.* to xbuser@'localhost'" \
-                                                           ';" > /dev/null 2>&1'
+        create_user = basedir + "/bin/mysql --user=root "
+        "--socket=" + socket + ' -e"create user xbuser'
+        "@'localhost' identified by 'test"
+        "';grant all on *.* to xbuser@'localhost'"
+        ';" > /dev/null 2>&1'
         if self.debug == 'YES':
             print(create_user)
         query_status = os.system(create_user)
@@ -213,26 +205,18 @@ class Utility:
             channel = ""  # channel name is to identify the replication source
         # Get slave status
         version = self.version_check(basedir)
-        if int(version) < int("050700"):
-            sql_status = basedir + "/bin/mysql --user=root --socket=" + \
-                         socket + ' -Bse"SHOW SLAVE STATUS\G" 2>&1 ' \
-                                  '| grep "Slave_SQL_Running:" ' \
-                                  "| awk '{ print $2 }'"
-            if self.debug == 'YES':
-                print(sql_status)
-            sql_status = os.popen(sql_status).read().rstrip()
-            if sql_status == "Yes":
-                check_slave_status = 'ON'
-            else:
-                check_slave_status = 'OFF'
+        sql_status = basedir + "/bin/mysql --user=root --socket=" + \
+            socket + ' -Bse"SHOW SLAVE STATUS\G" 2>&1 ' \
+            '| grep "Slave_SQL_Running:" ' \
+            "| awk '{ print $2 }'"
+        if self.debug == 'YES':
+            print(sql_status)
+        sql_status = os.popen(sql_status).read().rstrip()
+        if sql_status == "Yes":
+            check_slave_status = 'ON'
         else:
-            check_slave_status = basedir + "/bin/mysql --user=root --socket=" + \
-                                 socket + ' -Bse"SELECT SERVICE_STATE ' \
-                                          'FROM performance_schema.replication_applier_status' \
-                                          " where channel_name='" + channel + "'" + '" 2>&1'
-            if self.debug == 'YES':
-                print(check_slave_status)
-            check_slave_status = os.popen(check_slave_status).read().rstrip()
+            check_slave_status = 'OFF'
+
         if check_slave_status != 'ON':
             self.check_testcase(1, node + ": SQL thread slave status")
             print("\tERROR!: Slave SQL thread is not running, check slave status")
@@ -242,7 +226,7 @@ class Utility:
 
     def invoke_replication(self, basedir, master_socket, slave_socket, repl_mode, comment):
         """ This method will invoke replication.
-        :param basedir: PXC/PS base directory
+        :param basedir: MariaDB Galera Cluster/Server base directory
         :param master_socket: Master Server socket
         :param slave_socket: Slave server socket
         :param repl_mode: Three mode will support now
@@ -281,8 +265,8 @@ class Utility:
             master_log_pos = 4
 
         master_port = basedir + "/bin/mysql --user=root --socket=" + \
-                      master_socket + \
-                      ' -Bse "select @@port" 2>&1'
+            master_socket + \
+            ' -Bse "select @@port" 2>&1'
         master_port = os.popen(master_port).read().rstrip()
         if repl_mode == 'GTID':
             invoke_slave = basedir + "/bin/mysql --user=root --socket=" + \
@@ -301,10 +285,10 @@ class Utility:
         result = os.system(invoke_slave)
         self.check_testcase(result, "Initiated replication")
 
-    def start_pxc(self, parent_dir, workdir, basedir, node, socket, user, encryption, my_extra):
-        # Start PXC cluster
+    def start_galera(self, parent_dir, workdir, basedir, node, socket, user, encryption, my_extra):
+        # Start MariaDB Galera cluster
         dbconnection_check = db_connection.DbConnection(user, socket)
-        server_startup = pxc_startup.StartCluster(parent_dir, workdir, basedir, int(node), self.debug)
+        server_startup = galera_startup.StartCluster(parent_dir, workdir, basedir, int(node), self.debug)
         result = server_startup.sanity_check()
         self.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
@@ -320,39 +304,39 @@ class Utility:
         result = dbconnection_check.connection_check()
         self.check_testcase(result, "Database connection")
 
-    def start_ps(self, parent_dir, workdir, basedir, node, socket, user, encryption, my_extra):
-        """ Start Percona Server. This method will
+    def start_md(self, parent_dir, workdir, basedir, node, socket, user, encryption, my_extra):
+        """ Start MariaDB Server. This method will
             perform sanity checks for PS startup
         """
-        # Start PXC cluster for replication test
+        # Start MariaDB Galera cluster for replication test
         dbconnection_check = db_connection.DbConnection(user, socket)
-        server_startup = ps_startup.StartPerconaServer(parent_dir, workdir, basedir, int(node))
+        server_startup = md_startup.StartPerconaServer(parent_dir, workdir, basedir, int(node))
         result = server_startup.sanity_check()
-        self.check_testcase(result, "PS: Startup sanity check")
+        self.check_testcase(result, "MD: Startup sanity check")
         if encryption == 'YES':
             result = server_startup.create_config('encryption')
-            self.check_testcase(result, "PS: Configuration file creation")
+            self.check_testcase(result, "MD: Configuration file creation")
         else:
             result = server_startup.create_config()
-            self.check_testcase(result, "PS: Configuration file creation")
+            self.check_testcase(result, "MD: Configuration file creation")
         result = server_startup.initialize_cluster()
-        self.check_testcase(result, "PS: Initializing cluster")
+        self.check_testcase(result, "MD: Initializing cluster")
         result = server_startup.start_server('--max-connections=1500 ' + my_extra)
-        self.check_testcase(result, "PS: Cluster startup")
+        self.check_testcase(result, "MD: Cluster startup")
         result = dbconnection_check.connection_check()
-        self.check_testcase(result, "PS: Database connection")
+        self.check_testcase(result, "MD: Database connection")
 
-    def stop_pxc(self, workdir, basedir, node):
-        # Stop PXC cluster
+    def stop_galera(self, workdir, basedir, node):
+        # Stop MariaDB Galera cluster
         for i in range(int(node), 0, -1):
             shutdown_node = basedir + '/bin/mysqladmin --user=root --socket=' + \
                             workdir + '/node' + str(i) + '/mysql.sock shutdown > /dev/null 2>&1'
             if self.debug == 'YES':
                 print(shutdown_node)
             result = os.system(shutdown_node)
-            self.check_testcase(result, "PXC: shutting down cluster node" + str(i))
+            self.check_testcase(result, "Galera: shutting down cluster node" + str(i))
 
-    def stop_ps(self, workdir, basedir, node):
+    def stop_md(self, workdir, basedir, node):
         # Stop Percona Server
         for i in range(int(node), 0, -1):
             shutdown_node = basedir + '/bin/mysqladmin --user=root --socket=/tmp/psnode' + \
@@ -360,9 +344,9 @@ class Utility:
             if self.debug == 'YES':
                 print(shutdown_node)
             result = os.system(shutdown_node)
-            self.check_testcase(result, "PS: shutting down cluster node" + str(i))
+            self.check_testcase(result, "MD: shutting down mariadb server" + str(i))
 
-    def pxc_startup_check(self, basedir, workdir, cluster_node):
+    def galera_startup_check(self, basedir, workdir, cluster_node):
         """ This method will check the node
             startup status.
         """
@@ -391,22 +375,22 @@ class Utility:
 
     def node_joiner(self, workdir, basedir, donor_node, joiner_node):
         # Add new node to existing cluster
-        donor = 'node' + donor_node     # Donor node
-        joiner = 'node' + joiner_node   # Joiner node
+        donor = 'node' + donor_node  # Donor node
+        joiner = 'node' + joiner_node  # Joiner node
         shutil.copy(workdir + '/conf/' + donor + '.cnf',
                     workdir + '/conf/' + joiner + '.cnf')
         query = basedir + '/bin/mysql --user=root --socket=' + workdir + '/node' + donor_node + \
-            '/mysql.sock -Bse"show variables like \'wsrep_cluster_address\';"' \
-            ' 2>/dev/null | awk \'{print $2}\''
-        wsrep_cluster_addr = os.popen(query).read().rstrip()    # Get cluster address
+                '/mysql.sock -Bse"show variables like \'wsrep_cluster_address\';"' \
+                ' 2>/dev/null | awk \'{print $2}\''
+        wsrep_cluster_addr = os.popen(query).read().rstrip()  # Get cluster address
         query = basedir + "/bin/mysql --user=root --socket=" + \
-            workdir + '/node' + donor_node + '/mysql.sock -Bse"select @@port" 2>&1'
+                workdir + '/node' + donor_node + '/mysql.sock -Bse"select @@port" 2>&1'
         if self.debug == 'YES':
             print(query)
-        port_no = os.popen(query).read().rstrip()   # Port number from Donor
-        wsrep_port_no = int(port_no) + 108          # New wsrep port number
-        port_no = int(port_no) + 100                # New Joiner port number
-        
+        port_no = os.popen(query).read().rstrip()  # Port number from Donor
+        wsrep_port_no = int(port_no) + 108  # New wsrep port number
+        port_no = int(port_no) + 100  # New Joiner port number
+
         # Create new cnf for joiner
         os.system("sed -i 's#" + donor + "#" + joiner + "#g' " + workdir +
                   '/conf/' + joiner + '.cnf')
@@ -421,9 +405,9 @@ class Utility:
                   + str(port_no) + "|' " + workdir + '/conf/' + joiner + '.cnf')
         os.system('sed -i  "0,/^[ \\t]*wsrep_provider_options[ \\t]*=.*$/s|'
                   "^[ \\t]*wsrep_provider_options[ \\t]*=.*$|wsrep_provider_options="
-                  "'gmcast.listen_addr=tcp://127.0.0.1:" + 
+                  "'gmcast.listen_addr=tcp://127.0.0.1:" +
                   str(wsrep_port_no) + "'"
-                  '|" ' + workdir + '/conf/' + joiner + '.cnf')
+                                       '|" ' + workdir + '/conf/' + joiner + '.cnf')
         os.system("sed -i  '0,/^[ \\t]*server_id[ \\t]*=.*$/s|"
                   "^[ \\t]*server_id[ \\t]*=.*$|server_id="
                   "14|' " + workdir + '/conf/' + joiner + '.cnf')
@@ -442,4 +426,4 @@ class Utility:
         # Invoke joiner
         result = os.system(joiner_startup)
         self.check_testcase(result, "Starting cluster " + joiner)
-        self.pxc_startup_check(basedir, workdir, joiner_node)
+        self.galera_startup_check(basedir, workdir, joiner_node)

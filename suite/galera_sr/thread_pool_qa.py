@@ -11,10 +11,10 @@ from util import sysbench_run
 from util import utility
 from util import table_checksum
 from util import db_connection
-from util import pxc_startup
+from util import galera_startup
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC thread pool test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='Galera thread pool test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -36,17 +36,11 @@ utility_cmd.check_python_version()
 class ThreadPooling:
     def start_server(self, node):
         my_extra = "--innodb_buffer_pool_size=2G --innodb_log_file_size=1G"
-        utility_cmd.start_pxc(parent_dir, WORKDIR, BASEDIR, node,
-                              WORKDIR + '/node1/mysql.sock', USER, encryption, my_extra)
+        utility_cmd.start_galera(parent_dir, WORKDIR, BASEDIR, node,
+                                 WORKDIR + '/node1/mysql.sock', USER, encryption, my_extra)
 
     def sysbench_run(self, socket, db, port):
         # Sysbench data load
-        version = utility_cmd.version_check(BASEDIR)
-        checksum = ""
-        if int(version) < int("080000"):
-            checksum = table_checksum.TableChecksum(PT_BASEDIR, BASEDIR, WORKDIR, NODE, socket, debug)
-            checksum.sanity_check()
-
         sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR, socket, debug)
         result = sysbench.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
@@ -78,10 +72,10 @@ class ThreadPooling:
                 itertools.product(thread_handling_option, thread_pool_size, thread_pool_max_threads):
             my_extra = "--thread_handling=" + tp_option + " --thread_pool_size=" + str(tp_size) + \
                        " --thread_pool_max_threads=" + str(tp_max_thread)
-            # Start PXC cluster for encryption test
+            # Start Galera cluster for encryption test
             utility_cmd.check_testcase(0, "Thread pooling options : " + my_extra)
             dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-            server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
+            server_startup = galera_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
             result = server_startup.sanity_check()
             utility_cmd.check_testcase(result, "Startup sanity check")
             result = server_startup.create_config('none')
@@ -99,11 +93,11 @@ class ThreadPooling:
             result = dbconnection_check.connection_check()
             utility_cmd.check_testcase(result, "Database connection")
             self.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test', 33063)
-            utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
+            utility_cmd.stop_galera(WORKDIR, BASEDIR, NODE)
 
 
 print("--------------------------------")
-print("\nPXC Thread Pooling test")
+print("\nGalera Thread Pooling test")
 print("--------------------------------")
 thread_pooling = ThreadPooling()
 thread_pooling.thread_pooling_qa(WORKDIR + '/node1/mysql.sock', 'test')

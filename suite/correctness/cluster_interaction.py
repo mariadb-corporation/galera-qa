@@ -8,14 +8,14 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
 from config import *
-from util import pxc_startup
+from util import galera_startup
 from util import db_connection
 from util import sysbench_run
 from util import utility
 
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC cluster interaction test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='Galera cluster interaction test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -51,10 +51,10 @@ class ClusterInteraction:
             return 1
         return 0
 
-    def start_pxc(self):
-        # Start PXC cluster for replication test
+    def start_galera(self):
+        # Start Galera cluster for replication test
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node), debug)
+        server_startup = galera_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
@@ -107,7 +107,7 @@ class ClusterInteraction:
             startup status.
         """
         ping_query = self.basedir + '/bin/mysqladmin --user=root --socket=' + \
-                     WORKDIR + '/node' + cluster_node + '/mysql.sock ping > /dev/null 2>&1'
+            WORKDIR + '/node' + cluster_node + '/mysql.sock ping > /dev/null 2>&1'
         for startup_timer in range(120):
             time.sleep(1)
             ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
@@ -126,36 +126,29 @@ class ClusterInteraction:
         self.sysbench_run(self.socket, 'test', 'background_run')
         query = 'pidof sysbench'
         sysbench_pid = os.popen(query).read().rstrip()
-        if int(version) > int("050700"):
-            utility_cmd.check_testcase(0, "Initiating flow control test")
-            for j in range(1, int(self.node) + 1):
-                query = self.basedir + "/bin/mysql --user=root --socket=" + \
-                    self.socket + ' -e"set global pxc_strict_mode=DISABLED;' \
-                                  '" > /dev/null 2>&1'
-                if debug == 'YES':
-                    print(query)
-                self.run_query(query)
+        utility_cmd.check_testcase(0, "Initiating flow control test")
+        for j in range(1, int(self.node) + 1):
+            query = self.basedir + \
+                '/bin/mysql ' \
+                ' --user=root --socket=' + WORKDIR + '/node1/mysql.sock test' \
+                ' -Bse"flush table sbtest1 with read lock;' \
+                'select sleep(120);unlock tables"  2>&1 &'
+            if debug == 'YES':
+                print(query)
+            os.system(query)
+            flow_control_status = 'OFF'
+            while flow_control_status != 'OFF':
                 query = self.basedir + \
-                    '/bin/mysql ' \
-                    ' --user=root --socket=' + WORKDIR + '/node1/mysql.sock test' \
-                    ' -Bse"flush table sbtest1 with read lock;' \
-                    'select sleep(120);unlock tables"  2>&1 &'
-                if debug == 'YES':
-                    print(query)
-                os.system(query)
-                flow_control_status = 'OFF'
-                while flow_control_status != 'OFF':
-                    query = self.basedir + \
-                        '/bin/mysql  --user=root --socket=' + WORKDIR + '/node1/mysql.sock' \
-                        ' -Bse"show status like ' \
-                        "'wsrep_flow_control_status';" + '"' \
-                        "| awk '{ print $2 }'  2>/dev/null"
-                    flow_control_status = os.popen(query).read().rstrip()
-                    time.sleep(1)
+                    '/bin/mysql  --user=root --socket=' + WORKDIR + '/node1/mysql.sock' \
+                    ' -Bse"show status like ' \
+                    "'wsrep_flow_control_status';" + '"' \
+                    "| awk '{ print $2 }'  2>/dev/null"
+                flow_control_status = os.popen(query).read().rstrip()
+                time.sleep(1)
 
         utility_cmd.check_testcase(0, "Initiating IST test")
         shutdown_node = self.basedir + '/bin/mysqladmin --user=root --socket=' + \
-                        WORKDIR + '/node' + self.node + '/mysql.sock shutdown > /dev/null 2>&1'
+            WORKDIR + '/node' + self.node + '/mysql.sock shutdown > /dev/null 2>&1'
         if debug == 'YES':
             print(shutdown_node)
         result = os.system(shutdown_node)
@@ -189,9 +182,8 @@ cluster_interaction = ClusterInteraction(BASEDIR, WORKDIR, USER,
 print('----------------------------------------------')
 print('Cluster interaction QA using flow control test')
 print('----------------------------------------------')
-cluster_interaction.start_pxc()
+cluster_interaction.start_galera()
 cluster_interaction.cluster_interaction_qa()
-version = utility_cmd.version_check(BASEDIR)
 time.sleep(5)
 result = utility_cmd.check_table_count(BASEDIR, 'test', WORKDIR + '/node1/mysql.sock',
                                        WORKDIR + '/node2/mysql.sock')

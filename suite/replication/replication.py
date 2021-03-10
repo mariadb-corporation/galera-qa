@@ -7,16 +7,16 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
 from config import *
-from util import pxc_startup
+from util import galera_startup
 from util import db_connection
 from util import sysbench_run
-from util import ps_startup
+from util import md_startup
 from util import utility
 from util import createsql
 from util import rqg_datagen
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC replication test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='Galera replication test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -43,35 +43,35 @@ class SetupReplication:
         self.workdir = workdir
         self.node = node
 
-    def start_pxc(self, my_extra=None):
-        """ Start Percona XtraDB Cluster. This method will
+    def start_galera(self, my_extra=None):
+        """ Start MariaDB Galera Cluster. This method will
             perform sanity checks for cluster startup
-            :param my_extra: We can pass extra PXC startup option
+            :param my_extra: We can pass extra Galera startup option
                              with this parameter
         """
-        # Start PXC cluster for replication test
+        # Start Galera cluster for replication test
         if my_extra is None:
             my_extra = ''
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node), debug)
+        server_startup = galera_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node), debug)
         result = server_startup.sanity_check()
-        utility_cmd.check_testcase(result, "PXC: Startup sanity check")
+        utility_cmd.check_testcase(result, "Galera: Startup sanity check")
         if encryption == 'YES':
             result = server_startup.create_config('encryption')
-            utility_cmd.check_testcase(result, "PXC: Configuration file creation")
+            utility_cmd.check_testcase(result, "Galera: Configuration file creation")
         else:
             result = server_startup.create_config('none')
-            utility_cmd.check_testcase(result, "PXC: Configuration file creation")
+            utility_cmd.check_testcase(result, "Galera: Configuration file creation")
         result = server_startup.initialize_cluster()
-        utility_cmd.check_testcase(result, "PXC: Initializing cluster")
+        utility_cmd.check_testcase(result, "Galera: Initializing cluster")
         result = server_startup.add_myextra_configuration(cwd + '/replication.cnf')
-        utility_cmd.check_testcase(result, "PXC: Adding custom configuration")
+        utility_cmd.check_testcase(result, "Galera: Adding custom configuration")
         result = server_startup.start_cluster(my_extra)
-        utility_cmd.check_testcase(result, "PXC: Cluster startup")
+        utility_cmd.check_testcase(result, "Galera: Cluster startup")
         result = dbconnection_check.connection_check()
-        utility_cmd.check_testcase(result, "PXC: Database connection")
+        utility_cmd.check_testcase(result, "Galera: Database connection")
 
-    def start_ps(self, node, my_extra=None):
+    def start_md(self, node, my_extra=None):
         """ Start Percona Server. This method will
             perform sanity checks for PS startup
             :param my_extra: We can pass extra PS startup
@@ -79,25 +79,25 @@ class SetupReplication:
         """
         if my_extra is None:
             my_extra = ''
-        # Start PXC cluster for replication test
-        dbconnection_check = db_connection.DbConnection(USER, PS1_SOCKET)
-        server_startup = ps_startup.StartPerconaServer(parent_dir, WORKDIR, BASEDIR, int(node), debug)
+        # Start Galera cluster for replication test
+        dbconnection_check = db_connection.DbConnection(USER, MD1_SOCKET)
+        server_startup = md_startup.StartPerconaServer(parent_dir, WORKDIR, BASEDIR, int(node), debug)
         result = server_startup.sanity_check()
-        utility_cmd.check_testcase(result, "PS: Startup sanity check")
+        utility_cmd.check_testcase(result, "MD: Startup sanity check")
         if encryption == 'YES':
             result = server_startup.create_config('encryption')
-            utility_cmd.check_testcase(result, "PS: Configuration file creation")
+            utility_cmd.check_testcase(result, "MD: Configuration file creation")
         else:
             result = server_startup.create_config()
-            utility_cmd.check_testcase(result, "PS: Configuration file creation")
+            utility_cmd.check_testcase(result, "MD: Configuration file creation")
         result = server_startup.add_myextra_configuration(cwd + '/replication.cnf')
-        utility_cmd.check_testcase(result, "PS: Adding custom configuration")
+        utility_cmd.check_testcase(result, "MD: Adding custom configuration")
         result = server_startup.initialize_cluster()
-        utility_cmd.check_testcase(result, "PS: Initializing cluster")
+        utility_cmd.check_testcase(result, "MD: Initializing cluster")
         result = server_startup.start_server(my_extra)
-        utility_cmd.check_testcase(result, "PS: Cluster startup")
+        utility_cmd.check_testcase(result, "MD: Cluster startup")
         result = dbconnection_check.connection_check()
-        utility_cmd.check_testcase(result, "PS: Database connection")
+        utility_cmd.check_testcase(result, "MD: Database connection")
 
     def sysbench_run(self, socket, db, node):
         # Sysbench data load
@@ -149,25 +149,25 @@ class SetupReplication:
 
     def replication_testcase(self, ps_node, master, slave, comment, master_socket, slave_socket):
         if comment == "mtr":
-            self.start_pxc('--slave-parallel-workers=5')
-            self.start_ps(ps_node, '--slave-parallel-workers=5')
+            self.start_galera('--slave-parallel-workers=5')
+            self.start_md(ps_node, '--slave-parallel-workers=5')
             comment = 'none'
         else:
-            self.start_pxc()
-            self.start_ps(ps_node)
+            self.start_galera()
+            self.start_md(ps_node)
         if comment == "msr":
-            utility_cmd.invoke_replication(BASEDIR, PS1_SOCKET,
+            utility_cmd.invoke_replication(BASEDIR, MD1_SOCKET,
                                            slave_socket, 'NONGTID', "for channel 'master1'")
-            utility_cmd.invoke_replication(BASEDIR, PS2_SOCKET,
+            utility_cmd.invoke_replication(BASEDIR, MD2_SOCKET,
                                            slave_socket, 'NONGTID', "for channel 'master2'")
         else:
             utility_cmd.invoke_replication(BASEDIR, master_socket,
                                            slave_socket, 'NONGTID', comment)
 
         replication_run.sysbench_run(master_socket, 'sbtest', master)
-        replication_run.data_load('ps_dataload_db', master_socket, master)
+        replication_run.data_load('md_dataload_db', master_socket, master)
         rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER, debug)
-        rqg_dataload.pxc_dataload(master_socket)
+        rqg_dataload.galera_dataload(master_socket)
 
         if comment == "msr":
             utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, 'master1')
@@ -178,26 +178,26 @@ class SetupReplication:
             utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, comment)
             utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, comment)
 
-        utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
-        utility_cmd.stop_ps(WORKDIR, BASEDIR, ps_node)
+        utility_cmd.stop_galera(WORKDIR, BASEDIR, NODE)
+        utility_cmd.stop_md(WORKDIR, BASEDIR, ps_node)
 
 
 replication_run = SetupReplication(BASEDIR, WORKDIR, NODE)
-print("\nNON-GTID PXC Node as Master and PS node as Slave")
+print("\nNON-GTID Galera Node as Master and MD node as Slave")
 print("----------------------------------------------")
-replication_run.replication_testcase('1', 'PXC', 'PS', 'none',
-                                     WORKDIR + '/node1/mysql.sock', PS1_SOCKET)
-print("\nNON-GTID PXC Node as Slave and PS node as Master")
+replication_run.replication_testcase('1', 'Galera', 'MD', 'none',
+                                     WORKDIR + '/node1/mysql.sock', MD1_SOCKET)
+print("\nNON-GTID Galera Node as Slave and MD node as Master")
 print("----------------------------------------------")
-replication_run.replication_testcase('1', 'PS', 'PXC', 'none', PS1_SOCKET,
+replication_run.replication_testcase('1', 'MD', 'Galera', 'none', MD1_SOCKET,
                                      WORKDIR + '/node1/mysql.sock')
 
 if int(version) > int("050700"):
-    print("\nNON-GTID PXC multi source replication")
+    print("\nNON-GTID Galera multi source replication")
     print("-----------------------------------")
-    replication_run.replication_testcase('2', 'PS', 'PXC', 'msr', PS1_SOCKET,
+    replication_run.replication_testcase('2', 'MD', 'Galera', 'msr', MD1_SOCKET,
                                          WORKDIR + '/node1/mysql.sock')
-    print("\nNON-GTID PXC multi thread replication")
+    print("\nNON-GTID Galera multi thread replication")
     print("-----------------------------------")
-    replication_run.replication_testcase('1', 'PS', 'PXC', 'mtr', PS1_SOCKET,
+    replication_run.replication_testcase('1', 'MD', 'Galera', 'mtr', MD1_SOCKET,
                                          WORKDIR + '/node1/mysql.sock')

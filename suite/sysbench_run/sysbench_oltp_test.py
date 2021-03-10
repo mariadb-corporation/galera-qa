@@ -7,14 +7,14 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
 from config import *
-from util import pxc_startup
+from util import galera_startup
 from util import db_connection
 from util import sysbench_run
 from util import utility
 from util import table_checksum
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC sysbench oltp test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='Galera sysbench oltp test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -35,21 +35,16 @@ utility_cmd.check_python_version()
 
 class SysbenchOLTPTest:
     def start_server(self, socket, node):
-        if SERVER == "pxc":
+        if SERVER == "mdg":
             my_extra = "--innodb_buffer_pool_size=8G --innodb_log_file_size=1G"
-            utility_cmd.start_pxc(parent_dir, WORKDIR, BASEDIR, node, socket, USER, encryption, my_extra)
-        elif SERVER == "ps":
+            utility_cmd.start_galera(parent_dir, WORKDIR, BASEDIR, node, socket, USER, encryption, my_extra)
+        elif SERVER == "md":
             my_extra = "--innodb_buffer_pool_size=8G --innodb_log_file_size=1G"
-            utility_cmd.start_ps(parent_dir, WORKDIR, BASEDIR, node, socket, USER, encryption, my_extra)
+            utility_cmd.start_md(parent_dir, WORKDIR, BASEDIR, node, socket, USER, encryption, my_extra)
 
     def sysbench_run(self, socket, db):
         # Sysbench OLTP Test
         threads = [32, 64, 128]
-        version = utility_cmd.version_check(BASEDIR)
-        checksum = ""
-        if int(version) < int("080000"):
-            checksum = table_checksum.TableChecksum(PT_BASEDIR, BASEDIR, WORKDIR, NODE, socket, debug)
-            checksum.sanity_check()
         sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
                                             socket, debug)
         for thread in threads:
@@ -61,16 +56,16 @@ class SysbenchOLTPTest:
             utility_cmd.check_testcase(result, "Checksum run for DB: " + db)
 
 
-print("------------------------")
-print("\nPXC sysbench oltp test")
-print("------------------------")
+print("---------------------------")
+print("\nGalera sysbench oltp test")
+print("---------------------------")
 sysbench_loadtest = SysbenchOLTPTest()
-if SERVER == "pxc":
+if SERVER == "mdg":
     sysbench_loadtest.start_server(WORKDIR + '/node1/mysql.sock', NODE)
     sysbench_loadtest.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
-    utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
-elif SERVER == "ps":
-    sysbench_loadtest.start_server(PS1_SOCKET, 1)
-    sysbench_loadtest.sysbench_run(PS1_SOCKET, 'test')
-    utility_cmd.stop_ps(WORKDIR, BASEDIR, 1)
+    utility_cmd.stop_galera(WORKDIR, BASEDIR, NODE)
+elif SERVER == "md":
+    sysbench_loadtest.start_server(MD1_SOCKET, 1)
+    sysbench_loadtest.sysbench_run(MD1_SOCKET, 'test')
+    utility_cmd.stop_md(WORKDIR, BASEDIR, 1)
 

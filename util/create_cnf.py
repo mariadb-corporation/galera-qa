@@ -15,7 +15,7 @@ class CreateCNF:
     def createconfig(self):
         """ Method to create cluster configuration file
             based on the node count. To create configuration
-            file it will take default values from conf/pxc.cnf.
+            file it will take default values from conf/mdg.cnf.
             For customised configuration please add your values
             in conf/custom.conf.
         """
@@ -25,11 +25,11 @@ class CreateCNF:
         for j in range(1, self.node + 1):
             port_list += [port + (j * 2)]
             addr_list = addr_list + '127.0.0.1:' + str(port + (j * 2) + 2) + ','
-        if not os.path.isfile(self.workdir + '/conf/pxc.cnf'):
-            print('Default pxc.cnf is missing in ' + self.workdir + '/conf')
+        if not os.path.isfile(self.workdir + '/conf/mdg.cnf'):
+            print('Default mdg.cnf is missing in ' + self.workdir + '/conf')
             return 1
         for i in range(1, self.node + 1):
-            shutil.copy(self.workdir + '/conf/pxc.cnf', self.workdir + '/conf/node' + str(i) + '.cnf')
+            shutil.copy(self.workdir + '/conf/mdg.cnf', self.workdir + '/conf/node' + str(i) + '.cnf')
             cnf_name = open(self.workdir + '/conf/node' + str(i) + '.cnf', 'a+')
             cnf_name.write('wsrep_cluster_address=gcomm://' + addr_list + '\n')
             cnf_name.write('port=' + str(port_list[i - 1]) + '\n')

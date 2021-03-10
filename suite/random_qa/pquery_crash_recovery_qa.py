@@ -9,12 +9,12 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
 from config import *
-from util import pxc_startup
+from util import galera_startup
 from util import db_connection
 from util import utility
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC random mysqld option test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='Galera random mysqld option test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -35,11 +35,12 @@ else:
 utility_cmd = utility.Utility(debug)
 utility_cmd.check_python_version()
 
+
 class RandomPQueryQA:
-    def start_pxc(self):
-        # Start PXC cluster for pquery run
+    def start_galera(self):
+        # Start Galera cluster for pquery run
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
+        server_startup = galera_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
@@ -81,7 +82,7 @@ class RandomPQueryQA:
 
     def data_load(self, socket, db):
         # pquery crash recovery qa
-        self.start_pxc()
+        self.start_galera()
         for i in range(1, 10):
             PQUERY_CMD = PQUERY_BIN + " --database=" + db + " --threads=50 --logdir=" + \
                          WORKDIR + "/log --log-all-queries --log-failed-queries --user=root --socket=" + \
@@ -110,9 +111,9 @@ class RandomPQueryQA:
                 self.startup_check(j)
 
 
-print("--------------------")
-print("PXC Random PQUERY QA")
-print("--------------------")
+print("-----------------------")
+print("Galera Random PQUERY QA")
+print("-----------------------")
 random_pquery_qa = RandomPQueryQA()
 if not os.path.isfile(PQUERY_BIN):
     print(PQUERY_BIN + ' does not exist')

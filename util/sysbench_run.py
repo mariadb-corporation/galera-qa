@@ -38,17 +38,11 @@ class SysbenchRun:
             exit(1)
         version = self.utility_cmd.version_check(self.basedir)   # Get version
         # Create sysbench user
-        if int(version) < int("050700"):
-            create_user = self.basedir + "/bin/mysql --user=root " \
-                "--socket=" + self.socket + ' -e"grant all on *.* to ' + \
-                SYSBENCH_USER + "@'localhost' identified by '" + SYSBENCH_PASS + "'" \
-                ';" > /dev/null 2>&1'
-        else:
-            create_user = self.basedir + "/bin/mysql --user=root --socket=" + \
-                self.socket + ' -e"create user if not exists ' + \
-                SYSBENCH_USER + "@'localhost' identified with  mysql_native_password by '" + \
-                SYSBENCH_PASS + "';grant all on *.* to " + SYSBENCH_USER + "@'localhost'" \
-                ';" > /dev/null 2>&1'
+        create_user = self.basedir + "/bin/mysql --user=root --socket=" + \
+            self.socket + ' -e"create user if not exists ' + \
+            SYSBENCH_USER + "@'localhost' identified  by '" + \
+            SYSBENCH_PASS + "';grant all on *.* to " + SYSBENCH_USER + "@'localhost'" \
+            ';" > /dev/null 2>&1'
         if self.debug == 'YES':
             print(create_user)
         query_status = os.system(create_user)

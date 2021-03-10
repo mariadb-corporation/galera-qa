@@ -1,13 +1,13 @@
 Upgrade QA script
 ---------------------
-This suite will help us to test Percona XtraDB Cluster upgrade. You should pass PXC base directory locations in [config.ini](../config.ini) file  To enable encryption options you should use 
+This suite will help us to test MariaDB Galera Cluster upgrade. You should pass Galera base directory locations in [config.ini](../config.ini) file  To enable encryption options you should use 
 the argument `--encryption-run` with pxc qa framework.
 
 Upgrade suite log
 ------------------
 ```
 $
-PXC Upgrade test : Upgrading from PXC-5.6.37 to PXC-5.6.44
+Galera Upgrade test : Upgrading from Galera-5.6.37 to Galera-5.6.44
 ------------------------------------------------------------------------------
 06:51:46  Startup sanity check                                                                                [ ✔ ]
 06:51:46  Configuration file creation                                                                         [ ✔ ]

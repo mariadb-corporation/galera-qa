@@ -12,7 +12,7 @@ Note : We can also enable encryption options with the argument `--encryption-run
 Correctness QA run log
 ----------------------
 ```
-$ python3 pxc_qa_framework.py  --suite=correctness
+$ python3 qa_framework.py  --suite=correctness
 ---------------------------------------------------
 Crash recovery QA using forceful mysqld termination
 ---------------------------------------------------
@@ -58,8 +58,8 @@ Crash recovery QA using multiple restart
 07:37:48  Cluster recovery is successful                                                                      [ ✔ ]
 07:37:48  pt-table-checksum error code : --pid file exists and the PID is running                             [ ✘ ]
 
-PXC data consistency test between nodes
-----------------------------------------
+Galera data consistency test between nodes
+------------------------------------------
 07:37:48  Startup sanity check                                                                                [ ✔ ]
 07:37:48  Configuration file creation                                                                         [ ✔ ]
 07:38:24  Initializing cluster                                                                                [ ✔ ]
@@ -72,8 +72,8 @@ PXC data consistency test between nodes
 07:39:00  RQG data load                                                                                       [ ✔ ]
 07:39:00  pt-table-checksum error code : --pid file exists and the PID is running                             [ ✘ ]
 
-PXC ChaosMonkey Style test
-----------------------------
+Galera ChaosMonkey Style test
+-----------------------------
 07:39:00  Startup sanity check                                                                                [ ✔ ]
 07:39:00  Configuration file creation                                                                         [ ✔ ]
 07:40:46  Initializing cluster                                                                                [ ✔ ]

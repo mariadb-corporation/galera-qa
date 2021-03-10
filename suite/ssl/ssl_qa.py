@@ -6,7 +6,7 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
 from config import *
-from util import pxc_startup
+from util import galera_startup
 from util import db_connection
 from util import sysbench_run
 from util import utility
@@ -15,7 +15,7 @@ from util import rqg_datagen
 from util import table_checksum
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC SSL test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='Galera SSL test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -50,9 +50,9 @@ class SSLCheck:
         return 0
 
     def start_pxc(self):
-        # Start PXC cluster for SSL test
+        # Start Galera cluster for SSL test
         dbconnection_check = db_connection.DbConnection(USER, self.socket)
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
+        server_startup = galera_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
@@ -109,12 +109,12 @@ class SSLCheck:
             utility_cmd.check_testcase(result, "SSL QA sample data load")
 
 
-print("\nPXC SSL test")
-print("--------------")
+print("\nGalera SSL test")
+print("----------------")
 ssl_run = SSLCheck(BASEDIR, WORKDIR, USER, WORKDIR + '/node1/mysql.sock', NODE)
 ssl_run.start_pxc()
 ssl_run.sysbench_run(WORKDIR + '/node1/mysql.sock', 'sbtest')
-ssl_run.data_load('pxc_dataload_db', WORKDIR + '/node1/mysql.sock')
+ssl_run.data_load('mdg_dataload_db', WORKDIR + '/node1/mysql.sock')
 version = utility_cmd.version_check(BASEDIR)
 if int(version) > int("050700"):
     rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, 'rqg_test', debug)
@@ -125,11 +125,11 @@ if int(version) < int("080000"):
     checksum = table_checksum.TableChecksum(PT_BASEDIR, BASEDIR, WORKDIR,
                                             NODE, WORKDIR + '/node1/mysql.sock', debug)
     checksum.sanity_check()
-    checksum.data_consistency('test,pxc_dataload_db')
+    checksum.data_consistency('test,mdg_dataload_db')
 else:
     result = utility_cmd.check_table_count(BASEDIR, 'test', WORKDIR + '/node1/mysql.sock',
                                            WORKDIR + '/node2/mysql.sock')
     utility_cmd.check_testcase(result, "Checksum run for DB: test")
-    result = utility_cmd.check_table_count(BASEDIR, 'pxc_dataload_db', WORKDIR + '/node1/mysql.sock',
+    result = utility_cmd.check_table_count(BASEDIR, 'mdg_dataload_db', WORKDIR + '/node1/mysql.sock',
                                            WORKDIR + '/node2/mysql.sock')
-    utility_cmd.check_testcase(result, "Checksum run for DB: pxc_dataload_db")
+    utility_cmd.check_testcase(result, "Checksum run for DB: mdg_dataload_db")

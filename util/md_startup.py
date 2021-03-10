@@ -21,11 +21,11 @@ class StartPerconaServer:
     def sanity_check(self):
         """ Sanity check method will remove existing
             data directory and forcefully kill
-            running PS mysqld processes. This will also check
+            running MariaDB mysqld processes. This will also check
             the availability of mysqld binary file.
         """
         # kill existing mysqld process
-        os.system("ps -ef | grep '" + self.workdir + "/conf/ps[0-9].cnf'"
+        os.system("ps -ef | grep '" + self.workdir + "/conf/md[0-9].cnf'"
                   " | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1")
         # Create log directory
         if not os.path.exists(self.workdir + '/log'):
@@ -52,7 +52,7 @@ class StartPerconaServer:
     def create_config(self, conf_extra=None):
         """ Method to create cluster configuration file
             based on the node count. To create configuration
-            file it will take default values from conf/pxc.cnf.
+            file it will take default values from conf/mdg.cnf.
             For customised configuration please add your values
             in conf/custom.conf.
         """
@@ -62,19 +62,19 @@ class StartPerconaServer:
         for j in range(1, self.node + 1):
             port_list += [port + (j * 100)]
         # Create PS configuration file
-        if not os.path.isfile(self.scriptdir + '/conf/ps.cnf'):
-            print('Default pxc.cnf is missing in ' + self.scriptdir + '/conf')
+        if not os.path.isfile(self.scriptdir + '/conf/md.cnf'):
+            print('Default mdg.cnf is missing in ' + self.scriptdir + '/conf')
             return 1
         else:
             shutil.copy(self.scriptdir + '/conf/custom.cnf', self.workdir + '/conf/custom.cnf')
         # Add custom mysqld options in configuration file
         for i in range(1, self.node + 1):
-            shutil.copy(self.scriptdir + '/conf/ps.cnf', self.workdir + '/conf/ps' + str(i) + '.cnf')
+            shutil.copy(self.scriptdir + '/conf/md.cnf', self.workdir + '/conf/ps' + str(i) + '.cnf')
             cnf_name = open(self.workdir + '/conf/ps' + str(i) + '.cnf', 'a+')
             cnf_name.write('\nport=' + str(port_list[i - 1]) + '\n')
             if int(version) > int("050700"):
                 cnf_name.write('log_error_verbosity=3\n')
-            cnf_name.write('socket=/tmp/psnode' + str(i) + '.sock\n')
+            cnf_name.write('socket=/tmp/mdnode' + str(i) + '.sock\n')
             cnf_name.write('server_id=' + str(100 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
             if conf_extra == 'encryption':
@@ -108,24 +108,24 @@ class StartPerconaServer:
         """
         result = 1  # return value
         for i in range(1, self.node + 1):
-            if os.path.exists(self.workdir + '/psnode' + str(i)):
-                os.system('rm -rf ' + self.workdir + '/psnode' + str(i) + ' >/dev/null 2>&1')
-            if not os.path.isfile(self.workdir + '/conf/ps' + str(i) + '.cnf'):
-                print('Could not find config file /conf/ps' + str(i) + '.cnf')
+            if os.path.exists(self.workdir + '/mdnode' + str(i)):
+                os.system('rm -rf ' + self.workdir + '/mdnode' + str(i) + ' >/dev/null 2>&1')
+            if not os.path.isfile(self.workdir + '/conf/md' + str(i) + '.cnf'):
+                print('Could not find config file /conf/md' + str(i) + '.cnf')
                 exit(1)
             version = self.version_check()      # Get server version
             # Initialize data directory
-            if int(version) < int("050700"):
-                os.mkdir(self.workdir + '/psnode' + str(i))
-                initialize_node = self.basedir + '/scripts/mysql_install_db --no-defaults ' \
+            if int(version) < int("1004"):
+                os.mkdir(self.workdir + '/mdnode' + str(i))
+                initialize_node = self.basedir + '/scripts/mysql_install_db --no-defaults --force ' \
                     '--basedir=' + self.basedir + ' --datadir=' + \
-                    self.workdir + '/psnode' + str(i) + ' > ' + \
-                    self.workdir + '/log/ps_startup' + str(i) + '.log 2>&1'
+                    self.workdir + '/mdnode' + str(i) + ' > ' + \
+                    self.workdir + '/log/md_startup' + str(i) + '.log 2>&1'
             else:
-                initialize_node = self.basedir + '/bin/mysqld --no-defaults ' \
-                    ' --initialize-insecure --basedir=' + self.basedir + \
-                    ' --datadir=' + self.workdir + '/psnode' + str(i) + ' > ' + \
-                    self.workdir + '/log/ps_startup' + str(i) + '.log 2>&1'
+                initialize_node = self.basedir + '/scripts/mariadb-install-db --no-defaults --force ' \
+                    ' --auth-root-authentication-method=normal --basedir=' + self.basedir + \
+                    ' --datadir=' + self.workdir + '/mdnode' + str(i) + ' > ' + \
+                    self.workdir + '/log/md_startup' + str(i) + '.log 2>&1'
             if self.debug == 'YES':
                 print(initialize_node)
             run_query = subprocess.call(initialize_node, shell=True, stderr=subprocess.DEVNULL)
@@ -142,17 +142,17 @@ class StartPerconaServer:
         for i in range(1, self.node + 1):
             # Start server
             startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + \
-                '/conf/ps' + str(i) + '.cnf --datadir=' + self.workdir + '/psnode' + str(i) + \
+                '/conf/ps' + str(i) + '.cnf --datadir=' + self.workdir + '/mdnode' + str(i) + \
                 ' --basedir=' + self.basedir + ' ' + my_extra + \
                 ' --log-error=' + self.workdir + \
-                '/log/psnode' + str(i) + '.err > ' + self.workdir + \
-                '/log/psnode' + str(i) + '.err 2>&1 &'
+                '/log/mdnode' + str(i) + '.err > ' + self.workdir + \
+                '/log/mdnode' + str(i) + '.err 2>&1 &'
             if self.debug == 'YES':
                 print(startup)
             run_cmd = subprocess.call(startup, shell=True, stderr=subprocess.DEVNULL)
             result = ("{}".format(run_cmd))
             ping_query = self.basedir + '/bin/mysqladmin --user=root ' \
-                                        '--socket=/tmp/psnode' + str(i) + \
+                                        '--socket=/tmp/mdnode' + str(i) + \
                                         '.sock ping > /dev/null 2>&1'
             for startup_timer in range(120):
                 time.sleep(1)

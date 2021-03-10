@@ -13,11 +13,11 @@ from config import *
 from util import sysbench_run
 from util import utility
 from util import db_connection
-from util import pxc_startup
+from util import galera_startup
 
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC WSREP provider random test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='Galera WSREP provider random test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -42,10 +42,10 @@ class WSREPProviderRandomTest:
             startup status.
         """
         restart_server = "bash " + WORKDIR + \
-                           '/log/startup' + str(cluster_node) + '.sh'
+            '/log/startup' + str(cluster_node) + '.sh'
         os.system(restart_server)
         ping_query = BASEDIR + '/bin/mysqladmin --user=root --socket=' + \
-                     WORKDIR + '/node' + str(cluster_node) + '/mysql.sock ping > /dev/null 2>&1'
+            WORKDIR + '/node' + str(cluster_node) + '/mysql.sock ping > /dev/null 2>&1'
         for startup_timer in range(120):
             time.sleep(1)
             ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
@@ -57,7 +57,7 @@ class WSREPProviderRandomTest:
     def start_random_test(self, socket, db):
         my_extra = "--innodb_buffer_pool_size=8G --innodb_log_file_size=1G"
         dbconnection_check = db_connection.DbConnection(USER, socket)
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
+        server_startup = galera_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         result = server_startup.initialize_cluster()
@@ -79,7 +79,7 @@ class WSREPProviderRandomTest:
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
         result = sysbench.sysbench_load(db, 64, 64, SYSBENCH_LOAD_TEST_TABLE_SIZE)
         utility_cmd.check_testcase(result, "Sysbench data load")
-        utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
+        utility_cmd.stop_galera(WORKDIR, BASEDIR, NODE)
         wsrep_provider_options = {
             "gcache.keep_pages_size": [0, 1, 2],
             "gcache.recover": ["yes", "no"],
@@ -132,12 +132,12 @@ class WSREPProviderRandomTest:
             time.sleep(5)
             result = utility_cmd.check_table_count(BASEDIR, db, socket, WORKDIR + '/node2/mysql.sock')
             utility_cmd.check_testcase(result, "Checksum run for DB: test")
-            utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
+            utility_cmd.stop_galera(WORKDIR, BASEDIR, NODE)
 
 
-print("--------------------------------")
-print("\nPXC WSREP provider random test")
-print("--------------------------------")
+print("-----------------------------------")
+print("\nGalera WSREP provider random test")
+print("-----------------------------------")
 sysbench_wsrep_provider_random_test = WSREPProviderRandomTest()
 sysbench_wsrep_provider_random_test.start_random_test(WORKDIR + '/node1/mysql.sock', 'test')
-utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
+utility_cmd.stop_galera(WORKDIR, BASEDIR, NODE)

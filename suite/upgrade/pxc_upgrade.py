@@ -10,14 +10,14 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
 from config import *
-from util import pxc_startup
+from util import galera_startup
 from util import db_connection
 from util import sysbench_run
 from util import utility
 from util import rqg_datagen
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC upgrade test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='Galera upgrade test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -36,11 +36,11 @@ utility_cmd = utility.Utility(debug)
 utility_cmd.check_python_version()
 
 
-class PXCUpgrade:
+class GALERAUpgrade:
     def startup(self, wsrep_extra=None):
-        # Start PXC cluster for upgrade test
+        # Start Galera cluster for upgrade test
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, PXC_LOWER_BASE, int(NODE), debug)
+        server_startup = galera_startup.StartCluster(parent_dir, WORKDIR, GALERA_LOWER_BASE, int(NODE), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
@@ -69,7 +69,7 @@ class PXCUpgrade:
         """ This method will check the node
             startup status.
         """
-        ping_query = PXC_LOWER_BASE + '/bin/mysqladmin --user=root --socket=' + \
+        ping_query = GALERA_LOWER_BASE + '/bin/mysqladmin --user=root --socket=' + \
             WORKDIR + '/node' + str(cluster_node) + \
             '/mysql.sock ping > /dev/null 2>&1'
         for startup_timer in range(300):
@@ -77,7 +77,7 @@ class PXCUpgrade:
             ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
             ping_status = ("{}".format(ping_check))
             if int(ping_status) == 0:
-                version = utility_cmd.version_check(PXC_UPPER_BASE)
+                version = utility_cmd.version_check(GALERA_UPPER_BASE)
                 if int(version) > int("080000"):
                     wsrep_status = ""
                     while wsrep_status != "Synced":
@@ -95,14 +95,14 @@ class PXCUpgrade:
                 exit(1)
 
     def start_upper_version(self):
-        # Start PXC cluster for upgrade test
+        # Start Galera cluster for upgrade test
         shutil.copy(WORKDIR + '/conf/node3.cnf',
                     WORKDIR + '/conf/node4.cnf')
-        query = PXC_LOWER_BASE + '/bin/mysql --user=root --socket=' + WORKDIR + \
+        query = GALERA_LOWER_BASE + '/bin/mysql --user=root --socket=' + WORKDIR + \
             '/node3/mysql.sock -Bse"show variables like \'wsrep_cluster_address\';"' \
             ' 2>/dev/null | awk \'{print $2}\''
         wsrep_cluster_addr = os.popen(query).read().rstrip()
-        query = PXC_LOWER_BASE + "/bin/mysql --user=root --socket=" + \
+        query = GALERA_LOWER_BASE + "/bin/mysql --user=root --socket=" + \
             WORKDIR + '/node3/mysql.sock -Bse"select @@port" 2>&1'
         port_no = os.popen(query).read().rstrip()
         wsrep_port_no = int(port_no) + 108
@@ -123,7 +123,7 @@ class PXCUpgrade:
         os.system("sed -i  '0,/^[ \\t]*server_id[ \\t]*=.*$/s|"
                   "^[ \\t]*server_id[ \\t]*=.*$|server_id="
                   "14|' " + WORKDIR + '/conf/node4.cnf')
-        create_startup = 'sed  "s#' + PXC_LOWER_BASE + '#' + PXC_UPPER_BASE + \
+        create_startup = 'sed  "s#' + GALERA_LOWER_BASE + '#' + GALERA_UPPER_BASE + \
                          '#g" ' + WORKDIR + '/log/startup3.sh > ' + \
                          WORKDIR + '/log/startup4.sh'
         if debug == 'YES':
@@ -137,33 +137,28 @@ class PXCUpgrade:
         if debug == 'YES':
             print(upgrade_startup)
         result = os.system(upgrade_startup)
-        utility_cmd.check_testcase(result, "Starting PXC-8.0 cluster node4 for upgrade testing")
+        utility_cmd.check_testcase(result, "Starting Galera cluster node4 for upgrade testing")
         self.startup_check(4)
+        upgrade_cmd = GALERA_UPPER_BASE + '/bin/mysql_upgrade -uroot --socket=' + \
+            WORKDIR + '/node4/mysql.sock --skip-write-binlog > ' + \
+            WORKDIR + '/log/node4_upgrade.log 2>&1'
+        if debug == 'YES':
+            print(upgrade_cmd)
+        result = os.system(upgrade_cmd)
+        utility_cmd.check_testcase(result, "Cluster node4 upgrade is successful")
 
     def sysbench_run(self, node1_socket, db, upgrade_type):
         # Sysbench dataload for consistency test
-        sysbench_node1 = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
+        sysbench_node1 = sysbench_run.SysbenchRun(GALERA_LOWER_BASE, WORKDIR,
                                             node1_socket, debug)
 
         result = sysbench_node1.sanity_check(db)
         utility_cmd.check_testcase(result, "Sysbench run sanity check")
         result = sysbench_node1.sysbench_load(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS, SYSBENCH_NORMAL_TABLE_SIZE)
         utility_cmd.check_testcase(result, "Sysbench data load")
-        version = utility_cmd.version_check(PXC_LOWER_BASE)
-        if int(version) > int("050700"):
-            if encryption == 'YES':
-                for i in range(1, int(SYSBENCH_TABLE_COUNT) + 1):
-                    encrypt_table = PXC_LOWER_BASE + '/bin/mysql --user=root ' \
-                        '--socket=' + WORKDIR + '/node1/mysql.sock -e "' \
-                        ' alter table ' + db + '.sbtest' + str(i) + \
-                        " encryption='Y'" \
-                        '"; > /dev/null 2>&1'
-                    if debug == 'YES':
-                        print(encrypt_table)
-                    os.system(encrypt_table)
-        sysbench_node2 = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
+        sysbench_node2 = sysbench_run.SysbenchRun(GALERA_LOWER_BASE, WORKDIR,
                                                   WORKDIR + '/node2/mysql.sock', debug)
-        sysbench_node3 = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
+        sysbench_node3 = sysbench_run.SysbenchRun(GALERA_LOWER_BASE, WORKDIR,
                                                   WORKDIR + '/node3/mysql.sock', debug)
         if upgrade_type == 'readwrite' or upgrade_type == 'readwrite_sst':
             result = sysbench_node1.sysbench_oltp_read_write(db, SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
@@ -188,7 +183,7 @@ class PXCUpgrade:
 
     def rolling_upgrade(self, upgrade_type):
         """ This function will upgrade
-            Percona XtraDB Cluster to
+            MariaDB Galera Cluster to
             latest version and perform
             table checksum.
         """
@@ -202,7 +197,7 @@ class PXCUpgrade:
             if debug == 'YES':
                 print("Terminating sysbench run : " + kill_sysbench)
             os.system(kill_sysbench)
-            shutdown_node = PXC_LOWER_BASE + '/bin/mysqladmin --user=root --socket=' + \
+            shutdown_node = GALERA_LOWER_BASE + '/bin/mysqladmin --user=root --socket=' + \
                 WORKDIR + '/node' + str(i) + \
                 '/mysql.sock shutdown > /dev/null 2>&1'
             if debug == 'YES':
@@ -211,7 +206,7 @@ class PXCUpgrade:
             utility_cmd.check_testcase(result, "Shutdown cluster node" + str(i) + " for upgrade testing")
             if i == 3:
                 if upgrade_type == 'readwrite_sst':
-                    sysbench_node1 = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR, WORKDIR +
+                    sysbench_node1 = sysbench_run.SysbenchRun(GALERA_LOWER_BASE, WORKDIR, WORKDIR +
                                                               '/node1/mysql.sock', debug)
                     sysbench_node1.sanity_check('test_one')
                     sysbench_node1.sanity_check('test_two')
@@ -226,146 +221,107 @@ class PXCUpgrade:
                                                           SYSBENCH_LOAD_TEST_TABLE_SIZE)
                     utility_cmd.check_testcase(result, "Sysbench data load(DB: test_three)")
 
-            version = utility_cmd.version_check(PXC_UPPER_BASE)
-            if int(version) > int("080000"):
-                os.system("sed -i '/wsrep_sst_auth=root:/d' " + WORKDIR + '/conf/node' + str(i) + '.cnf')
-                os.system("sed -i 's#wsrep_slave_threads=8#wsrep_slave_threads=30#g' " + WORKDIR +
-                          '/conf/node' + str(i) + '.cnf')
-                startup_cmd = PXC_UPPER_BASE + '/bin/mysqld --defaults-file=' + \
-                    WORKDIR + '/conf/node' + str(i) + '.cnf --datadir=' + \
-                    WORKDIR + '/node' + str(i) + ' --basedir=' + PXC_UPPER_BASE + \
-                    ' --wsrep-provider=' + PXC_UPPER_BASE + \
-                    '/lib/libgalera_smm.so --log-error=' + \
-                    WORKDIR + '/log/upgrade_node' + str(i) + '.err >> ' + \
-                    WORKDIR + '/log/upgrade_node' + str(i) + '.err 2>&1 &'
-            else:
-                startup_cmd = PXC_UPPER_BASE + '/bin/mysqld --defaults-file=' + \
-                    WORKDIR + '/conf/node' + str(i) + '.cnf --datadir=' + \
-                    WORKDIR + '/node' + str(i) + ' --basedir=' + PXC_UPPER_BASE + \
-                    ' --wsrep-provider=none --log-error=' + \
-                    WORKDIR + '/log/upgrade_node' + str(i) + '.err >> ' + \
-                    WORKDIR + '/log/upgrade_node' + str(i) + '.err 2>&1 &'
+            startup_cmd = GALERA_UPPER_BASE + '/bin/mysqld --defaults-file=' + \
+                WORKDIR + '/conf/node' + str(i) + '.cnf --wsrep-provider=' + \
+                GALERA_UPPER_BASE + '/lib/libgalera_smm.so --datadir=' + \
+                WORKDIR + '/node' + str(i) + ' --basedir=' + GALERA_UPPER_BASE + ' --log-error=' + \
+                WORKDIR + '/log/upgrade_node' + str(i) + '.err >> ' + \
+                WORKDIR + '/log/upgrade_node' + str(i) + '.err 2>&1 &'
+            utility_cmd.check_testcase(0, "Starting cluster node" + str(i) + " with upgraded version")
+
             if debug == 'YES':
                 print(startup_cmd)
             os.system(startup_cmd)
             self.startup_check(i)
-            if int(version) < int("080000"):
-                upgrade_cmd = PXC_UPPER_BASE + '/bin/mysql_upgrade -uroot --socket=' + \
-                    WORKDIR + '/node' + str(i) + \
-                    '/mysql.sock > ' + WORKDIR + '/log/node' + str(i) + '_upgrade.log 2>&1'
-                if debug == 'YES':
-                    print(upgrade_cmd)
-                result = os.system(upgrade_cmd)
-                utility_cmd.check_testcase(result, "Cluster node" + str(i) + " upgrade is successful")
-                shutdown_node = PXC_UPPER_BASE + '/bin/mysqladmin --user=root --socket=' + \
-                    WORKDIR + '/node' + str(i) + \
-                    '/mysql.sock shutdown > /dev/null 2>&1'
-                if debug == 'YES':
-                    print(shutdown_node)
-                result = os.system(shutdown_node)
-                utility_cmd.check_testcase(result, "Shutdown cluster node" + str(i) + " after upgrade run")
-                create_startup = 'sed  "s#' + PXC_LOWER_BASE + '#' + PXC_UPPER_BASE + \
-                    '#g" ' + WORKDIR + '/log/startup' + str(i) + '.sh > ' + \
-                    WORKDIR + '/log/upgrade_startup' + str(i) + '.sh'
-                if debug == 'YES':
-                    print(create_startup)
-                os.system(create_startup)
-                if i == 1:
-                    remove_bootstrap_option = 'sed -i "s#--wsrep-new-cluster##g" ' + \
-                        WORKDIR + '/log/upgrade_startup' + str(i) + '.sh'
-                    if debug == 'YES':
-                        print(remove_bootstrap_option)
-                    os.system(remove_bootstrap_option)
-                time.sleep(5)
+            upgrade_cmd = GALERA_UPPER_BASE + '/bin/mysql_upgrade -uroot --socket=' + \
+                WORKDIR + '/node' + str(i) + \
+                '/mysql.sock --skip-write-binlog > ' + WORKDIR + '/log/node' + str(i) + '_upgrade.log 2>&1'
+            if debug == 'YES':
+                print(upgrade_cmd)
+            result = os.system(upgrade_cmd)
+            utility_cmd.check_testcase(result, "Cluster node" + str(i) + " upgrade is successful")
 
-                upgrade_startup = "bash " + WORKDIR + \
-                                  '/log/upgrade_startup' + str(i) + '.sh'
-                if debug == 'YES':
-                    print(upgrade_startup)
-                result = os.system(upgrade_startup)
-                utility_cmd.check_testcase(result, "Starting cluster node" + str(i) + " after upgrade run")
-                self.startup_check(i)
         time.sleep(10)
-        sysbench_node = sysbench_run.SysbenchRun(PXC_LOWER_BASE, WORKDIR,
+        sysbench_node = sysbench_run.SysbenchRun(GALERA_LOWER_BASE, WORKDIR,
                                                   WORKDIR + '/node1/mysql.sock', debug)
         result = sysbench_node.sysbench_oltp_read_write('test', SYSBENCH_TABLE_COUNT, SYSBENCH_THREADS,
                                                 SYSBENCH_NORMAL_TABLE_SIZE, 100)
         utility_cmd.check_testcase(result, "Sysbench oltp run after upgrade")
         time.sleep(5)
 
-        result = utility_cmd.check_table_count(PXC_UPPER_BASE, 'test',
+        result = utility_cmd.check_table_count(GALERA_UPPER_BASE, 'test',
                                                WORKDIR + '/node1/mysql.sock',
                                                WORKDIR + '/node2/mysql.sock')
         utility_cmd.check_testcase(result, "Checksum run for DB: test")
-        result = utility_cmd.check_table_count(PXC_UPPER_BASE, 'db_galera',
+        result = utility_cmd.check_table_count(GALERA_UPPER_BASE, 'db_galera',
                                                WORKDIR + '/node1/mysql.sock',
                                                WORKDIR + '/node2/mysql.sock')
         utility_cmd.check_testcase(result, "Checksum run for DB: db_galera")
-        result = utility_cmd.check_table_count(PXC_UPPER_BASE, 'db_transactions',
+        result = utility_cmd.check_table_count(GALERA_UPPER_BASE, 'db_transactions',
                                                WORKDIR + '/node1/mysql.sock',
                                                WORKDIR + '/node2/mysql.sock')
         utility_cmd.check_testcase(result, "Checksum run for DB: db_transactions")
-        result = utility_cmd.check_table_count(PXC_UPPER_BASE, 'db_partitioning',
+        result = utility_cmd.check_table_count(GALERA_UPPER_BASE, 'db_partitioning',
                                                WORKDIR + '/node1/mysql.sock',
                                                WORKDIR + '/node2/mysql.sock')
         utility_cmd.check_testcase(result, "Checksum run for DB: db_partitioning")
-        utility_cmd.stop_pxc(WORKDIR, PXC_UPPER_BASE, NODE)
+        utility_cmd.stop_galera(WORKDIR, GALERA_UPPER_BASE, NODE)
 
 
-query = PXC_LOWER_BASE + "/bin/mysqld --version 2>&1 | grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1"
+query = GALERA_LOWER_BASE + "/bin/mysqld --version 2>&1 | grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1"
 lower_version = os.popen(query).read().rstrip()
-query = PXC_UPPER_BASE + "/bin/mysqld --version 2>&1 | grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1"
+query = GALERA_UPPER_BASE + "/bin/mysqld --version 2>&1 | grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1"
 upper_version = os.popen(query).read().rstrip()
-version = utility_cmd.version_check(PXC_UPPER_BASE)
-print('------------------------------------------------------------------------------------')
-print("\nPXC Upgrade test : Upgrading from PXC-" + lower_version + " to PXC-" + upper_version)
-print('------------------------------------------------------------------------------------')
+version = utility_cmd.version_check(GALERA_UPPER_BASE)
+print('------------------------------------------------------------------------------------------')
+print("\nGalera Upgrade test : Upgrading from GALERA-" + lower_version + " to GALERA-" + upper_version)
+print('------------------------------------------------------------------------------------------')
 print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade without active workload")
-print('------------------------------------------------------------------------------------')
-upgrade_qa = PXCUpgrade()
+print('------------------------------------------------------------------------------------------')
+upgrade_qa = GALERAUpgrade()
 upgrade_qa.startup()
-rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER, debug)
-rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
+rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
+rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
 upgrade_qa.rolling_upgrade('none')
 print('------------------------------------------------------------------------------------')
 print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active readonly workload")
 print('------------------------------------------------------------------------------------')
 upgrade_qa.startup()
-rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER, debug)
-rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
+rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
+rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
 upgrade_qa.rolling_upgrade('readonly')
 print('------------------------------------------------------------------------------------')
 print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active read/write workload"
                                              "(enforcing SST on node-join)")
 print('------------------------------------------------------------------------------------')
 upgrade_qa.startup()
-rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER, debug)
-rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
+rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
+rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
 upgrade_qa.rolling_upgrade('readwrite_sst')
 print('------------------------------------------------------------------------------------')
 print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active read/write workload"
                                             "(enforcing IST on node-join)")
 print('------------------------------------------------------------------------------------')
 upgrade_qa.startup('wsrep_extra')
-rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER, debug)
-rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
+rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
+rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
 upgrade_qa.rolling_upgrade('readwrite')
 if int(version) > int("080000"):
     print('------------------------------------------------------------------------------------')
-    print(datetime.now().strftime("%H:%M:%S ") + "Mix of PXC-" +
-          lower_version + " and PXC-" + upper_version + "(without active workload)")
+    print(datetime.now().strftime("%H:%M:%S ") + "Mix of GALERA-" +
+          lower_version + " and GALERA-" + upper_version + "(without active workload)")
     print('------------------------------------------------------------------------------------')
-    upgrade_qa = PXCUpgrade()
+    upgrade_qa = GALERAUpgrade()
     upgrade_qa.startup()
     upgrade_qa.start_upper_version()
     print('------------------------------------------------------------------------------------')
-    print(datetime.now().strftime("%H:%M:%S ") + "Mix of PXC-" +
-          lower_version + " and PXC-" + upper_version + "(with active read/write workload)")
+    print(datetime.now().strftime("%H:%M:%S ") + "Mix of GALERA-" +
+          lower_version + " and GALERA-" + upper_version + "(with active read/write workload)")
     print('------------------------------------------------------------------------------------')
     upgrade_qa.startup('wsrep_extra')
-    rqg_dataload = rqg_datagen.RQGDataGen(PXC_LOWER_BASE, WORKDIR, USER, debug)
-    rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
+    rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
+    rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
     upgrade_qa.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test', 'readwrite')
     upgrade_qa.start_upper_version()
 
-utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
+utility_cmd.stop_galera(WORKDIR, BASEDIR, NODE)

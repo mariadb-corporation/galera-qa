@@ -30,19 +30,11 @@ class TableChecksum:
 
         version = self.utility_cmd.version_check(self.basedir)
         # Creating pt_user for database consistency check
-        if int(version) < int("050700"):
-            query = self.basedir + "/bin/mysql --user=root --socket=" + \
-                self.socket + ' -e"create user ' \
-                " pt_user@'localhost' identified by 'test';" \
-                "grant all on *.* to pt_user@'localhost'" \
-                ';" > /dev/null 2>&1'
-        else:
-            query = self.basedir + "/bin/mysql --user=root --socket=" + \
-                self.socket + ' -e"create user if not exists' \
-                " pt_user@'localhost' identified with " \
-                " mysql_native_password by 'test';" \
-                "grant all on *.* to pt_user@'localhost'" \
-                ';" > /dev/null 2>&1'
+        query = self.basedir + "/bin/mysql --user=root --socket=" + \
+            self.socket + ' -e"create user if not exists' \
+            " pt_user@'localhost' identified by 'test';" \
+            "grant all on *.* to pt_user@'localhost'" \
+            ';" > /dev/null 2>&1'
         self.run_query(query)
         # Creating percona db for cluster data checksum
         query = self.basedir + "/bin/mysql --user=root --socket=" + \
@@ -108,12 +100,6 @@ class TableChecksum:
             self.socket + ' -Bse"select @@port" 2>&1'
         port = os.popen(port).read().rstrip()
         version = self.utility_cmd.version_check(self.basedir)
-        # Disable pxc_strict_mode for pt-table-checksum run
-        if int(version) > int("050700"):
-            query = self.basedir + "/bin/mysql --user=root --socket=" + \
-                self.socket + ' -e"set global pxc_strict_mode=DISABLED;' \
-                '" > /dev/null 2>&1'
-            self.run_query(query)
 
         run_checksum = self.pt_basedir + "/bin/pt-table-checksum h=127.0.0.1,P=" + \
             str(port) + ",u=pt_user,p=test -d" + database + \
@@ -121,10 +107,4 @@ class TableChecksum:
             ",u=pt_user,p=test,D=percona,t=dsns >" + self.workdir + "/log/pt-table-checksum.log 2>&1; echo $?"
         checksum_status = os.popen(run_checksum).read().rstrip()
         self.error_status(checksum_status)
-        if int(version) > int("050700"):
-            # Enable pxc_strict_mode after pt-table-checksum run
-            query = self.basedir + "/bin/mysql --user=root --socket=" + \
-                self.socket + ' -e"set global pxc_strict_mode=ENFORCING;' \
-                '" > /dev/null 2>&1'
-            self.run_query(query)
         return 0

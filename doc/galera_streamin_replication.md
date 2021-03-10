@@ -1,5 +1,5 @@
 Streaming Replication QA script
----------------------
+-------------------------------
 This suite will test streaming replication feature.
 
 Streaming replication run log

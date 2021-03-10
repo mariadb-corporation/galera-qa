@@ -7,7 +7,7 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
 from config import *
-from util import pxc_startup
+from util import galera_startup
 from util import db_connection
 from util import sysbench_run
 from util import utility
@@ -15,7 +15,7 @@ from util import createsql
 from util import rqg_datagen
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC consistency test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='Galera consistency test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -51,10 +51,10 @@ class ConsistencyCheck:
             return 1
         return 0
 
-    def start_pxc(self):
-        # Start PXC cluster for replication test
+    def start_galera(self):
+        # Start Galera cluster for replication test
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
+        server_startup = galera_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
@@ -112,19 +112,18 @@ class ConsistencyCheck:
             utility_cmd.check_testcase(result, "Sample data load")
 
 
-print("\nPXC data consistency test between nodes")
+print("\nGalera data consistency test between nodes")
 print("----------------------------------------")
 consistency_run = ConsistencyCheck(BASEDIR, WORKDIR, USER, WORKDIR + '/node1/mysql.sock', PT_BASEDIR, NODE)
 rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER, debug)
-consistency_run.start_pxc()
+consistency_run.start_galera()
 consistency_run.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
-consistency_run.data_load('pxc_dataload_db', WORKDIR + '/node1/mysql.sock')
-rqg_dataload.pxc_dataload(WORKDIR + '/node1/mysql.sock')
-version = utility_cmd.version_check(BASEDIR)
+consistency_run.data_load('mdg_dataload_db', WORKDIR + '/node1/mysql.sock')
+rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
 time.sleep(5)
 result = utility_cmd.check_table_count(BASEDIR, 'test', WORKDIR + '/node1/mysql.sock',
                                        WORKDIR + '/node2/mysql.sock')
 utility_cmd.check_testcase(result, "Checksum run for DB: test")
-result = utility_cmd.check_table_count(BASEDIR, 'pxc_dataload_db', WORKDIR + '/node1/mysql.sock',
+result = utility_cmd.check_table_count(BASEDIR, 'mdg_dataload_db', WORKDIR + '/node1/mysql.sock',
                                        WORKDIR + '/node2/mysql.sock')
-utility_cmd.check_testcase(result, "Checksum run for DB: pxc_dataload_db")
+utility_cmd.check_testcase(result, "Checksum run for DB: mdg_dataload_db")

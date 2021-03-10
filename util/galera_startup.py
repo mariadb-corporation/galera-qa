@@ -41,7 +41,7 @@ class StartCluster:
     def create_config(self, wsrep_extra, wsrep_provider_option=None):
         """ Method to create cluster configuration file
             based on the node count. To create configuration
-            file it will take default values from conf/pxc.cnf.
+            file it will take default values from conf/mdg.cnf.
             For customised configuration please add your values
             in conf/custom.conf.
         """
@@ -54,25 +54,18 @@ class StartCluster:
         for j in range(1, int(self.node) + 1):
             port_list += [port + (j * 100)]
             addr_list = addr_list + '127.0.0.1:' + str(port + (j * 100) + 8) + ','
-        if not os.path.isfile(self.scriptdir + '/conf/pxc.cnf'):
-            print('Default pxc.cnf is missing in ' + self.scriptdir + '/conf')
+        if not os.path.isfile(self.scriptdir + '/conf/mdg.cnf'):
+            print('Default mdg.cnf is missing in ' + self.scriptdir + '/conf')
             return 1
         else:
             shutil.copy(self.scriptdir + '/conf/custom.cnf', self.workdir + '/conf/custom.cnf')
         for i in range(1, self.node + 1):
-            shutil.copy(self.scriptdir + '/conf/pxc.cnf',
+            shutil.copy(self.scriptdir + '/conf/mdg.cnf',
                         self.workdir + '/conf/node' + str(i) + '.cnf')
             cnf_name = open(self.workdir + '/conf/node' + str(i) + '.cnf', 'a+')
             if self.debug == 'YES':
                 cnf_name.write('wsrep-debug=1\n')
             cnf_name.write('wsrep_cluster_address=gcomm://' + addr_list + '\n')
-            # Calling version check method to compare the version to
-            # add wsrep_sst_auth variable. This variable does not
-            # required starting from PXC-8.x
-            if int(version) < int("080000"):
-                cnf_name.write('wsrep_sst_auth=root:\n')
-            if int(version) > int("050700"):
-                cnf_name.write('log_error_verbosity=3\n')
             cnf_name.write('port=' + str(port_list[i - 1]) + '\n')
             if wsrep_extra == "ssl" or wsrep_extra == "encryption":
                 cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
@@ -88,13 +81,6 @@ class StartCluster:
             cnf_name.write('socket = ' + self.workdir + '/node' + str(i) + '/mysql.sock\n')
             cnf_name.write('server_id=' + str(10 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
-            if wsrep_extra == 'encryption':
-                shutil.copy(self.scriptdir + '/conf/encryption.cnf', self.workdir + '/conf/encryption.cnf')
-                cnf_name.write('!include ' + self.workdir + '/conf/encryption.cnf\n')
-                cnf_name.write('pxc_encrypt_cluster_traffic = ON\n')
-            else:
-                if int(version) > int("050700"):
-                    cnf_name.write('pxc_encrypt_cluster_traffic = OFF\n')
             cnf_name.close()
         return 0
 
@@ -131,15 +117,16 @@ class StartCluster:
                 print('Could not find config file /conf/node' + str(i) + '.cnf')
                 exit(1)
             version = sanity.version_check(self.basedir)
-            if int(version) < int("050700"):
+            if int(version) < int("1004"):
                 os.mkdir(self.workdir + '/node' + str(i))
-                initialize_node = self.basedir + '/scripts/mysql_install_db --no-defaults ' \
+                initialize_node = self.basedir + '/scripts/mysql_install_db --no-defaults --force ' \
                                                  '--basedir=' + self.basedir + ' --datadir=' + \
                                                  self.workdir + '/node' + str(i) + ' > ' + \
                                                  self.workdir + '/log/startup' + str(i) + '.log 2>&1'
             else:
-                initialize_node = self.basedir + '/bin/mysqld --no-defaults ' \
-                                ' --initialize-insecure ' + init_extra + ' --basedir=' + self.basedir + \
+                initialize_node = self.basedir + '/scripts/mariadb-install-db --no-defaults --force ' \
+                                ' --auth-root-authentication-method=normal ' + init_extra + \
+                                ' --basedir=' + self.basedir + \
                                 ' --datadir=' + self.workdir + '/node' + str(i) + ' > ' + \
                                 self.workdir + '/log/startup' + str(i) + '.log 2>&1'
             if self.debug == 'YES':

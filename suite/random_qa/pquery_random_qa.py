@@ -7,12 +7,12 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 parent_dir = os.path.normpath(os.path.join(cwd, '../../'))
 sys.path.insert(0, parent_dir)
 from config import *
-from util import pxc_startup
+from util import galera_startup
 from util import db_connection
 from util import utility
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC random mysqld option test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='Galera random mysqld option test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -35,10 +35,10 @@ utility_cmd.check_python_version()
 
 
 class RandomPQueryQA:
-    def start_pxc(self):
-        # Start PXC cluster for pquery run
+    def start_galera(self):
+        # Start Galera cluster for pquery run
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
-        server_startup = pxc_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
+        server_startup = galera_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(NODE), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Startup sanity check")
         if encryption == 'YES':
@@ -73,7 +73,7 @@ class RandomPQueryQA:
         seeds = [100, 500, 1000]
         for thread, table, record, seed in \
                 itertools.product(threads, tables, records, seeds):
-            self.start_pxc()
+            self.start_galera()
             pquery_cmd = PQUERY_BIN + " --database=" + db + " --threads=" + str(table) + " --logdir=" + \
                 WORKDIR + "/log --log-all-queries --log-failed-queries --user=root --socket=" + \
                 socket + " --seed " + str(seed) + " --tables " + str(table) + " " + \
@@ -86,9 +86,9 @@ class RandomPQueryQA:
                 utility_cmd.check_testcase(1, "ERROR!: PQUERY run is failed")
 
 
-print("--------------------")
-print("PXC Random PQUERY QA")
-print("--------------------")
+print("-----------------------")
+print("Galera Random PQUERY QA")
+print("-----------------------")
 random_pquery_qa = RandomPQueryQA()
 if not os.path.isfile(PQUERY_BIN):
     print(PQUERY_BIN + ' does not exist')

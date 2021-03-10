@@ -18,10 +18,9 @@ def check_python_version():
 def version_check(basedir):
     # Get database version number
     version_info = os.popen(basedir + "/bin/mysqld --version 2>&1 "
-                                      "| grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1").read()
-    version = "{:02d}{:02d}{:02d}".format(int(version_info.split('.')[0]),
-                                          int(version_info.split('.')[1]),
-                                          int(version_info.split('.')[2]))
+                                      "| grep -oe '10\.[1-6]' | head -n1").read()
+    version = "{:02d}{:02d}".format(int(version_info.split('.')[0]),
+                                    int(version_info.split('.')[1]))
     return version
 
 

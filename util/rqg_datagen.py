@@ -24,7 +24,7 @@ class RQGDataGen:
 
     def initiate_rqg(self, module, db, socket):
         """ Method to initiate RQD data load against
-            Percona XtraDB cluster.
+            MariaDB Galera Cluster.
         """
         # Get RQG module
         module = parent_dir + '/randgen/conf/' + module
@@ -57,11 +57,11 @@ class RQGDataGen:
                 result = os.system(rqg_command)
                 self.utility_cmd.check_testcase(result, "RQG data load (DB: " + db + ")")
 
-    def pxc_dataload(self, socket):
+    def galera_dataload(self, socket):
         """
-            RQG data load for PXC Server
+            RQG data load for MariaDB Galera Cluster
         """
-        if int(self.version) < int("050700"):
+        if int(self.version) < int("1004"):
             rqg_config = ['galera', 'transactions', 'gis', 'runtime', 'temporal']
         else:
             rqg_config = ['galera', 'transactions', 'partitioning', 'gis', 'runtime', 'temporal']

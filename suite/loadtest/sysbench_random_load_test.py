@@ -13,7 +13,7 @@ from util import table_checksum
 
 
 # Read argument
-parser = argparse.ArgumentParser(prog='PXC sysbench random load test', usage='%(prog)s [options]')
+parser = argparse.ArgumentParser(prog='Galera sysbench random load test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -36,20 +36,16 @@ class SysbenchRandomLoadTest:
     def start_server(self, socket, node):
         if SERVER == "pxc":
             my_extra = "--innodb_buffer_pool_size=8G --innodb_log_file_size=1G"
-            utility_cmd.start_pxc(parent_dir, WORKDIR, BASEDIR, node, socket, USER, encryption, my_extra)
+            utility_cmd.start_galera(parent_dir, WORKDIR, BASEDIR, node, socket, USER, encryption, my_extra)
         elif SERVER == "ps":
             my_extra = "--innodb_buffer_pool_size=8G --innodb_log_file_size=1G"
-            utility_cmd.start_ps(parent_dir, WORKDIR, BASEDIR, node, socket, USER, encryption, my_extra)
+            utility_cmd.start_md(parent_dir, WORKDIR, BASEDIR, node, socket, USER, encryption, my_extra)
 
     def sysbench_run(self, socket, db):
         checksum = ""
         # Sysbench load test
         tables = [50, 100, 300, 600, 1000]
         threads = [32, 64, 128, 256, 512, 1024]
-        version = utility_cmd.version_check(BASEDIR)
-        if int(version) < int("080000"):
-            checksum = table_checksum.TableChecksum(PT_BASEDIR, BASEDIR, WORKDIR, NODE, socket, debug)
-            checksum.sanity_check()
         sysbench = sysbench_run.SysbenchRun(BASEDIR, WORKDIR,
                                             socket, debug)
         result = sysbench.sanity_check(db)
@@ -67,15 +63,15 @@ class SysbenchRandomLoadTest:
                 utility_cmd.check_testcase(result, "Checksum run for DB: " + db)
 
 
-print("-------------------------------")
-print("\nPXC sysbench random load test")
-print("-------------------------------")
+print("----------------------------------")
+print("\nGalera sysbench random load test")
+print("----------------------------------")
 sysbench_random_loadtest = SysbenchRandomLoadTest()
-if SERVER == "pxc":
+if SERVER == "mdg":
     sysbench_random_loadtest.start_server(WORKDIR + '/node1/mysql.sock', NODE)
     sysbench_random_loadtest.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
-    utility_cmd.stop_pxc(WORKDIR, BASEDIR, NODE)
-elif SERVER == "ps":
-    sysbench_random_loadtest.start_server(PS1_SOCKET, 1)
-    sysbench_random_loadtest.sysbench_run(PS1_SOCKET, 'test')
-    utility_cmd.stop_ps(WORKDIR, BASEDIR, 1)
+    utility_cmd.stop_galera(WORKDIR, BASEDIR, NODE)
+elif SERVER == "md":
+    sysbench_random_loadtest.start_server(MD1_SOCKET, 1)
+    sysbench_random_loadtest.sysbench_run(MD1_SOCKET, 'test')
+    utility_cmd.stop_md(WORKDIR, BASEDIR, 1)
