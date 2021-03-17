@@ -78,7 +78,11 @@ class StartCluster:
             else:
                 cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
                                + str(port_list[i - 1] + 8) + ';' + wsrep_provider_option + "'\n")
+            cnf_name.write('wsrep-provider = ' + self.basedir + '/lib/libgalera_smm.so\n')
+            cnf_name.write('basedir = ' + self.basedir + '\n')
+            cnf_name.write('datadir = ' + self.workdir + '/node' + str(i) + '\n')
             cnf_name.write('socket = ' + self.workdir + '/node' + str(i) + '/mysql.sock\n')
+            cnf_name.write('log_error = ' + self.workdir + '/log/node' + str(i) + '.err\n')
             cnf_name.write('server_id=' + str(10 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
             cnf_name.close()
@@ -145,18 +149,11 @@ class StartCluster:
         for i in range(1, self.node + 1):
             if i == 1:
                 startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
-                          '.cnf --datadir=' + self.workdir + '/node' + str(i) + \
-                          ' --basedir=' + self.basedir + ' ' + my_extra + \
-                          ' --wsrep-provider=' + self.basedir + \
-                          '/lib/libgalera_smm.so --wsrep-new-cluster --log-error=' + self.workdir + \
-                          '/log/node' + str(i) + '.err > ' + self.workdir + '/log/node' + str(i) + '.err 2>&1 &'
+                          '.cnf ' + my_extra + ' --wsrep-new-cluster > ' + self.workdir + \
+                          '/log/node' + str(i) + '.err 2>&1 &'
             else:
                 startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
-                          '.cnf --datadir=' + self.workdir + '/node' + str(i) + \
-                          ' --basedir=' + self.basedir + ' ' + my_extra + \
-                          ' --wsrep-provider=' + self.basedir + \
-                          '/lib/libgalera_smm.so --log-error=' + self.workdir + '/log/node' + str(i) + '.err > ' \
-                          + self.workdir + '/log/node' + str(i) + '.err 2>&1 &'
+                          '.cnf ' + my_extra + ' > ' + self.workdir + '/log/node' + str(i) + '.err 2>&1 &'
             save_startup = 'echo "' + startup + '" > ' + self.workdir + \
                            '/log/startup' + str(i) + '.sh'
             os.system(save_startup)

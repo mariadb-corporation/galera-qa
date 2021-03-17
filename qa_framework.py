@@ -21,7 +21,7 @@ def main():
                         help='Specify product(PXC/PS) name to test')
     parser.add_argument('-s', '--suite', default='',
                         choices=['sysbench_run', 'loadtest', 'replication', 'correctness', 'ssl', 'upgrade',
-                                 'random_qa', 'galera_sr'],
+                                 'random_qa', 'galera'],
                         help='Specify suite name', nargs='*')
     parser.add_argument('-e', '--encryption-run', action='store_true',
                         help='This option will enable encryption options')

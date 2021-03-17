@@ -10,3 +10,4 @@ core-file
 log-output=none
 wsrep_slave_threads=8
 wsrep_on=1
+binlog_format=ROW

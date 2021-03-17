@@ -275,9 +275,9 @@ class PXCUpgrade:
             utility_cmd.check_testcase(result, "Cluster node" + str(int(i + 3)) + " upgrade is successful")
 
 
-query = GALERA_LOWER_BASE + "/bin/mysqld --version 2>&1 | grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1"
+query = GALERA_LOWER_BASE + "/bin/mysqld --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | head -n1"
 lower_version = os.popen(query).read().rstrip()
-query = GALERA_UPPER_BASE + "/bin/mysqld --version 2>&1 | grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1"
+query = GALERA_UPPER_BASE + "/bin/mysqld --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | head -n1"
 upper_version = os.popen(query).read().rstrip()
 version = utility_cmd.version_check(GALERA_UPPER_BASE)
 print('--------------------------------------------------------------------------------------------')

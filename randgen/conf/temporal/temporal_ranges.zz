@@ -1,6 +1,6 @@
 $tables = {
         rows => [1000],
-        engines => ['MyISAM', 'Maria', 'InnoDB' ],
+        engines => ['InnoDB' ],
         pk => [
 		'datetime', 'timestamp', 'time',
 		'datetime(3)', 'timestamp(3)', 'time(3)',

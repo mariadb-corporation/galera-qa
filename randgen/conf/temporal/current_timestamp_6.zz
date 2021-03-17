@@ -21,7 +21,7 @@ $tables = {
   names => ['A','AA','B','BB','C','CC','D','DD','E','EE','F','FF','G','GG','H','HH',
             'I','II','J','JJ','K','KK','L','LL','M','MM','N','NN','O','OO'],
   pk => [undef,'int','int auto_increment','datetime(6)','timestamp(6)'],
-  engines => ['InnoDB','MyISAM','MEMORY'],
+  engines => ['InnoDB'],
   rows => [100,500]
 };
 

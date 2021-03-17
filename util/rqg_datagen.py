@@ -62,8 +62,8 @@ class RQGDataGen:
             RQG data load for MariaDB Galera Cluster
         """
         if int(self.version) < int("1004"):
-            rqg_config = ['galera', 'transactions', 'gis', 'runtime', 'temporal']
+            rqg_config = ['galera', 'transactions', 'optimizer', 'mariadb', 'runtime', 'temporal']
         else:
-            rqg_config = ['galera', 'transactions', 'partitioning', 'gis', 'runtime', 'temporal']
+            rqg_config = ['galera', 'transactions', 'partitioning', 'optimizer', 'mariadb', 'runtime', 'temporal']
         for config in rqg_config:
             self.initiate_rqg(config, 'db_' + config, socket)
