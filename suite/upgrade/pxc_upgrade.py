@@ -20,6 +20,8 @@ from util import rqg_datagen
 parser = argparse.ArgumentParser(prog='Galera upgrade test', usage='%(prog)s [options]')
 parser.add_argument('-e', '--encryption-run', action='store_true',
                     help='This option will enable encryption options')
+parser.add_argument('-r', '--rr', action='store_true',
+                    help='This option will enable rr tracing')
 parser.add_argument('-d', '--debug', action='store_true',
                     help='This option will enable debug logging')
 args = parser.parse_args()
@@ -31,6 +33,10 @@ if args.debug is True:
     debug = 'YES'
 else:
     debug = 'NO'
+if args.rr is True:
+    rr = 'YES'
+else:
+    rr = 'NO'
 
 utility_cmd = utility.Utility(debug)
 utility_cmd.check_python_version()
@@ -60,7 +66,10 @@ class GALERAUpgrade:
             utility_cmd.check_testcase(result, "Configuration file creation")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "Initializing cluster")
-        result = server_startup.start_cluster()
+        if rr == 'YES':
+            result = server_startup.start_cluster(rr)
+        else:
+            result = server_startup.start_cluster()
         utility_cmd.check_testcase(result, "Cluster startup")
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "Database connection")
@@ -268,9 +277,9 @@ class GALERAUpgrade:
         utility_cmd.stop_galera(WORKDIR, GALERA_UPPER_BASE, NODE)
 
 
-query = GALERA_LOWER_BASE + "/bin/mysqld --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | head -n1"
+query = GALERA_LOWER_BASE + "/bin/mysqld --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | tail -1"
 lower_version = os.popen(query).read().rstrip()
-query = GALERA_UPPER_BASE + "/bin/mysqld --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | head -n1"
+query = GALERA_UPPER_BASE + "/bin/mysqld --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | tail -1"
 upper_version = os.popen(query).read().rstrip()
 version = utility_cmd.version_check(GALERA_UPPER_BASE)
 print('------------------------------------------------------------------------------------------')
@@ -324,4 +333,3 @@ if int(version) > int("080000"):
     upgrade_qa.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test', 'readwrite')
     upgrade_qa.start_upper_version()
 
-utility_cmd.stop_galera(WORKDIR, BASEDIR, NODE)

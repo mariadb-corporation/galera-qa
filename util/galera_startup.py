@@ -48,7 +48,7 @@ class StartCluster:
         if wsrep_provider_option is None:
             wsrep_provider_option = ''
         version = sanity.version_check(self.basedir)
-        port = random.randint(10, 19) * 1000
+        port = random.randint(44, 55) * 100
         port_list = []
         addr_list = ''
         for j in range(1, int(self.node) + 1):
@@ -82,7 +82,7 @@ class StartCluster:
             cnf_name.write('basedir = ' + self.basedir + '\n')
             cnf_name.write('datadir = ' + self.workdir + '/node' + str(i) + '\n')
             cnf_name.write('socket = ' + self.workdir + '/node' + str(i) + '/mysql.sock\n')
-            cnf_name.write('log_error = ' + self.workdir + '/log/node' + str(i) + '.err\n')
+            cnf_name.write('log_error = ' + self.workdir + '/node' + str(i) + '/node' + str(i) + '.err\n')
             cnf_name.write('server_id=' + str(10 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
             cnf_name.close()
@@ -139,7 +139,7 @@ class StartCluster:
             result = ("{}".format(run_query))
         return int(result)
 
-    def start_cluster(self, my_extra=None):
+    def start_cluster(self, rr_check=None, my_extra=None):
         """ Method to start the cluster nodes. This method
             will also check the startup status.
         """
@@ -148,12 +148,31 @@ class StartCluster:
             my_extra = ''
         for i in range(1, self.node + 1):
             if i == 1:
-                startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
+                if rr_check is None:
+                    startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
                           '.cnf ' + my_extra + ' --wsrep-new-cluster > ' + self.workdir + \
-                          '/log/node' + str(i) + '.err 2>&1 &'
+                          '/node' + str(i) + '/node' + str(i) + '.err 2>&1 &'
+                else:
+                    if os.path.exists(self.workdir + '/rr'):
+                        os.system('rm -rf ' + self.workdir + '/rr >/dev/null 2>&1')
+                    os.mkdir(self.workdir + '/rr')
+                    startup = 'export_RR_TRACE_DIR = "' + self.workdir + '/rr' \
+                              '" ; /usr/bin/rr record --chaos ' + \
+                              self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
+                              '.cnf ' + my_extra + ' --wsrep-new-cluster > ' + self.workdir + \
+                              '/node' + str(i) + '/node' + str(i) + '.err 2>&1 &'
             else:
+                #if rr_check is None:
                 startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
-                          '.cnf ' + my_extra + ' > ' + self.workdir + '/log/node' + str(i) + '.err 2>&1 &'
+                        '.cnf ' + my_extra + ' > ' + self.workdir + '/node' + str(i) + '/node' + \
+                        str(i) + '.err 2>&1 &'
+                #else:
+                #    startup = 'export_RR_TRACE_DIR = "' + self.workdir + '/rr_node' + str(i) + \
+                #              '" ; /usr/bin/rr record --chaos ' + \
+                #              self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
+                #              '.cnf ' + my_extra + ' > ' + self.workdir + '/node' + str(i) + '/node' + \
+                #              str(i) + '.err 2>&1 &'
+
             save_startup = 'echo "' + startup + '" > ' + self.workdir + \
                            '/log/startup' + str(i) + '.sh'
             os.system(save_startup)

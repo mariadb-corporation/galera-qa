@@ -7,3 +7,4 @@ innodb_undo_log_encrypt = ON
 innodb_temp_tablespace_encrypt = ON
 early-plugin-load = keyring_file.so
 keyring_file_data = keyring
+

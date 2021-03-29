@@ -35,11 +35,15 @@ class RQGDataGen:
         create_db = self.basedir + "/bin/mysql --user=root --socket=" + socket + \
             ' -Bse"drop database if exists ' + db + \
             ';create database ' + db + ';" 2>&1'
+        if self.debug == 'YES':
+            print(create_db)
         os.system(create_db)
         if int(self.version) > int("050700"):
             create_user = self.basedir + "/bin/mysql --user=root --socket=" + socket + \
                 ' -Bse"create user rqg_test@\'%\' identified with mysql_native_password by \'\'; ' \
                 'grant all on *.* to rqg_test@\'%\';" 2>&1'
+            if self.debug == 'YES':
+                print(create_user)
             os.system(create_user)
         # Checking RQG module
         os.chdir(parent_dir + '/randgen')
@@ -54,6 +58,8 @@ class RQGDataGen:
                               + port + ":user=" + self.user + ":database=" + db + " --spec=" + \
                               module + '/' + file + " > " + \
                               self.workdir + "/log/rqg_run.log 2>&1"
+                if self.debug == 'YES':
+                    print(rqg_command)
                 result = os.system(rqg_command)
                 self.utility_cmd.check_testcase(result, "RQG data load (DB: " + db + ")")
 
