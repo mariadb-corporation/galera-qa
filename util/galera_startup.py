@@ -139,16 +139,17 @@ class StartCluster:
             result = ("{}".format(run_query))
         return int(result)
 
-    def start_cluster(self, rr_check=None, my_extra=None):
+    def start_cluster(self, my_extra=None):
         """ Method to start the cluster nodes. This method
             will also check the startup status.
         """
         ping_status = ""
+        rr_check = "NO"
         if my_extra is None:
             my_extra = ''
         for i in range(1, self.node + 1):
             if i == 1:
-                if rr_check is None:
+                if rr_check == "YES":
                     startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
                           '.cnf ' + my_extra + ' --wsrep-new-cluster > ' + self.workdir + \
                           '/node' + str(i) + '/node' + str(i) + '.err 2>&1 &'

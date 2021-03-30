@@ -69,8 +69,8 @@ class StartPerconaServer:
             shutil.copy(self.scriptdir + '/conf/custom.cnf', self.workdir + '/conf/custom.cnf')
         # Add custom mysqld options in configuration file
         for i in range(1, self.node + 1):
-            shutil.copy(self.scriptdir + '/conf/md.cnf', self.workdir + '/conf/ps' + str(i) + '.cnf')
-            cnf_name = open(self.workdir + '/conf/ps' + str(i) + '.cnf', 'a+')
+            shutil.copy(self.scriptdir + '/conf/md.cnf', self.workdir + '/conf/md' + str(i) + '.cnf')
+            cnf_name = open(self.workdir + '/conf/md' + str(i) + '.cnf', 'a+')
             cnf_name.write('\nport=' + str(port_list[i - 1]) + '\n')
             if int(version) > int("050700"):
                 cnf_name.write('log_error_verbosity=3\n')
@@ -142,7 +142,7 @@ class StartPerconaServer:
         for i in range(1, self.node + 1):
             # Start server
             startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + \
-                '/conf/ps' + str(i) + '.cnf --datadir=' + self.workdir + '/mdnode' + str(i) + \
+                '/conf/md' + str(i) + '.cnf --datadir=' + self.workdir + '/mdnode' + str(i) + \
                 ' --basedir=' + self.basedir + ' ' + my_extra + \
                 ' --log-error=' + self.workdir + \
                 '/log/mdnode' + str(i) + '.err > ' + self.workdir + \
