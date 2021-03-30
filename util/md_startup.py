@@ -72,8 +72,6 @@ class StartPerconaServer:
             shutil.copy(self.scriptdir + '/conf/md.cnf', self.workdir + '/conf/md' + str(i) + '.cnf')
             cnf_name = open(self.workdir + '/conf/md' + str(i) + '.cnf', 'a+')
             cnf_name.write('\nport=' + str(port_list[i - 1]) + '\n')
-            if int(version) > int("050700"):
-                cnf_name.write('log_error_verbosity=3\n')
             cnf_name.write('socket=/tmp/mdnode' + str(i) + '.sock\n')
             cnf_name.write('server_id=' + str(100 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')

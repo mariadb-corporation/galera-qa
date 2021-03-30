@@ -72,14 +72,14 @@ class SetupReplication:
         utility_cmd.check_testcase(result, "Galera: Database connection")
 
     def start_md(self, node, my_extra=None):
-        """ Start Percona Server. This method will
-            perform sanity checks for PS startup
-            :param my_extra: We can pass extra PS startup
+        """ Start MariaDB Server. This method will
+            perform sanity checks for MD startup
+            :param my_extra: We can pass extra MD startup
                              option with this parameter
         """
         if my_extra is None:
             my_extra = ''
-        # Start Galera cluster for replication test
+        # Start MariaDB Server for replication test
         dbconnection_check = db_connection.DbConnection(USER, MD1_SOCKET)
         server_startup = md_startup.StartPerconaServer(parent_dir, WORKDIR, BASEDIR, int(node), debug)
         result = server_startup.sanity_check()
@@ -93,9 +93,9 @@ class SetupReplication:
         result = server_startup.add_myextra_configuration(cwd + '/replication.cnf')
         utility_cmd.check_testcase(result, "MD: Adding custom configuration")
         result = server_startup.initialize_cluster()
-        utility_cmd.check_testcase(result, "MD: Initializing cluster")
+        utility_cmd.check_testcase(result, "MD: Initializing MariaDB Server")
         result = server_startup.start_server(my_extra)
-        utility_cmd.check_testcase(result, "MD: Cluster startup")
+        utility_cmd.check_testcase(result, "MD: MariaDB Server startup")
         result = dbconnection_check.connection_check()
         utility_cmd.check_testcase(result, "MD: Database connection")
 
