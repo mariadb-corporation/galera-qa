@@ -42,11 +42,10 @@ class StartPerconaServer:
     # This method will help us to check PS version
     def version_check(self):
         # Database version check
-        version_info = os.popen(self.basedir + "/bin/mysqld --version 2>&1 | "
-                                               "grep -oe '[0-9]\.[0-9][\.0-9]*' | head -n1").read()
-        version = "{:02d}{:02d}{:02d}".format(int(version_info.split('.')[0]),
-                                              int(version_info.split('.')[1]),
-                                              int(version_info.split('.')[2]))
+        version_info = os.popen(self.basedir + "/bin/mysqld --version 2>&1 "
+                                               "| grep -oe '10\.[1-6]' | head -n1").read()
+        version = "{:02d}{:02d}".format(int(version_info.split('.')[0]),
+                                        int(version_info.split('.')[1]))
         return version
 
     def create_config(self, conf_extra=None):
@@ -57,7 +56,7 @@ class StartPerconaServer:
             in conf/custom.conf.
         """
         version = sanity.version_check(self.basedir)    # Get server version
-        port = random.randint(21, 30) * 1004
+        port = random.randint(35, 43) * 100
         port_list = []
         for j in range(1, self.node + 1):
             port_list += [port + (j * 100)]
@@ -74,6 +73,8 @@ class StartPerconaServer:
             cnf_name.write('\nport=' + str(port_list[i - 1]) + '\n')
             cnf_name.write('socket=/tmp/mdnode' + str(i) + '.sock\n')
             cnf_name.write('server_id=' + str(100 + i) + '\n')
+            if conf_extra == "gtid":
+                cnf_name.write('gtid_domain_id=' + str(20 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
             if conf_extra == 'encryption':
                 shutil.copy(self.scriptdir + '/conf/encryption.cnf',
@@ -157,6 +158,12 @@ class StartPerconaServer:
                 ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
                 ping_status = ("{}".format(ping_check))
                 if int(ping_status) == 0:
+                    query = self.basedir + '/bin/mysql --user=root --socket=/tmp/mdnode' + str(i) + \
+                            '.sock -Bse"' \
+                            "delete from mysql.user where user='';\" > /dev/null 2>&1"
+                    if self.debug == 'YES':
+                        print(query)
+                    os.system(query)
                     break  # break the loop if mysqld is running
 
         return int(ping_status)

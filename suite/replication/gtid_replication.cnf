@@ -1,6 +1,5 @@
 [mysqld]
-gtid_mode=ON
-enforce_gtid_consistency=ON
+gtid_strict_mode=1
 log_slave_updates=ON
 log_bin=binlog
 binlog_format=ROW

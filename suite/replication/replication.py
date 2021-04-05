@@ -156,10 +156,7 @@ class SetupReplication:
             self.start_galera()
             self.start_md(ps_node)
         if comment == "msr":
-            utility_cmd.invoke_replication(BASEDIR, MD1_SOCKET,
-                                           slave_socket, 'NONGTID', "for channel 'master1'")
-            utility_cmd.invoke_replication(BASEDIR, MD2_SOCKET,
-                                           slave_socket, 'NONGTID', "for channel 'master2'")
+            utility_cmd.invoke_msr_replication(BASEDIR, MD1_SOCKET, MD2_SOCKET, slave_socket, 'NONGTID')
         else:
             utility_cmd.invoke_replication(BASEDIR, master_socket,
                                            slave_socket, 'NONGTID', comment)
@@ -170,10 +167,10 @@ class SetupReplication:
         rqg_dataload.galera_dataload(master_socket)
 
         if comment == "msr":
-            utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, 'master1')
-            utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, 'master1')
-            utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, 'master2')
-            utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, 'master2')
+            utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, "'master1'")
+            utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, "'master1'")
+            utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, "'master2'")
+            utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, "'master2'")
         else:
             utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, comment)
             utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, comment)
@@ -192,12 +189,11 @@ print("----------------------------------------------")
 replication_run.replication_testcase('1', 'MD', 'Galera', 'none', MD1_SOCKET,
                                      WORKDIR + '/node1/mysql.sock')
 
-if int(version) > int("050700"):
-    print("\nNON-GTID Galera multi source replication")
-    print("-----------------------------------")
-    replication_run.replication_testcase('2', 'MD', 'Galera', 'msr', MD1_SOCKET,
-                                         WORKDIR + '/node1/mysql.sock')
-    print("\nNON-GTID Galera multi thread replication")
-    print("-----------------------------------")
-    replication_run.replication_testcase('1', 'MD', 'Galera', 'mtr', MD1_SOCKET,
-                                         WORKDIR + '/node1/mysql.sock')
+print("\nNON-GTID Galera multi source replication")
+print("-----------------------------------")
+replication_run.replication_testcase('2', 'MD', 'Galera', 'msr', MD1_SOCKET,
+                                     WORKDIR + '/node1/mysql.sock')
+print("\nNON-GTID Galera multi thread replication")
+print("-----------------------------------")
+replication_run.replication_testcase('1', 'MD', 'Galera', 'mtr', MD1_SOCKET,
+                                     WORKDIR + '/node1/mysql.sock')

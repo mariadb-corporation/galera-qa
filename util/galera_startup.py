@@ -84,6 +84,8 @@ class StartCluster:
             cnf_name.write('socket = ' + self.workdir + '/node' + str(i) + '/mysql.sock\n')
             cnf_name.write('log_error = ' + self.workdir + '/node' + str(i) + '/node' + str(i) + '.err\n')
             cnf_name.write('server_id=' + str(10 + i) + '\n')
+            if wsrep_extra == "gtid":
+                cnf_name.write('gtid_domain_id=' + str(20 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
             cnf_name.close()
         return 0
