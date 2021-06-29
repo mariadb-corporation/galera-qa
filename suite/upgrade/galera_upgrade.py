@@ -43,7 +43,7 @@ utility_cmd.check_python_version()
 
 
 class GALERAUpgrade:
-    def startup(self, wsrep_extra=None):
+    def startup(self, sst_opt, wsrep_extra=None):
         # Start Galera cluster for upgrade test
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
         server_startup = galera_startup.StartCluster(parent_dir, WORKDIR, GALERA_LOWER_BASE, int(NODE), debug)
@@ -59,10 +59,10 @@ class GALERAUpgrade:
             utility_cmd.check_testcase(result, "Configuration file creation")
         else:
             if wsrep_extra is not None:
-                result = server_startup.create_config('none', 'gcache.keep_pages_size=5;'
+                result = server_startup.create_config(sst_opt, 'gcache.keep_pages_size=5;'
                                                       'gcache.page_size=1024M;gcache.size=1024M;')
             else:
-                result = server_startup.create_config('none')
+                result = server_startup.create_config(sst_opt)
             utility_cmd.check_testcase(result, "Configuration file creation")
         result = server_startup.initialize_cluster()
         utility_cmd.check_testcase(result, "Initializing cluster")
@@ -282,54 +282,62 @@ lower_version = os.popen(query).read().rstrip()
 query = GALERA_UPPER_BASE + "/bin/mysqld --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | tail -1"
 upper_version = os.popen(query).read().rstrip()
 version = utility_cmd.version_check(GALERA_UPPER_BASE)
-print('------------------------------------------------------------------------------------------')
-print("\nGalera Upgrade test : Upgrading from GALERA-" + lower_version + " to GALERA-" + upper_version)
-print('------------------------------------------------------------------------------------------')
-print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade without active workload")
-print('------------------------------------------------------------------------------------------')
 upgrade_qa = GALERAUpgrade()
-upgrade_qa.startup()
-rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
-rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
-upgrade_qa.rolling_upgrade('none')
-print('------------------------------------------------------------------------------------')
-print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active readonly workload")
-print('------------------------------------------------------------------------------------')
-upgrade_qa.startup()
-rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
-rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
-upgrade_qa.rolling_upgrade('readonly')
-print('------------------------------------------------------------------------------------')
-print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active read/write workload"
-                                             "(enforcing SST on node-join)")
-print('------------------------------------------------------------------------------------')
-upgrade_qa.startup()
-rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
-rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
-upgrade_qa.rolling_upgrade('readwrite_sst')
-print('------------------------------------------------------------------------------------')
-print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active read/write workload"
-                                            "(enforcing IST on node-join)")
-print('------------------------------------------------------------------------------------')
-upgrade_qa.startup('wsrep_extra')
-rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
-rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
-upgrade_qa.rolling_upgrade('readwrite')
-if int(version) > int("080000"):
+print('--------------------------------------------------------------------------------------------------')
+print("\nGalera Upgrade test : Upgrading from GALERA-" + lower_version + " to GALERA-" + upper_version)
+print('--------------------------------------------------------------------------------------------------')
+sst_opts = ["encrypt2", "encrypt3", "none"]
+for i in sst_opts:
+    print('--------------------------------------------------------------------------------------------------')
+    print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade without active workload")
+    print('--------------------------------------------------------------------------------------------------')
+    upgrade_qa.startup(i)
+    rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
+    rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
+    upgrade_qa.rolling_upgrade('none')
+
+for i in sst_opts:
     print('------------------------------------------------------------------------------------')
-    print(datetime.now().strftime("%H:%M:%S ") + "Mix of GALERA-" +
-          lower_version + " and GALERA-" + upper_version + "(without active workload)")
+    print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active readonly workload")
     print('------------------------------------------------------------------------------------')
-    upgrade_qa = GALERAUpgrade()
-    upgrade_qa.startup()
-    upgrade_qa.start_upper_version()
+    upgrade_qa.startup(i)
+    rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
+    rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
+    upgrade_qa.rolling_upgrade('readonly')
+for i in sst_opts:
     print('------------------------------------------------------------------------------------')
-    print(datetime.now().strftime("%H:%M:%S ") + "Mix of GALERA-" +
-          lower_version + " and GALERA-" + upper_version + "(with active read/write workload)")
+    print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active read/write workload"
+                                                 "(enforcing SST on node-join)")
+    print('------------------------------------------------------------------------------------')
+    upgrade_qa.startup(i)
+    rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
+    rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
+    upgrade_qa.rolling_upgrade('readwrite_sst')
+for i in sst_opts:
+    print('------------------------------------------------------------------------------------')
+    print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active read/write workload"
+                                                 "(enforcing IST on node-join)")
     print('------------------------------------------------------------------------------------')
     upgrade_qa.startup('wsrep_extra')
     rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
     rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
-    upgrade_qa.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test', 'readwrite')
-    upgrade_qa.start_upper_version()
+    upgrade_qa.rolling_upgrade('readwrite')
+if int(version) > int("080000"):
+    for i in sst_opts:
+        print('------------------------------------------------------------------------------------')
+        print(datetime.now().strftime("%H:%M:%S ") + "Mix of GALERA-" +
+              lower_version + " and GALERA-" + upper_version + "(without active workload)")
+        print('------------------------------------------------------------------------------------')
+        upgrade_qa = GALERAUpgrade()
+        upgrade_qa.startup(i)
+        upgrade_qa.start_upper_version()
+        print('------------------------------------------------------------------------------------')
+        print(datetime.now().strftime("%H:%M:%S ") + "Mix of GALERA-" +
+              lower_version + " and GALERA-" + upper_version + "(with active read/write workload)")
+        print('------------------------------------------------------------------------------------')
+        upgrade_qa.startup(i, 'wsrep_extra')
+        rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
+        rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
+        upgrade_qa.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test', 'readwrite')
+        upgrade_qa.start_upper_version()
 

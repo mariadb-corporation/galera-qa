@@ -67,7 +67,7 @@ class StartCluster:
                 cnf_name.write('wsrep-debug=1\n')
             cnf_name.write('wsrep_cluster_address=gcomm://' + addr_list + '\n')
             cnf_name.write('port=' + str(port_list[i - 1]) + '\n')
-            if wsrep_extra == "ssl" or wsrep_extra == "encryption":
+            if wsrep_extra != "none":
                 cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
                                + str(port_list[i - 1] + 8) + ';' + wsrep_provider_option + 'socket.ssl_key='
                                + self.workdir + '/cert/server-key.pem;socket.ssl_cert='
@@ -75,6 +75,7 @@ class StartCluster:
                                + self.workdir + "/cert/ca.pem'\n")
                 cnf_name.write('!include ' + self.workdir + '/conf/ssl.cnf\n')
                 sanity.create_ssl_certificate(self.workdir)
+                sanity.add_ssl_config(self.workdir, wsrep_extra)
             else:
                 cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
                                + str(port_list[i - 1] + 8) + ';' + wsrep_provider_option + "'\n")
@@ -151,7 +152,7 @@ class StartCluster:
             my_extra = ''
         for i in range(1, self.node + 1):
             if i == 1:
-                if rr_check == "YES":
+                if rr_check == "NO":
                     startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
                           '.cnf ' + my_extra + ' --wsrep-new-cluster > ' + self.workdir + \
                           '/node' + str(i) + '/node' + str(i) + '.err 2>&1 &'
