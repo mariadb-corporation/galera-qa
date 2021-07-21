@@ -67,18 +67,6 @@ class StartCluster:
                 cnf_name.write('wsrep-debug=1\n')
             cnf_name.write('wsrep_cluster_address=gcomm://' + addr_list + '\n')
             cnf_name.write('port=' + str(port_list[i - 1]) + '\n')
-            if wsrep_extra != "none":
-                cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
-                               + str(port_list[i - 1] + 8) + ';' + wsrep_provider_option + 'socket.ssl_key='
-                               + self.workdir + '/cert/server-key.pem;socket.ssl_cert='
-                               + self.workdir + '/cert/server-cert.pem;socket.ssl_ca='
-                               + self.workdir + "/cert/ca.pem'\n")
-                cnf_name.write('!include ' + self.workdir + '/conf/ssl.cnf\n')
-                sanity.create_ssl_certificate(self.workdir)
-                sanity.add_ssl_config(self.workdir, wsrep_extra)
-            else:
-                cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
-                               + str(port_list[i - 1] + 8) + ';' + wsrep_provider_option + "'\n")
             cnf_name.write('wsrep-provider = ' + self.basedir + '/lib/libgalera_smm.so\n')
             cnf_name.write('basedir = ' + self.basedir + '\n')
             cnf_name.write('datadir = ' + self.workdir + '/node' + str(i) + '\n')
@@ -88,7 +76,41 @@ class StartCluster:
             if wsrep_extra == "gtid":
                 cnf_name.write('gtid_domain_id=' + str(20 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
+            if wsrep_extra != "none":
+                cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
+                               + str(port_list[i - 1] + 8) + ';' + wsrep_provider_option + 'socket.ssl_key='
+                               + self.workdir + '/cert/server-key.pem;socket.ssl_cert='
+                               + self.workdir + '/cert/server-cert.pem;socket.ssl_ca='
+                               + self.workdir + "/cert/ca.pem'\n")
+                if int(version) >= int("1006"):
+                    cnf_name.write('wsrep-ssl-mode=SERVER\n')
+                sanity.create_ssl_certificate(self.workdir)
+                sanity.add_ssl_config(self.workdir, wsrep_extra)
+                cnf_name.write('ssl-ca = ' + self.workdir + '/cert/ca.pem\n')
+                cnf_name.write('ssl-cert = ' + self.workdir + '/cert/server-cert.pem\n')
+                cnf_name.write('ssl-key = ' + self.workdir + '/cert/server-key.pem\n')
+                if wsrep_extra == "encrypt2":
+                    cnf_name.write('[sst]\n')
+                    cnf_name.write('encrypt = 2\n')
+                    cnf_name.write('tca = ' + self.workdir + '/cert/sst_encypt2.crt\n')
+                    cnf_name.write('tcert = ' + self.workdir + '/cert/sst_encypt2.pem\n')
+                elif wsrep_extra == "encrypt3":
+                    cnf_name.write('[sst]\n')
+                    cnf_name.write('encrypt = 3\n')
+                    cnf_name.write('tcert = ' + self.workdir + '/cert/server-cert.pem\n')
+                    cnf_name.write('tkey = ' + self.workdir + '/cert/server-key.pem\n')
+            else:
+                if int(version) >= int("1006"):
+                    cnf_name.write('wsrep-ssl-mode=PROVIDER\n')
+                cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
+                               + str(port_list[i - 1] + 8) + ';' + wsrep_provider_option + "'\n")
             cnf_name.close()
+            if wsrep_extra == "encrypt2":
+                hostname = os.popen('hostname').read().rstrip()
+                os.system("sed -i 's|wsrep_node_address=127.0.0.1|wsrep_node_address="
+                          + hostname + "|' " + self.workdir + '/conf/node' + str(i) + '.cnf')
+                os.system("sed -i 's|wsrep_node_incoming_address=127.0.0.1|wsrep_node_incoming_address="
+                          + hostname + "|' " + self.workdir + '/conf/node' + str(i) + '.cnf')
         return 0
 
     def add_myextra_configuration(self, config_file):
@@ -166,16 +188,9 @@ class StartCluster:
                               '.cnf ' + my_extra + ' --wsrep-new-cluster > ' + self.workdir + \
                               '/node' + str(i) + '/node' + str(i) + '.err 2>&1 &'
             else:
-                #if rr_check is None:
                 startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
-                        '.cnf ' + my_extra + ' > ' + self.workdir + '/node' + str(i) + '/node' + \
-                        str(i) + '.err 2>&1 &'
-                #else:
-                #    startup = 'export_RR_TRACE_DIR = "' + self.workdir + '/rr_node' + str(i) + \
-                #              '" ; /usr/bin/rr record --chaos ' + \
-                #              self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
-                #              '.cnf ' + my_extra + ' > ' + self.workdir + '/node' + str(i) + '/node' + \
-                #              str(i) + '.err 2>&1 &'
+                    '.cnf ' + my_extra + ' > ' + self.workdir + '/node' + str(i) + '/node' + \
+                    str(i) + '.err 2>&1 &'
 
             save_startup = 'echo "' + startup + '" > ' + self.workdir + \
                            '/log/startup' + str(i) + '.sh'

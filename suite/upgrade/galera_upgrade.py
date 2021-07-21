@@ -230,12 +230,13 @@ class GALERAUpgrade:
                                                           SYSBENCH_LOAD_TEST_TABLE_SIZE)
                     utility_cmd.check_testcase(result, "Sysbench data load(DB: test_three)")
 
+            os.system("sed -i '/basedir =/d' " + WORKDIR + '/conf/node' + str(i) + '.cnf')
+            os.system("sed -i '/wsrep-provider =/d' " + WORKDIR + '/conf/node' + str(i) + '.cnf')
             startup_cmd = GALERA_UPPER_BASE + '/bin/mysqld --defaults-file=' + \
                 WORKDIR + '/conf/node' + str(i) + '.cnf --wsrep-provider=' + \
                 GALERA_UPPER_BASE + '/lib/libgalera_smm.so --datadir=' + \
-                WORKDIR + '/node' + str(i) + ' --basedir=' + GALERA_UPPER_BASE + ' --log-error=' + \
-                WORKDIR + '/log/upgrade_node' + str(i) + '.err >> ' + \
-                WORKDIR + '/log/upgrade_node' + str(i) + '.err 2>&1 &'
+                WORKDIR + '/node' + str(i) + ' --basedir=' + GALERA_UPPER_BASE + ' >> ' + \
+                WORKDIR + '/node' + str(i) + '/node' + str(i) + '.err 2>&1 &'
             utility_cmd.check_testcase(0, "Starting cluster node" + str(i) + " with upgraded version")
 
             if debug == 'YES':
@@ -266,14 +267,22 @@ class GALERAUpgrade:
                                                WORKDIR + '/node1/mysql.sock',
                                                WORKDIR + '/node2/mysql.sock')
         utility_cmd.check_testcase(result, "Checksum run for DB: db_galera")
-        result = utility_cmd.check_table_count(GALERA_UPPER_BASE, 'db_transactions',
+        result = utility_cmd.check_table_count(GALERA_UPPER_BASE, 'db_mariadb',
                                                WORKDIR + '/node1/mysql.sock',
                                                WORKDIR + '/node2/mysql.sock')
-        utility_cmd.check_testcase(result, "Checksum run for DB: db_transactions")
-        result = utility_cmd.check_table_count(GALERA_UPPER_BASE, 'db_partitioning',
+        utility_cmd.check_testcase(result, "Checksum run for DB: db_mariadb")
+        result = utility_cmd.check_table_count(GALERA_UPPER_BASE, 'db_runtime',
                                                WORKDIR + '/node1/mysql.sock',
                                                WORKDIR + '/node2/mysql.sock')
-        utility_cmd.check_testcase(result, "Checksum run for DB: db_partitioning")
+        utility_cmd.check_testcase(result, "Checksum run for DB: db_runtime")
+        result = utility_cmd.check_table_count(GALERA_UPPER_BASE, 'db_optimizer',
+                                               WORKDIR + '/node1/mysql.sock',
+                                               WORKDIR + '/node2/mysql.sock')
+        utility_cmd.check_testcase(result, "Checksum run for DB: db_optimizer")
+        result = utility_cmd.check_table_count(GALERA_UPPER_BASE, 'db_temporal',
+                                               WORKDIR + '/node1/mysql.sock',
+                                               WORKDIR + '/node2/mysql.sock')
+        utility_cmd.check_testcase(result, "Checksum run for DB: db_temporal")
         utility_cmd.stop_galera(WORKDIR, GALERA_UPPER_BASE, NODE)
 
 
@@ -286,10 +295,12 @@ upgrade_qa = GALERAUpgrade()
 print('--------------------------------------------------------------------------------------------------')
 print("\nGalera Upgrade test : Upgrading from GALERA-" + lower_version + " to GALERA-" + upper_version)
 print('--------------------------------------------------------------------------------------------------')
-sst_opts = ["encrypt2", "encrypt3", "none"]
+sst_opts = ["encrypt3", "none"]
+
 for i in sst_opts:
     print('--------------------------------------------------------------------------------------------------')
-    print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade without active workload")
+    print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade without active workload (SST encryption : "
+          + i + ")")
     print('--------------------------------------------------------------------------------------------------')
     upgrade_qa.startup(i)
     rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
@@ -298,7 +309,8 @@ for i in sst_opts:
 
 for i in sst_opts:
     print('------------------------------------------------------------------------------------')
-    print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active readonly workload")
+    print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active readonly workload (SST encryption : "
+          + i + ")")
     print('------------------------------------------------------------------------------------')
     upgrade_qa.startup(i)
     rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
@@ -307,7 +319,7 @@ for i in sst_opts:
 for i in sst_opts:
     print('------------------------------------------------------------------------------------')
     print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active read/write workload"
-                                                 "(enforcing SST on node-join)")
+                                                 "(enforcing SST on node-join) (SST encryption : " + i + ")")
     print('------------------------------------------------------------------------------------')
     upgrade_qa.startup(i)
     rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
@@ -316,24 +328,26 @@ for i in sst_opts:
 for i in sst_opts:
     print('------------------------------------------------------------------------------------')
     print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active read/write workload"
-                                                 "(enforcing IST on node-join)")
+                                                 "(enforcing IST on node-join) (SST encryption : " + i + ")")
     print('------------------------------------------------------------------------------------')
     upgrade_qa.startup('wsrep_extra')
     rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
     rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
     upgrade_qa.rolling_upgrade('readwrite')
+
 if int(version) > int("080000"):
     for i in sst_opts:
         print('------------------------------------------------------------------------------------')
         print(datetime.now().strftime("%H:%M:%S ") + "Mix of GALERA-" +
-              lower_version + " and GALERA-" + upper_version + "(without active workload)")
+              lower_version + " and GALERA-" + upper_version + "(without active workload) (SST encryption : " + i + ")")
         print('------------------------------------------------------------------------------------')
         upgrade_qa = GALERAUpgrade()
         upgrade_qa.startup(i)
         upgrade_qa.start_upper_version()
         print('------------------------------------------------------------------------------------')
         print(datetime.now().strftime("%H:%M:%S ") + "Mix of GALERA-" +
-              lower_version + " and GALERA-" + upper_version + "(with active read/write workload)")
+              lower_version + " and GALERA-" + upper_version + "(with active read/write workload) (SST encryption : "
+              + i + ")")
         print('------------------------------------------------------------------------------------')
         upgrade_qa.startup(i, 'wsrep_extra')
         rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
