@@ -61,9 +61,31 @@ class Utility:
         cnf_name.close()
         return 0
 
+    def check_gtid_consistency(self, basedir, socket1, socket2):
+        """ Compare the table count between two nodes
+        """
+        query = basedir + '/bin/mysql -uroot --socket=' + \
+            socket1 + ' -Bse"SELECT @@gtid_binlog_state;"'
+        gtid_binlog_state_1 = os.popen(query).read().rstrip()
+        if self.debug == 'YES':
+            print(query)
+            print('GTID binlog state ' + gtid_binlog_state_1)
+        query = basedir + '/bin/mysql -uroot --socket=' + \
+            socket2 + ' -Bse"SELECT @@gtid_binlog_state;"'
+        gtid_binlog_state_2 = os.popen(query).read().rstrip()
+        if self.debug == 'YES':
+            print(query)
+            print('GTID binlog state ' + gtid_binlog_state_2)
+        if gtid_binlog_state_1 == gtid_binlog_state_2:
+            return 0
+        else:
+            print("\tGTID binlog state is different")
+            print("Node1 GTID binlog state:" + gtid_binlog_state_1 +
+                  " , Node2 GTID binlog state:" + gtid_binlog_state_2)
+            return 1
+
     def check_table_count(self, basedir, db, socket1, socket2):
-        """ This method will compare the table
-            count between two nodes
+        """ Compare the table count between two nodes
         """
         query = basedir + '/bin/mysql -uroot ' + db + ' --socket=' + \
                 socket1 + ' -Bse"show tables;"'
@@ -91,8 +113,7 @@ class Utility:
                 return 1
 
     def pxb_sanity_check(self, basedir, workdir, socket):
-        """ This method will check pxb installation and
-            cleanup backup directory
+        """ Check pxb installation and cleanup backup directory
         """
         # Check xtrabackup installation
         if find_executable('xtrabackup') is None:
@@ -121,8 +142,7 @@ class Utility:
             exit(1)
 
     def pxb_backup(self, workdir, source_datadir, socket, encryption, dest_datadir=None):
-        """ This method will backup PXC/PS data directory
-            with the help of xtrabackup.
+        """ Backup PXC/PS data directory with the help of xtrabackup.
         """
         # Enable keyring file plugin if it is encryption run
         if encryption == 'YES':
@@ -368,7 +388,6 @@ class Utility:
             print(invoke_slave)
         result = os.system(invoke_slave)
         self.check_testcase(result, "Initiated replication from master1 and master2")
-
 
     def start_galera(self, parent_dir, workdir, basedir, node, socket, user, encryption, my_extra):
         # Start MariaDB Galera cluster

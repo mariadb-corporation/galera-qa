@@ -73,8 +73,8 @@ class StartCluster:
             cnf_name.write('socket = ' + self.workdir + '/node' + str(i) + '/mysql.sock\n')
             cnf_name.write('log_error = ' + self.workdir + '/node' + str(i) + '/node' + str(i) + '.err\n')
             cnf_name.write('server_id=' + str(10 + i) + '\n')
-            if wsrep_extra == "gtid":
-                cnf_name.write('gtid_domain_id=' + str(20 + i) + '\n')
+            #if wsrep_extra == "gtid":
+            #    cnf_name.write('gtid_domain_id=' + str(20 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
             if wsrep_extra != "none":
                 cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
@@ -82,8 +82,8 @@ class StartCluster:
                                + self.workdir + '/cert/server-key.pem;socket.ssl_cert='
                                + self.workdir + '/cert/server-cert.pem;socket.ssl_ca='
                                + self.workdir + "/cert/ca.pem'\n")
-                if int(version) >= int("1006"):
-                    cnf_name.write('wsrep-ssl-mode=SERVER\n')
+                #if int(version) >= int("1006"):
+                #    cnf_name.write('wsrep-ssl-mode=SERVER\n')
                 sanity.create_ssl_certificate(self.workdir)
                 sanity.add_ssl_config(self.workdir, wsrep_extra)
                 cnf_name.write('ssl-ca = ' + self.workdir + '/cert/ca.pem\n')
@@ -100,8 +100,8 @@ class StartCluster:
                     cnf_name.write('tcert = ' + self.workdir + '/cert/server-cert.pem\n')
                     cnf_name.write('tkey = ' + self.workdir + '/cert/server-key.pem\n')
             else:
-                if int(version) >= int("1006"):
-                    cnf_name.write('wsrep-ssl-mode=PROVIDER\n')
+                #if int(version) >= int("1006"):
+                    #cnf_name.write('wsrep-ssl-mode=PROVIDER\n')
                 cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
                                + str(port_list[i - 1] + 8) + ';' + wsrep_provider_option + "'\n")
             cnf_name.close()
@@ -164,19 +164,24 @@ class StartCluster:
             result = ("{}".format(run_query))
         return int(result)
 
-    def start_cluster(self, my_extra=None):
+    def start_cluster(self, my_extra=None, repl_opts=None):
         """ Method to start the cluster nodes. This method
             will also check the startup status.
         """
         ping_status = ""
         rr_check = "NO"
+        gtid_domain_id = ""
         if my_extra is None:
             my_extra = ''
+        if repl_opts is None:
+            repl_opts = ''
         for i in range(1, self.node + 1):
+            if repl_opts == "msr":
+                gtid_domain_id = ' --gtid_domain_id=2' + str(i)
             if i == 1:
                 if rr_check == "NO":
                     startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
-                          '.cnf ' + my_extra + ' --wsrep-new-cluster > ' + self.workdir + \
+                          '.cnf ' + my_extra + gtid_domain_id + ' --wsrep-new-cluster > ' + self.workdir + \
                           '/node' + str(i) + '/node' + str(i) + '.err 2>&1 &'
                 else:
                     if os.path.exists(self.workdir + '/rr'):
@@ -185,11 +190,11 @@ class StartCluster:
                     startup = 'export_RR_TRACE_DIR = "' + self.workdir + '/rr' \
                               '" ; /usr/bin/rr record --chaos ' + \
                               self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
-                              '.cnf ' + my_extra + ' --wsrep-new-cluster > ' + self.workdir + \
+                              '.cnf ' + my_extra + gtid_domain_id + ' --wsrep-new-cluster > ' + self.workdir + \
                               '/node' + str(i) + '/node' + str(i) + '.err 2>&1 &'
             else:
                 startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
-                    '.cnf ' + my_extra + ' > ' + self.workdir + '/node' + str(i) + '/node' + \
+                    '.cnf ' + my_extra + gtid_domain_id + ' > ' + self.workdir + '/node' + str(i) + '/node' + \
                     str(i) + '.err 2>&1 &'
 
             save_startup = 'echo "' + startup + '" > ' + self.workdir + \

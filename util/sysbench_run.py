@@ -242,7 +242,7 @@ class SysbenchRun:
             " --mysql-db=" + db + " " + SYSBENCH_DB_CONNECT + \
             " --mysql-socket=" + self.socket + \
             " --time=" + str(time) + \
-            " --db-ps-mode=disable run > " + str_run
+            " --db-ps-mode=disable run >> " + str_run
         if self.debug == 'YES':
             print(query)
         query_status = os.system(query)

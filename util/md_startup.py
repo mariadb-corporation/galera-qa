@@ -73,8 +73,8 @@ class StartPerconaServer:
             cnf_name.write('\nport=' + str(port_list[i - 1]) + '\n')
             cnf_name.write('socket=/tmp/mdnode' + str(i) + '.sock\n')
             cnf_name.write('server_id=' + str(100 + i) + '\n')
-            if conf_extra == "gtid":
-                cnf_name.write('gtid_domain_id=' + str(20 + i) + '\n')
+            #if conf_extra == "gtid":
+            #    cnf_name.write('gtid_domain_id=' + str(20 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
             if conf_extra == 'encryption':
                 shutil.copy(self.scriptdir + '/conf/encryption.cnf',
@@ -131,18 +131,23 @@ class StartPerconaServer:
             result = ("{}".format(run_query))
         return int(result)
 
-    def start_server(self, my_extra=None):
+    def start_server(self, my_extra=None, repl_opts=None):
         """ Method to start the cluster nodes. This method
             will also check the startup status.
         """
         ping_status = 1     # return value
+        gtid_domain_id = ""
         if my_extra is None:
             my_extra = ''
+        if repl_opts is None:
+            repl_opts = ''
         for i in range(1, self.node + 1):
+            if repl_opts == "msr":
+                gtid_domain_id = ' --gtid_domain_id=2' + str(i)
             # Start server
             startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + \
                 '/conf/md' + str(i) + '.cnf --datadir=' + self.workdir + '/mdnode' + str(i) + \
-                ' --basedir=' + self.basedir + ' ' + my_extra + \
+                ' --basedir=' + self.basedir + ' ' + my_extra + gtid_domain_id + \
                 ' --log-error=' + self.workdir + \
                 '/log/mdnode' + str(i) + '.err > ' + self.workdir + \
                 '/log/mdnode' + str(i) + '.err 2>&1 &'
@@ -160,7 +165,8 @@ class StartPerconaServer:
                 if int(ping_status) == 0:
                     query = self.basedir + '/bin/mysql --user=root --socket=/tmp/mdnode' + str(i) + \
                             '.sock -Bse"' \
-                            "delete from mysql.user where user='';\" > /dev/null 2>&1"
+                            "delete from mysql.user where user='';drop database if exists test; " \
+                            "create database test;\" > /dev/null 2>&1"
                     if self.debug == 'YES':
                         print(query)
                     os.system(query)
