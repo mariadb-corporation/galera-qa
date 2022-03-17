@@ -52,12 +52,20 @@ class SetupReplication:
                                  option for adding dynamic gtid_domain_id for primary servers
         """
         # Start Galera cluster for replication test
+        # check my_extra is none
         if my_extra is None:
             my_extra = ''
+
+        # check repl_comment is none
         if repl_comment is None:
             repl_comment = ''
+
+        # get the script working directory
         script_dir = os.path.dirname(os.path.realpath(__file__))
+
+        # check the database is up and running
         dbconnection_check = db_connection.DbConnection(USER, WORKDIR + '/node1/mysql.sock')
+
         server_startup = galera_startup.StartCluster(parent_dir, WORKDIR, BASEDIR, int(self.node), debug)
         result = server_startup.sanity_check()
         utility_cmd.check_testcase(result, "Galera: Startup sanity check")
@@ -164,12 +172,10 @@ class SetupReplication:
         utility_cmd.check_testcase(result, node + ": Replication QA prepared statements dataload")
 
     def replication_testcase(self, ps_node, master, slave, comment, master_socket, slave_socket):
-        global gtid_domain_id
         slave_parallel_modes = ["optimistic", "conservative", "aggressive", "minimal", "none"]
         for i in slave_parallel_modes:
             print("......................................................")
             print("Test starting with slave_parallel_mode=" + i)
-            print("......................................................")
             if comment == "mtr":
                 self.start_galera('--slave-parallel-workers=5 --slave_parallel_mode=' + i)
                 self.start_md(ps_node, '--slave-parallel-workers=5 --slave_parallel_mode=' + i)
@@ -178,10 +184,14 @@ class SetupReplication:
                 self.start_galera(' --slave_parallel_mode=' + i, comment)
                 self.start_md(ps_node, ' --slave_parallel_mode=' + i, comment)
             else:
-                self.start_galera(gtid_domain_id + ' --slave_parallel_mode=' + i)
-                self.start_md(ps_node, gtid_domain_id + ' --slave_parallel_mode=' + i)
+                self.start_galera(' --gtid_domain_id=21 --slave_parallel_mode=' + i)
+                self.start_md(ps_node, ' --gtid_domain_id=21 --slave_parallel_mode=' + i)
+
             if comment == "msr":
                 utility_cmd.invoke_msr_replication(BASEDIR, MD1_SOCKET, MD2_SOCKET, slave_socket, 'GTID')
+            elif comment == "master_master":
+                utility_cmd.invoke_master_master_replication(BASEDIR, master_socket,
+                                               slave_socket, 'GTID', comment)
             else:
                 utility_cmd.invoke_replication(BASEDIR, master_socket,
                                                slave_socket, 'GTID', comment)
@@ -206,6 +216,11 @@ class SetupReplication:
 
 
 replication_run = SetupReplication(BASEDIR, WORKDIR, NODE)
+print("\nGTID Galera Node as Master and MD node as Master")
+print("----------------------------------------------")
+replication_run.replication_testcase('1', 'Galera', 'MD', 'master_master',
+                                     WORKDIR + '/node1/mysql.sock', MD1_SOCKET)
+'''
 print("\nGTID Galera Node as Master and MD node as Slave")
 print("----------------------------------------------")
 replication_run.replication_testcase('1', 'Galera', 'MD', 'none',
@@ -223,4 +238,5 @@ print("\nGTID Galera multi thread replication")
 print("-----------------------------------")
 replication_run.replication_testcase('1', 'MD', 'Galera', 'mtr', MD1_SOCKET,
                                      WORKDIR + '/node1/mysql.sock')
+'''
 

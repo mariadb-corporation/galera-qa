@@ -206,7 +206,7 @@ class PXCUpgrade:
         utility_cmd.check_testcase(result, "Checksum run for DB: db_partitioning")
 
         utility_cmd.stop_galera(WORKDIR, GALERA_UPPER_BASE, NODE)
-        utility_cmd.stop_galera(WORKDIR, GALERA_LOWER_BASE, 1)
+        utility_cmd.stop_md(WORKDIR, GALERA_LOWER_BASE, 1)
 
 
 query = GALERA_LOWER_BASE + "/bin/mysqld --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | tail -1"

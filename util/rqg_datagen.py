@@ -1,7 +1,7 @@
 import os
 import configparser
 from util import utility
-
+import time
 
 # Reading initial configuration
 config = configparser.ConfigParser()
@@ -68,8 +68,21 @@ class RQGDataGen:
             RQG data load for MariaDB Galera Cluster
         """
         if int(self.version) < int("1004"):
-            rqg_config = ['galera', 'transactions', 'optimizer', 'mariadb', 'runtime', 'temporal']
+            ##rqg_config = ['galera', 'transactions', 'optimizer', 'mariadb', 'runtime', 'temporal']
+            rqg_config = ['optimizer']
         else:
-            rqg_config = ['galera', 'transactions', 'partitioning', 'optimizer', 'mariadb', 'runtime', 'temporal']
+            rqg_config = ['optimizer']
         for config in rqg_config:
             self.initiate_rqg(config, 'db_' + config, socket)
+            flush_log = basedir + "/bin/mysql --user=root --socket=" + \
+                        workdir + '/node1/mysql.sock' + ' -Bse "flush logs" 2>&1'
+            os.system(flush_log)
+            flush_log = basedir + "/bin/mysql --user=root --socket=" + \
+                        workdir + '/node2/mysql.sock' + ' -Bse "flush logs" 2>&1'
+            os.system(flush_log)
+            time.sleep(5)
+            result = self.utility_cmd.check_table_count(basedir, 'db_' + config, workdir + '/node1/mysql.sock',
+                                                   workdir + '/node2/mysql.sock')
+            self.utility_cmd.check_testcase(result, "Checksum run for DB: db_" + config)
+            #result = self.utility_cmd.check_gtid_consistency(basedir, workdir + '/node1/mysql.sock', workdir + '/node2/mysql.sock')
+            #self.utility_cmd.check_testcase(result, "GTID binlog state between cluster nodes")

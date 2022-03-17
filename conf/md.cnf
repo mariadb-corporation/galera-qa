@@ -4,3 +4,5 @@ innodb_autoinc_lock_mode=2
 innodb_flush_log_at_trx_commit=0
 core-file
 log-output=none
+#general_log=ON
+gtid_domain_id=11

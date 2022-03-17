@@ -97,9 +97,10 @@ class GALERAUpgrade:
                         wsrep_status = os.popen(status_query).read().rstrip()
                     utility_cmd.check_testcase(int(ping_status), "Node startup is successful"
                                                                  "(Node status:" + wsrep_status + ")")
+                time.sleep(10)
                 break  # break the loop if mysqld is running
             if startup_timer > 298:
-                utility_cmd.check_testcase(0, "ERROR! Node is not synced with cluster. "
+                utility_cmd.check_testcase(1, "STARTUP TIMEOUT ERROR! Node is not synced with cluster. "
                                               "Check the error log to get more info")
                 exit(1)
 
@@ -249,6 +250,7 @@ class GALERAUpgrade:
             if debug == 'YES':
                 print(upgrade_cmd)
             result = os.system(upgrade_cmd)
+            print(result)
             utility_cmd.check_testcase(result, "Cluster node" + str(i) + " upgrade is successful")
 
         time.sleep(10)
@@ -295,8 +297,8 @@ upgrade_qa = GALERAUpgrade()
 print('--------------------------------------------------------------------------------------------------')
 print("\nGalera Upgrade test : Upgrading from GALERA-" + lower_version + " to GALERA-" + upper_version)
 print('--------------------------------------------------------------------------------------------------')
-sst_opts = ["encrypt3", "none"]
-
+sst_opts = ["none"]
+'''
 for i in sst_opts:
     print('--------------------------------------------------------------------------------------------------')
     print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade without active workload (SST encryption : "
@@ -316,15 +318,17 @@ for i in sst_opts:
     rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
     rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
     upgrade_qa.rolling_upgrade('readonly')
+'''
 for i in sst_opts:
     print('------------------------------------------------------------------------------------')
     print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active read/write workload"
                                                  "(enforcing SST on node-join) (SST encryption : " + i + ")")
     print('------------------------------------------------------------------------------------')
     upgrade_qa.startup(i)
-    rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
-    rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
+#    rqg_dataload = rqg_datagen.RQGDataGen(GALERA_LOWER_BASE, WORKDIR, USER, debug)
+#    rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
     upgrade_qa.rolling_upgrade('readwrite_sst')
+'''
 for i in sst_opts:
     print('------------------------------------------------------------------------------------')
     print(datetime.now().strftime("%H:%M:%S ") + " Rolling upgrade with active read/write workload"
@@ -354,4 +358,4 @@ if int(version) > int("080000"):
         rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
         upgrade_qa.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test', 'readwrite')
         upgrade_qa.start_upper_version()
-
+'''

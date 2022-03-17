@@ -1,13 +1,13 @@
 Replication QA script
 ---------------------
 This suite will cover following replication testcases. To enable encryption options you should use 
-the argument `--encryption-run` with pxc qa framework.
+the argument `--encryption-run` with galera qa framework.
 
 * Galera node as master and MD node as slave (GTID and Non-GTID)
 * Galera node as slave and MD node as master (GTID and Non-GTID)
 * Multi source replication - Galera node act as multi master slave (GTID and Non-GTID)
 * Multi thread replication - Galera node act as multi thread slave (GTID and Non-GTID)
-* Configure replication using Percona Xtrabackup
+* Configure replication using MariaDB Backup
 
 Replication suite log
 ---------------------

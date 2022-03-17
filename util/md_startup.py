@@ -43,7 +43,7 @@ class StartPerconaServer:
     def version_check(self):
         # Database version check
         version_info = os.popen(self.basedir + "/bin/mysqld --version 2>&1 "
-                                               "| grep -oe '10\.[1-6]' | head -n1").read()
+                                               "| grep -oe '10\.[1-8]' | head -n1").read()
         version = "{:02d}{:02d}".format(int(version_info.split('.')[0]),
                                         int(version_info.split('.')[1]))
         return version
@@ -165,7 +165,7 @@ class StartPerconaServer:
                 if int(ping_status) == 0:
                     query = self.basedir + '/bin/mysql --user=root --socket=/tmp/mdnode' + str(i) + \
                             '.sock -Bse"' \
-                            "delete from mysql.user where user='';drop database if exists test; " \
+                            "SET SESSION sql_log_bin=0;delete from mysql.user where user='';SET SESSION sql_log_bin=1;drop database if exists test; " \
                             "create database test;\" > /dev/null 2>&1"
                     if self.debug == 'YES':
                         print(query)

@@ -4,10 +4,15 @@ wsrep_node_address=127.0.0.1
 innodb_file_per_table
 innodb_autoinc_lock_mode=2
 innodb_flush_log_at_trx_commit=0
+#wsrep_sst_method=rsync
 wsrep_sst_method=mariabackup
 wsrep_sst_auth=root:
 core-file
-log-output=none
-wsrep_slave_threads=8
+general_log=ON
+#log-output=none
+wsrep_slave_threads=10
 wsrep_on=1
 binlog_format=ROW
+gtid_domain_id=10
+wsrep_gtid_domain_id=100
+wsrep_gtid_mode=ON

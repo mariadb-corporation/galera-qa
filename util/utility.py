@@ -42,7 +42,7 @@ class Utility:
     def version_check(self, basedir):
         # Get database version number
         version_info = os.popen(basedir + "/bin/mysqld --version 2>&1 "
-                                          "| grep -oe '10\.[1-6]' | head -n1").read()
+                                          "| grep -oe '10\.[1-9]' | head -n1").read()
         version = "{:02d}{:02d}".format(int(version_info.split('.')[0]),
                                         int(version_info.split('.')[1]))
         return version
@@ -186,7 +186,7 @@ class Utility:
         """ This will check replication IO thread
             running status
         """
-        if channel == 'none':
+        if channel != 'msr':
             channel = ""  # channel name is to identify the replication source
         # Get slave status
         io_status = basedir + "/bin/mysql --user=root --socket=" + \
@@ -212,7 +212,7 @@ class Utility:
         """ This will check replication SQL thread
             running status
         """
-        if channel == 'none':
+        if channel != 'msr':
             channel = ""  # channel name is to identify the replication source
         # Get slave status
         version = self.version_check(basedir)
@@ -236,6 +236,7 @@ class Utility:
             self.check_testcase(0, node + ": SQL thread slave status")
 
     def rpl_flush_log(self, basedir, socket):
+        # Run FLUSH LOGS command in given server
         flush_log = basedir + "/bin/mysql --user=root --socket=" + \
             socket + ' -Bse "flush logs" 2>&1'
         if self.debug == 'YES':
@@ -243,6 +244,7 @@ class Utility:
         os.system(flush_log)
 
     def rpl_master_log_file(self, basedir, socket):
+        # get latest master log file from the server
         master_log_file = basedir + "/bin/mysql --user=root --socket=" + \
             socket + " -Bse 'show master logs' | awk '{print $1}' | tail -1 2>&1"
         if self.debug == 'YES':
@@ -250,18 +252,20 @@ class Utility:
         return os.popen(master_log_file).read().rstrip()
 
     def rpl_master_log_pos(self, basedir, socket):
+        # get latest master log position from the server
         master_log_pos = basedir + "/bin/mysql --user=root --socket=" + \
             socket + " -Bse 'show master logs' | awk '{print $2}' | tail -1 2>&1"
         if self.debug == 'YES':
             print(master_log_pos)
         return os.popen(master_log_pos).read().rstrip()
 
-    def rpl_master_port(self, basedir, socket):
-        master_port = basedir + "/bin/mysql --user=root --socket=" + \
+    def get_port(self, basedir, socket):
+        # get the port from the server
+        server_port = basedir + "/bin/mysql --user=root --socket=" + \
             socket + ' -Bse "select @@port" 2>&1'
         if self.debug == 'YES':
-            print(master_port)
-        return os.popen(master_port).read().rstrip()
+            print(server_port)
+        return os.popen(server_port).read().rstrip()
 
     def rpl_binlog_gtid_pos(self, basedir, socket, master_log_file, master_log_pos):
         binlog_gtid_pos = basedir + "/bin/mysql --user=root --socket=" + \
@@ -287,11 +291,8 @@ class Utility:
         if comment == 'none':
             comment = ""  # channel name is to identify the replication source
         # Setup async replication
-        flush_log = basedir + "/bin/mysql --user=root --socket=" + \
-            master_socket + ' -Bse "flush logs" 2>&1'
-        if self.debug == 'YES':
-            print(flush_log)
-        os.system(flush_log)
+        # flush logs
+        self.rpl_flush_log(basedir, master_socket)
         if repl_mode == 'backup_slave':
             data_dir = basedir + "/bin/mysql --user=root --socket=" + \
                        slave_socket + " -Bse 'select @@datadir';"
@@ -303,20 +304,12 @@ class Utility:
             query = "cat " + data_dir + "xtrabackup_binlog_pos_innodb | awk '{print $2}'"
             master_log_pos = os.popen(query).read().rstrip()
         else:
-            master_log_file = basedir + "/bin/mysql --user=root --socket=" + \
-                master_socket + " -Bse 'show master logs' | awk '{print $1}' | tail -1 2>&1"
-            if self.debug == 'YES':
-                print(master_log_file)
-            master_log_file = os.popen(master_log_file).read().rstrip()
-            master_log_pos = basedir + "/bin/mysql --user=root --socket=" + \
-                master_socket + " -Bse 'show master logs' | awk '{print $2}' | tail -1 2>&1"
-            if self.debug == 'YES':
-                print(master_log_pos)
-            master_log_pos = os.popen(master_log_pos).read().rstrip()
+            # get master log file and position
+            master_log_file = self.rpl_master_log_file(basedir, master_socket)
+            master_log_pos = self.rpl_master_log_file(basedir, master_socket)
 
-        master_port = basedir + "/bin/mysql --user=root --socket=" + \
-            master_socket + ' -Bse "select @@port" 2>&1'
-        master_port = os.popen(master_port).read().rstrip()
+        # get master port number
+        master_port = self.get_port(basedir, master_socket)
         if repl_mode == 'GTID':
             binlog_gtid_pos = basedir + "/bin/mysql --user=root --socket=" + \
                               master_socket + " -Bse \"select binlog_gtid_pos('" + master_log_file + \
@@ -328,8 +321,8 @@ class Utility:
                 slave_socket + " -Bse\"set global gtid_slave_pos='" + binlog_gtid_pos + "';\" 2>&1"
             if self.debug == 'YES':
                 print(apply_gtid_slave_pos)
-            result = os.system(apply_gtid_slave_pos)
-            self.check_testcase(result, "Updated GTID slave position")
+            #result = os.system(apply_gtid_slave_pos)
+            #self.check_testcase(result, "Updated GTID slave position")
             invoke_slave = basedir + "/bin/mysql --user=root --socket=" + \
                 slave_socket + " -Bse\"CHANGE MASTER " + comment + " TO MASTER_HOST=" + \
                 "'127.0.0.1', MASTER_PORT=" + master_port + ", MASTER_USER='root'" + \
@@ -346,6 +339,64 @@ class Utility:
         result = os.system(invoke_slave)
         self.check_testcase(result, "Initiated replication")
 
+    def change_master(self,basedir, socket, port, log_file, log_position , repl_mode, comment):
+        """ This method will replication.
+        :param basedir: MariaDB Galera Cluster/Server base directory
+        :param socket: Replication Server socket
+        :param port: Master port number
+        :param log_file: Master log file name
+        :param log_position : Master log file position
+        :param repl_mode: Two modes
+                          GTID : GTID replication
+                          NON-GTID : Non GTID replication
+        :param comment: Replication channel details
+        """
+        if repl_mode == "GTID":
+            log_pos = "MASTER_USE_GTID=slave_pos"
+        else:
+            log_pos = "MASTER_LOG_POS=" + str(log_position)
+
+        invoke_replication = basedir + "/bin/mysql --user=root --socket=" + \
+            socket + " -Bse\"CHANGE MASTER " + comment + " TO MASTER_HOST=" + \
+            "'127.0.0.1', MASTER_PORT=" + port + ", MASTER_USER='root'" + \
+            ", MASTER_LOG_FILE='" + log_file + "', " + str(log_pos) + \
+            " ;START SLAVE " + comment + ";\" 2>&1"
+        if self.debug == 'YES':
+            print(invoke_replication)
+        result = os.system(invoke_replication)
+        self.check_testcase(result, "Initiated replication")
+
+    def invoke_master_master_replication(self, basedir, master_socket, slave_socket, repl_mode, comment):
+        """ This method will invoke master master replication.
+        :param basedir: MariaDB Galera Cluster/Server base directory
+        :param master_socket: Master Server socket
+        :param slave_socket: Slave server socket
+        :param repl_mode: Three mode will support now
+                          GTID : GTID replication
+                          NON-GTID : Non GTID replication
+                          backup_slave : This will start replication
+                                         from XB backup and it uses
+                                         non-gtid replication
+        :param comment: Replication channel details
+        """
+        if comment == 'none' or comment == 'master_master':
+            comment = ""  # channel name is to identify the replication source
+        # Setup async replication
+        # flush logs
+        self.rpl_flush_log(basedir, master_socket)
+        # get master log file, position and port number
+        master_log_file = self.rpl_master_log_file(basedir, master_socket)
+        master_log_pos = self.rpl_master_log_file(basedir, master_socket)
+        master_port = self.get_port(basedir, master_socket)
+        self.change_master(basedir, slave_socket, master_port, master_log_file, master_log_pos, repl_mode, comment)
+        # flush logs
+        self.rpl_flush_log(basedir, slave_socket)
+        # get master log file, position and port number
+        master_log_file = self.rpl_master_log_file(basedir, slave_socket)
+        master_log_pos = self.rpl_master_log_file(basedir, slave_socket)
+        master_port = self.get_port(basedir, slave_socket)
+        self.change_master(basedir, master_socket, master_port, master_log_file, master_log_pos, repl_mode, comment)
+
     def invoke_msr_replication(self, basedir, master1_socket, master2_socket, slave_socket, repl_mode):
         # Setup async replication
         self.rpl_flush_log(basedir, master1_socket)
@@ -354,8 +405,8 @@ class Utility:
         master2_log_file = self.rpl_master_log_file(basedir, master2_socket)
         master1_log_pos = self.rpl_master_log_pos(basedir, master1_socket)
         master2_log_pos = self.rpl_master_log_pos(basedir, master2_socket)
-        master1_port = self.rpl_master_port(basedir, master1_socket)
-        master2_port = self.rpl_master_port(basedir, master2_socket)
+        master1_port = self.get_port(basedir, master1_socket)
+        master2_port = self.get_port(basedir, master2_socket)
 
         if repl_mode == 'GTID':
             binlog1_gtid_pos = self.rpl_binlog_gtid_pos(basedir, master1_socket, master1_log_file, master1_log_pos)
@@ -531,3 +582,4 @@ class Utility:
         result = os.system(joiner_startup)
         self.check_testcase(result, "Starting cluster " + joiner)
         self.galera_startup_check(basedir, workdir, joiner_node)
+

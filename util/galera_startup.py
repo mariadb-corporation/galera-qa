@@ -211,7 +211,7 @@ class StartCluster:
                 if int(ping_status) == 0:
                     query = self.basedir + '/bin/mysql --user=root ' \
                                            '--socket=' + self.workdir + '/node' + str(i) + '/mysql.sock -Bse"' \
-                                           "delete from mysql.user where user='';" \
+                                           "SET SESSION sql_log_bin=0;delete from mysql.user where user='';" \
                                            '" > /dev/null 2>&1'
                     if self.debug == 'YES':
                         print(query)
