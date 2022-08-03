@@ -167,10 +167,10 @@ class SetupReplication:
         rqg_dataload.galera_dataload(master_socket)
 
         if comment == "msr":
-            utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, "'master1'")
-            utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, "'master1'")
-            utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, "'master2'")
-            utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, "'master2'")
+            utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, comment, "master1")
+            utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, comment, "master1")
+            utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, comment, "master2")
+            utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, comment, "master2")
         else:
             utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, comment)
             utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, comment)
