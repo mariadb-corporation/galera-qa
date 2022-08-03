@@ -176,6 +176,7 @@ class SetupReplication:
         for i in slave_parallel_modes:
             print("......................................................")
             print("Test starting with slave_parallel_mode=" + i)
+            print("......................................................")
             if comment == "mtr":
                 self.start_galera('--slave-parallel-workers=5 --slave_parallel_mode=' + i)
                 self.start_md(ps_node, '--slave-parallel-workers=5 --slave_parallel_mode=' + i)
@@ -184,8 +185,8 @@ class SetupReplication:
                 self.start_galera(' --slave_parallel_mode=' + i, comment)
                 self.start_md(ps_node, ' --slave_parallel_mode=' + i, comment)
             else:
-                self.start_galera(' --gtid_domain_id=21 --slave_parallel_mode=' + i)
-                self.start_md(ps_node, ' --gtid_domain_id=21 --slave_parallel_mode=' + i)
+                self.start_galera(' --slave_parallel_mode=' + i)
+                self.start_md(ps_node, ' --slave_parallel_mode=' + i)
 
             if comment == "msr":
                 utility_cmd.invoke_msr_replication(BASEDIR, MD1_SOCKET, MD2_SOCKET, slave_socket, 'GTID')
@@ -197,14 +198,15 @@ class SetupReplication:
                                                slave_socket, 'GTID', comment)
             replication_run.sysbench_run(master_socket, 'sbtest', master)
             replication_run.data_load('md_dataload_db', master_socket, master)
-            rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER, debug)
-            rqg_dataload.galera_dataload(master_socket)
+            if i == "none":
+                rqg_dataload = rqg_datagen.RQGDataGen(BASEDIR, WORKDIR, USER, debug)
+                rqg_dataload.galera_dataload(master_socket)
 
             if comment == "msr":
-                utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, "'master1'")
-                utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, "'master1'")
-                utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, "'master2'")
-                utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, "'master2'")
+                utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, comment, "master1")
+                utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, comment, "master1")
+                utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, comment, "master2")
+                utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, comment, "master2")
             else:
                 utility_cmd.replication_io_status(BASEDIR, slave_socket, slave, comment)
                 utility_cmd.replication_sql_status(BASEDIR, slave_socket, slave, comment)
@@ -220,7 +222,7 @@ print("\nGTID Galera Node as Master and MD node as Master")
 print("----------------------------------------------")
 replication_run.replication_testcase('1', 'Galera', 'MD', 'master_master',
                                      WORKDIR + '/node1/mysql.sock', MD1_SOCKET)
-'''
+
 print("\nGTID Galera Node as Master and MD node as Slave")
 print("----------------------------------------------")
 replication_run.replication_testcase('1', 'Galera', 'MD', 'none',
@@ -238,5 +240,5 @@ print("\nGTID Galera multi thread replication")
 print("-----------------------------------")
 replication_run.replication_testcase('1', 'MD', 'Galera', 'mtr', MD1_SOCKET,
                                      WORKDIR + '/node1/mysql.sock')
-'''
+
 

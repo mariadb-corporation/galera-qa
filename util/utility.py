@@ -42,7 +42,7 @@ class Utility:
     def version_check(self, basedir):
         # Get database version number
         version_info = os.popen(basedir + "/bin/mysqld --version 2>&1 "
-                                          "| grep -oe '10\.[1-9]' | head -n1").read()
+                                          "| grep -oe '10\.[1-9][0]*' | head -n1").read()
         version = "{:02d}{:02d}".format(int(version_info.split('.')[0]),
                                         int(version_info.split('.')[1]))
         return version
@@ -182,17 +182,21 @@ class Utility:
         if encryption == 'YES':
             os.system("cp " + source_datadir + "/keyring " + dest_datadir)
 
-    def replication_io_status(self, basedir, socket, node, channel):
+    def replication_io_status(self, basedir, socket, node, comment, channel_name):
         """ This will check replication IO thread
             running status
         """
-        if channel != 'msr':
-            channel = ""  # channel name is to identify the replication source
-        # Get slave status
-        io_status = basedir + "/bin/mysql --user=root --socket=" + \
-            socket + " -Bse\"SHOW SLAVE " + channel + " STATUS\G\" 2>&1 " \
-            '| grep "Slave_IO_Running:" ' \
-            "| awk '{ print $2 }'"
+        if comment == 'msr':
+            io_status = basedir + "/bin/mysql --user=root --socket=" + \
+                 socket + " -Bse\"SHOW SLAVE '" + channel_name + "' STATUS\G\" 2>&1 " \
+                 '| grep "Slave_IO_Running:" ' \
+                 "| awk '{ print $2 }'"
+        else:
+            io_status = basedir + "/bin/mysql --user=root --socket=" + \
+                 socket + " -Bse\"SHOW SLAVE STATUS\G\" 2>&1 " \
+                 '| grep "Slave_IO_Running:" ' \
+                 "| awk '{ print $2 }'"
+
         if self.debug == 'YES':
             print(io_status)
         io_status = os.popen(io_status).read().rstrip()
@@ -208,18 +212,21 @@ class Utility:
         else:
             self.check_testcase(0, node + ": IO thread slave status")
 
-    def replication_sql_status(self, basedir, socket, node, channel):
+    def replication_sql_status(self, basedir, socket, node, comment, channel_name):
         """ This will check replication SQL thread
             running status
         """
-        if channel != 'msr':
-            channel = ""  # channel name is to identify the replication source
-        # Get slave status
-        version = self.version_check(basedir)
-        sql_status = basedir + "/bin/mysql --user=root --socket=" + \
-            socket + " -Bse\"SHOW SLAVE " + channel + " STATUS\G\" 2>&1 " \
-            '| grep "Slave_SQL_Running:" ' \
-            "| awk '{ print $2 }'"
+        if comment == 'msr':
+            sql_status = basedir + "/bin/mysql --user=root --socket=" + \
+                socket + " -Bse\"SHOW SLAVE '" + channel_name + "' STATUS\G\" 2>&1 " \
+                '| grep "Slave_SQL_Running:" ' \
+                "| awk '{ print $2 }'"
+        else:
+            sql_status = basedir + "/bin/mysql --user=root --socket=" + \
+                socket + " -Bse\"SHOW SLAVE STATUS\G\" 2>&1 " \
+                '| grep "Slave_SQL_Running:" ' \
+                "| awk '{ print $2 }'"
+
         if self.debug == 'YES':
             print(sql_status)
         sql_status = os.popen(sql_status).read().rstrip()
@@ -306,7 +313,7 @@ class Utility:
         else:
             # get master log file and position
             master_log_file = self.rpl_master_log_file(basedir, master_socket)
-            master_log_pos = self.rpl_master_log_file(basedir, master_socket)
+            master_log_pos = self.rpl_master_log_pos(basedir, master_socket)
 
         # get master port number
         master_port = self.get_port(basedir, master_socket)

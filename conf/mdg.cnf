@@ -8,11 +8,13 @@ innodb_flush_log_at_trx_commit=0
 wsrep_sst_method=mariabackup
 wsrep_sst_auth=root:
 core-file
-general_log=ON
+#general_log=ON
 #log-output=none
-wsrep_slave_threads=10
+#wsrep_slave_threads=10
 wsrep_on=1
 binlog_format=ROW
 gtid_domain_id=10
 wsrep_gtid_domain_id=100
 wsrep_gtid_mode=ON
+wsrep_slave_threads=4
+slave_parallel_threads=4

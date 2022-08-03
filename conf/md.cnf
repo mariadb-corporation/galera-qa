@@ -6,3 +6,4 @@ core-file
 log-output=none
 #general_log=ON
 gtid_domain_id=11
+slave_parallel_threads=4
