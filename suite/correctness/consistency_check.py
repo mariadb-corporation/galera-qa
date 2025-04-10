@@ -81,7 +81,7 @@ class ConsistencyCheck:
         utility_cmd.check_testcase(result, "Sysbench data load")
         if encryption == 'YES':
             for i in range(1, int(SYSBENCH_TABLE_COUNT) + 1):
-                encrypt_table = BASEDIR + '/bin/mysql --user=root ' \
+                encrypt_table = BASEDIR + '/bin/mariadb --user=root ' \
                     '--socket=' + socket + ' -e "' \
                     ' alter table ' + db + '.sbtest' + str(i) + \
                     " encryption='Y'" \
@@ -97,14 +97,14 @@ class ConsistencyCheck:
             generate_sql.OutFile()
             generate_sql.CreateTable()
             sys.stdout = sys.__stdout__
-            create_db = self.basedir + "/bin/mysql --user=root --socket=" + \
+            create_db = self.basedir + "/bin/mariadb --user=root --socket=" + \
                 socket + ' -Bse"drop database if exists ' + db + \
                 ';create database ' + db + ';" 2>&1'
             if debug == 'YES':
                 print(create_db)
             result = os.system(create_db)
             utility_cmd.check_testcase(result, "Sample DB creation")
-            data_load_query = self.basedir + "/bin/mysql --user=root --socket=" + \
+            data_load_query = self.basedir + "/bin/mariadb --user=root --socket=" + \
                 socket + ' ' + db + ' -f <  /tmp/dataload.sql >/dev/null 2>&1'
             if debug == 'YES':
                 print(data_load_query)

@@ -30,14 +30,14 @@ class TableChecksum:
 
         version = self.utility_cmd.version_check(self.basedir)
         # Creating pt_user for database consistency check
-        query = self.basedir + "/bin/mysql --user=root --socket=" + \
+        query = self.basedir + "/bin/mariadb --user=root --socket=" + \
             self.socket + ' -e"create user if not exists' \
             " pt_user@'localhost' identified by 'test';" \
             "grant all on *.* to pt_user@'localhost'" \
             ';" > /dev/null 2>&1'
         self.run_query(query)
         # Creating percona db for cluster data checksum
-        query = self.basedir + "/bin/mysql --user=root --socket=" + \
+        query = self.basedir + "/bin/mariadb --user=root --socket=" + \
             self.socket + ' -e"drop database if exists percona;' \
             'create database percona;' \
             'drop table if exists percona.dsns;' \
@@ -47,12 +47,12 @@ class TableChecksum:
         self.run_query(query)
 
         for i in range(1, int(self.node) + 1):
-            port = self.basedir + "/bin/mysql --user=root " + \
+            port = self.basedir + "/bin/mariadb --user=root " + \
                 '--socket=' + self.workdir + '/node' + str(i) + '/mysql.sock' + \
                 ' -Bse"select @@port" 2>&1'
             port = os.popen(port).read().rstrip()
 
-            insert_query = self.basedir + "/bin/mysql --user=root " + \
+            insert_query = self.basedir + "/bin/mariadb --user=root " + \
                 '--socket=' + self.socket + \
                 ' -e"insert into percona.dsns (id,dsn) values (' + \
                 str(i) + ",'h=127.0.0.1,P=" + str(port) + \

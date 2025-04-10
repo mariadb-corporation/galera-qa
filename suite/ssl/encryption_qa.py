@@ -108,7 +108,7 @@ class EncryptionTest:
             self.sysbench_run(WORKDIR + '/node1/mysql.sock', 'test')
             rqg_dataload.galera_dataload(WORKDIR + '/node1/mysql.sock')
             # Add prepared statement SQLs
-            create_ps = BASEDIR + "/bin/mysql --user=root --socket=" + \
+            create_ps = BASEDIR + "/bin/mariadb --user=root --socket=" + \
                 WORKDIR + '/node1/mysql.sock' + ' < ' + parent_dir + \
                 '/util/prepared_statements.sql > /dev/null 2>&1'
             if debug == 'YES':
@@ -121,7 +121,7 @@ class EncryptionTest:
                 generate_sql.OutFile()
                 generate_sql.CreateTable()
                 sys.stdout = sys.__stdout__
-                data_load_query = BASEDIR + "/bin/mysql --user=root --socket=" + \
+                data_load_query = BASEDIR + "/bin/mariadb --user=root --socket=" + \
                     WORKDIR + '/node1/mysql.sock' + ' test -f <  /tmp/dataload.sql >/dev/null 2>&1'
                 if debug == 'YES':
                     print(data_load_query)

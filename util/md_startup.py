@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # Created by Ramesh Sivaraman, Percona LLC.
-# This will help us to start Percona Server
+# Updated by Ramesh Sivaraman, MariaDB
+# This will help us to start Percona Server/ MariaDB Server
 
 import os
 import subprocess
@@ -21,10 +22,10 @@ class StartPerconaServer:
     def sanity_check(self):
         """ Sanity check method will remove existing
             data directory and forcefully kill
-            running MariaDB mysqld processes. This will also check
-            the availability of mysqld binary file.
+            running MariaDB mariadbd processes. This will also check
+            the availability of mariadbd binary file.
         """
-        # kill existing mysqld process
+        # kill existing mariadbd process
         os.system("ps -ef | grep '" + self.workdir + "/conf/md[0-9].cnf'"
                   " | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1")
         # Create log directory
@@ -33,16 +34,16 @@ class StartPerconaServer:
         # Create configuration directory
         if not os.path.exists(self.workdir + '/conf'):
             os.mkdir(self.workdir + '/conf')
-        # Check mysqld file
-        if not os.path.isfile(self.basedir + '/bin/mysqld'):
-            print(self.basedir + '/bin/mysqld does not exist')
+        # Check mariadbd file
+        if not os.path.isfile(self.basedir + '/bin/mariadbd'):
+            print(self.basedir + '/bin/mariadbd does not exist')
             return 1
         return 0
 
     # This method will help us to check PS version
     def version_check(self):
         # Database version check
-        version_info = os.popen(self.basedir + "/bin/mysqld --version 2>&1 "
+        version_info = os.popen(self.basedir + "/bin/mariadbd --version 2>&1 "
                                                "| grep -oe '10\.[1-8]' | head -n1").read()
         version = "{:02d}{:02d}".format(int(version_info.split('.')[0]),
                                         int(version_info.split('.')[1]))
@@ -66,7 +67,7 @@ class StartPerconaServer:
             return 1
         else:
             shutil.copy(self.scriptdir + '/conf/custom.cnf', self.workdir + '/conf/custom.cnf')
-        # Add custom mysqld options in configuration file
+        # Add custom mariadbd options in configuration file
         for i in range(1, self.node + 1):
             shutil.copy(self.scriptdir + '/conf/md.cnf', self.workdir + '/conf/md' + str(i) + '.cnf')
             cnf_name = open(self.workdir + '/conf/md' + str(i) + '.cnf', 'a+')
@@ -145,7 +146,7 @@ class StartPerconaServer:
             if repl_opts == "msr":
                 gtid_domain_id = ' --gtid_domain_id=2' + str(i)
             # Start server
-            startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + \
+            startup = self.basedir + '/bin/mariadbd --defaults-file=' + self.workdir + \
                 '/conf/md' + str(i) + '.cnf --datadir=' + self.workdir + '/mdnode' + str(i) + \
                 ' --basedir=' + self.basedir + ' ' + my_extra + gtid_domain_id + \
                 ' --log-error=' + self.workdir + \
@@ -155,7 +156,7 @@ class StartPerconaServer:
                 print(startup)
             run_cmd = subprocess.call(startup, shell=True, stderr=subprocess.DEVNULL)
             result = ("{}".format(run_cmd))
-            ping_query = self.basedir + '/bin/mysqladmin --user=root ' \
+            ping_query = self.basedir + '/bin/mariadb-admin --user=root ' \
                                         '--socket=/tmp/mdnode' + str(i) + \
                                         '.sock ping > /dev/null 2>&1'
             for startup_timer in range(120):
@@ -163,13 +164,13 @@ class StartPerconaServer:
                 ping_check = subprocess.call(ping_query, shell=True, stderr=subprocess.DEVNULL)
                 ping_status = ("{}".format(ping_check))
                 if int(ping_status) == 0:
-                    query = self.basedir + '/bin/mysql --user=root --socket=/tmp/mdnode' + str(i) + \
+                    query = self.basedir + '/bin/mariadb --user=root --socket=/tmp/mdnode' + str(i) + \
                             '.sock -Bse"' \
                             "SET SESSION sql_log_bin=0;delete from mysql.user where user='';SET SESSION sql_log_bin=1;drop database if exists test; " \
                             "create database test;\" > /dev/null 2>&1"
                     if self.debug == 'YES':
                         print(query)
                     os.system(query)
-                    break  # break the loop if mysqld is running
+                    break  # break the loop if mariadbd is running
 
         return int(ping_status)

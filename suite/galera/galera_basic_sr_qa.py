@@ -48,7 +48,7 @@ class StreamingReplication:
     def streaming_replication_qa(self, socket, db):
         # Streaming Replication QA
         # Create data insert procedure
-        create_procedure = BASEDIR + "/bin/mysql --user=root --socket=" + socket + \
+        create_procedure = BASEDIR + "/bin/mariadb --user=root --socket=" + socket + \
             ' ' + db + ' -Bse"source ' + cwd + '/sr_procedure.sql " 2>&1'
         if debug == 'YES':
             print(create_procedure)
@@ -59,7 +59,7 @@ class StreamingReplication:
         row_count = [100, 1000, 10000, 100000]
         for trx_fragment_unit, trx_fragment_size, rows in \
                 itertools.product(wsrep_trx_fragment_unit, wsrep_trx_fragment_size, row_count):
-            sr_procedure = BASEDIR + "/bin/mysql --user=root --socket=" + socket + \
+            sr_procedure = BASEDIR + "/bin/mariadb --user=root --socket=" + socket + \
                             ' -Bse"call ' + db + '.sr_procedure(' + str(rows) + \
                             ",'" + trx_fragment_unit + "'," + \
                             str(trx_fragment_size) + ')" 2>&1'
@@ -71,7 +71,7 @@ class StreamingReplication:
                              str(trx_fragment_size)
             utility_cmd.check_testcase(result, "SR testcase( " + sr_combination + " )")
             if trx_fragment_unit == 'bytes':
-                delete_rows = BASEDIR + "/bin/mysql --user=root --socket=" + socket + \
+                delete_rows = BASEDIR + "/bin/mariadb --user=root --socket=" + socket + \
                                    ' ' + db + ' -Bse"delete from sbtest1 limit ' + str(rows) + ';" 2>&1'
                 if debug == 'YES':
                     print(delete_rows)

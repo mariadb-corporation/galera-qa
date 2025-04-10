@@ -70,12 +70,12 @@ class PXCUpgrade:
             startup status.
         """
         # Check wsrep sync status
-        query_cluster_status = GALERA_LOWER_BASE + '/bin/mysql --user=root --socket=' + \
+        query_cluster_status = GALERA_LOWER_BASE + '/bin/mariadb --user=root --socket=' + \
             WORKDIR + '/node' + str(cluster_node) + \
             '/mysql.sock -Bse"show status like \'wsrep_local_state_comment\';"' \
             ' 2>/dev/null | awk \'{print $2}\''
         # Get ping status
-        ping_query = GALERA_LOWER_BASE + '/bin/mysqladmin --user=root --socket=' + \
+        ping_query = GALERA_LOWER_BASE + '/bin/mariadb-admin --user=root --socket=' + \
             WORKDIR + '/node' + str(cluster_node) + \
             '/mysql.sock ping > /dev/null 2>&1'
         # check server live status - Timeout 300 sec
@@ -86,7 +86,7 @@ class PXCUpgrade:
             if int(ping_status) == 0:
                 wsrep_status = ""
                 while wsrep_status != "Synced":
-                    status_query = BASEDIR + '/bin/mysql --user=root --socket=' + \
+                    status_query = BASEDIR + '/bin/mariadb --user=root --socket=' + \
                         WORKDIR + '/node' + str(cluster_node) + \
                         '/mysql.sock -Bse"show status like ' \
                         "'wsrep_local_state_comment'\"  2>&1 | awk \'{print $2}\'"
@@ -105,12 +105,12 @@ class PXCUpgrade:
         shutil.copy(WORKDIR + '/conf/node3.cnf',
                     WORKDIR + '/conf/node4.cnf')
         # get cluster address
-        query = GALERA_LOWER_BASE + '/bin/mysql --user=root --socket=' + WORKDIR + \
+        query = GALERA_LOWER_BASE + '/bin/mariadb --user=root --socket=' + WORKDIR + \
             '/node3/mysql.sock -Bse"show variables like \'wsrep_cluster_address\';"' \
             ' 2>/dev/null | awk \'{print $2}\''
         wsrep_cluster_addr = os.popen(query).read().rstrip()
         # get node3 port
-        query = GALERA_LOWER_BASE + "/bin/mysql --user=root --socket=" + \
+        query = GALERA_LOWER_BASE + "/bin/mariadb --user=root --socket=" + \
             WORKDIR + '/node3/mysql.sock -Bse"select @@port" 2>&1'
         port_no = os.popen(query).read().rstrip()
         wsrep_port_no = int(port_no) + 108      # node4 cluster connection port
@@ -150,7 +150,7 @@ class PXCUpgrade:
         utility_cmd.check_testcase(result, "Starting Galera cluster node4 for upgrade testing")
         self.startup_check(4)
 
-        upgrade_cmd = GALERA_UPPER_BASE + '/bin/mysql_upgrade -uroot --socket=' + \
+        upgrade_cmd = GALERA_UPPER_BASE + '/bin/mariadb-upgrade -uroot --socket=' + \
             WORKDIR + '/node4/mysql.sock --skip-write-binlog > ' + \
             WORKDIR + '/log/node4_upgrade.log 2>&1'
         if debug == 'YES':
@@ -200,11 +200,11 @@ class PXCUpgrade:
         for i in range(1, int(NODE) + 1):
             shutil.copy(WORKDIR + '/conf/node' + str(int(i + 2)) + '.cnf',
                         WORKDIR + '/conf/node' + str(int(i + 3)) + '.cnf')
-            query = GALERA_LOWER_BASE + '/bin/mysql --user=root --socket=' + WORKDIR + \
+            query = GALERA_LOWER_BASE + '/bin/mariadb --user=root --socket=' + WORKDIR + \
                 '/node' + str(int(i + 2)) + '/mysql.sock -Bse"show variables like \'wsrep_cluster_address\';"' \
                 ' 2>/dev/null | awk \'{print $2}\''
             wsrep_cluster_addr = os.popen(query).read().rstrip()
-            query = GALERA_LOWER_BASE + "/bin/mysql --user=root --socket=" + \
+            query = GALERA_LOWER_BASE + "/bin/mariadb --user=root --socket=" + \
                 WORKDIR + '/node' + str(int(i + 2)) + '/mysql.sock -Bse"select @@port" 2>&1'
             port_no = os.popen(query).read().rstrip()
             wsrep_port_no = int(port_no) + 108
@@ -243,17 +243,17 @@ class PXCUpgrade:
             upgrade_startup = "bash " + WORKDIR + \
                 '/log/startup' + str(int(i + 3)) + '.sh'
 
-            status_query = BASEDIR + '/bin/mysql --user=root --socket=' + \
+            status_query = BASEDIR + '/bin/mariadb --user=root --socket=' + \
                 WORKDIR + '/node1/mysql.sock -Bse"show status like ' \
                 "'wsrep_local_state_comment'\"  2>&1 | awk \'{print $2}\'"
             wsrep_status = os.popen(status_query).read().rstrip()
             print(wsrep_status)
-            status_query = BASEDIR + '/bin/mysql --user=root --socket=' + \
+            status_query = BASEDIR + '/bin/mariadb --user=root --socket=' + \
                            WORKDIR + '/node2/mysql.sock -Bse"show status like ' \
                                      "'wsrep_local_state_comment'\"  2>&1 | awk \'{print $2}\'"
             wsrep_status = os.popen(status_query).read().rstrip()
             print(wsrep_status)
-            status_query = BASEDIR + '/bin/mysql --user=root --socket=' + \
+            status_query = BASEDIR + '/bin/mariadb --user=root --socket=' + \
                            WORKDIR + '/node3/mysql.sock -Bse"show status like ' \
                                      "'wsrep_local_state_comment'\"  2>&1 | awk \'{print $2}\'"
             wsrep_status = os.popen(status_query).read().rstrip()
@@ -266,7 +266,7 @@ class PXCUpgrade:
                                        str(int(i + 3)) + " for upgrade testing")
             self.startup_check(int(i + 3))
 
-            upgrade_cmd = GALERA_UPPER_BASE + '/bin/mysql_upgrade -uroot --socket=' + \
+            upgrade_cmd = GALERA_UPPER_BASE + '/bin/mariadb-upgrade -uroot --socket=' + \
                 WORKDIR + '/node' + str(int(i + 3)) + \
                 '/mysql.sock --skip-write-binlog > ' + WORKDIR + '/log/node' + str(int(i + 3)) + '_upgrade.log 2>&1'
             if debug == 'YES':
@@ -275,9 +275,9 @@ class PXCUpgrade:
             utility_cmd.check_testcase(result, "Cluster node" + str(int(i + 3)) + " upgrade is successful")
 
 
-query = GALERA_LOWER_BASE + "/bin/mysqld --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | tail -1"
+query = GALERA_LOWER_BASE + "/bin/mariadbd --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | tail -1"
 lower_version = os.popen(query).read().rstrip()
-query = GALERA_UPPER_BASE + "/bin/mysqld --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | tail -1"
+query = GALERA_UPPER_BASE + "/bin/mariadbd --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | tail -1"
 upper_version = os.popen(query).read().rstrip()
 version = utility_cmd.version_check(GALERA_UPPER_BASE)
 print('--------------------------------------------------------------------------------------------')

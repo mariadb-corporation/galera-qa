@@ -88,7 +88,7 @@ class ClusterInteraction:
         utility_cmd.check_testcase(result, "Sysbench data load")
         if encryption == 'YES':
             for i in range(1, int(SYSBENCH_TABLE_COUNT) + 1):
-                encrypt_table = BASEDIR + '/bin/mysql --user=root ' \
+                encrypt_table = BASEDIR + '/bin/mariadb --user=root ' \
                     '--socket=' + socket + ' -e "' \
                     ' alter table ' + db + '.sbtest' + str(i) + \
                     " encryption='Y'" \
@@ -106,7 +106,7 @@ class ClusterInteraction:
         """ This method will check the node
             startup status.
         """
-        ping_query = self.basedir + '/bin/mysqladmin --user=root --socket=' + \
+        ping_query = self.basedir + '/bin/mariadb-admin --user=root --socket=' + \
             WORKDIR + '/node' + cluster_node + '/mysql.sock ping > /dev/null 2>&1'
         for startup_timer in range(120):
             time.sleep(1)
@@ -129,7 +129,7 @@ class ClusterInteraction:
         utility_cmd.check_testcase(0, "Initiating flow control test")
         for j in range(1, int(self.node) + 1):
             query = self.basedir + \
-                '/bin/mysql ' \
+                '/bin/mariadb ' \
                 ' --user=root --socket=' + WORKDIR + '/node1/mysql.sock test' \
                 ' -Bse"flush table sbtest1 with read lock;' \
                 'select sleep(120);unlock tables"  2>&1 &'
@@ -139,7 +139,7 @@ class ClusterInteraction:
             flow_control_status = 'OFF'
             while flow_control_status != 'OFF':
                 query = self.basedir + \
-                    '/bin/mysql  --user=root --socket=' + WORKDIR + '/node1/mysql.sock' \
+                    '/bin/mariadb  --user=root --socket=' + WORKDIR + '/node1/mysql.sock' \
                     ' -Bse"show status like ' \
                     "'wsrep_flow_control_status';" + '"' \
                     "| awk '{ print $2 }'  2>/dev/null"
@@ -147,7 +147,7 @@ class ClusterInteraction:
                 time.sleep(1)
 
         utility_cmd.check_testcase(0, "Initiating IST test")
-        shutdown_node = self.basedir + '/bin/mysqladmin --user=root --socket=' + \
+        shutdown_node = self.basedir + '/bin/mariadb-admin --user=root --socket=' + \
             WORKDIR + '/node' + self.node + '/mysql.sock shutdown > /dev/null 2>&1'
         if debug == 'YES':
             print(shutdown_node)

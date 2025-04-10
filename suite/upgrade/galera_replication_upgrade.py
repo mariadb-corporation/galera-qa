@@ -124,7 +124,7 @@ class PXCUpgrade:
         """ This method will check the node
             startup status.
         """
-        ping_query = GALERA_LOWER_BASE + '/bin/mysqladmin --user=root --socket=' + \
+        ping_query = GALERA_LOWER_BASE + '/bin/mariadb-admin --user=root --socket=' + \
             WORKDIR + '/node' + str(cluster_node) + \
             '/mysql.sock ping > /dev/null 2>&1'
         for startup_timer in range(120):
@@ -151,14 +151,14 @@ class PXCUpgrade:
             if debug == 'YES':
                 print("Terminating sysbench run : " + kill_sysbench)
             os.system(kill_sysbench)
-            shutdown_node = GALERA_LOWER_BASE + '/bin/mysqladmin --user=root --socket=' + \
+            shutdown_node = GALERA_LOWER_BASE + '/bin/maridb-admin --user=root --socket=' + \
                 WORKDIR + '/node' + str(i) + \
                 '/mysql.sock shutdown > /dev/null 2>&1'
             if debug == 'YES':
                 print(shutdown_node)
             result = os.system(shutdown_node)
             utility_cmd.check_testcase(result, "Shutdown cluster node" + str(i) + " for upgrade testing")
-            startup_cmd = GALERA_UPPER_BASE + '/bin/mysqld --defaults-file=' + \
+            startup_cmd = GALERA_UPPER_BASE + '/bin/mariadbd --defaults-file=' + \
                 WORKDIR + '/conf/node' + str(i) + '.cnf --wsrep-provider=' + \
                 GALERA_UPPER_BASE + '/lib/libgalera_smm.so --datadir=' + \
                 WORKDIR + '/node' + str(i) + ' --basedir=' + GALERA_UPPER_BASE + ' --log-error=' + \
@@ -170,7 +170,7 @@ class PXCUpgrade:
                 print(startup_cmd)
             os.system(startup_cmd)
             self.startup_check(i)
-            upgrade_cmd = GALERA_UPPER_BASE + '/bin/mysql_upgrade -uroot --socket=' + \
+            upgrade_cmd = GALERA_UPPER_BASE + '/bin/mariadb-upgrade -uroot --socket=' + \
                 WORKDIR + '/node' + str(i) + \
                 '/mysql.sock --skip-write-binlog > ' + WORKDIR + '/log/node' + str(i) + '_upgrade.log 2>&1'
             if debug == 'YES':
@@ -209,9 +209,9 @@ class PXCUpgrade:
         utility_cmd.stop_md(WORKDIR, GALERA_LOWER_BASE, 1)
 
 
-query = GALERA_LOWER_BASE + "/bin/mysqld --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | tail -1"
+query = GALERA_LOWER_BASE + "/bin/mariadbd --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | tail -1"
 lower_version = os.popen(query).read().rstrip()
-query = GALERA_UPPER_BASE + "/bin/mysqld --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | tail -1"
+query = GALERA_UPPER_BASE + "/bin/mariadbd --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | tail -1"
 upper_version = os.popen(query).read().rstrip()
 version = utility_cmd.version_check(GALERA_UPPER_BASE)
 print('------------------------------------------------------------------------------------------')

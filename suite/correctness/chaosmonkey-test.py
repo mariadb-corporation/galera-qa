@@ -67,7 +67,7 @@ class ChaosMonkeyQA:
         utility_cmd.check_testcase(result, "Sysbench data load")
         if encryption == 'YES':
             for i in range(1, int(SYSBENCH_TABLE_COUNT) + 1):
-                encrypt_table = BASEDIR + '/bin/mysql --user=root ' \
+                encrypt_table = BASEDIR + '/bin/mariadb --user=root ' \
                     '--socket=' + socket + ' -e "' \
                     ' alter table ' + db + '.sbtest' + str(i) + \
                     " encryption='Y'" \
@@ -91,7 +91,7 @@ class ChaosMonkeyQA:
         sysbench_pid = os.popen(query).read().rstrip()
         for j in rand_nodes:
             query = 'cat `' + BASEDIR + \
-                    '/bin/mysql  --user=root --socket=' + WORKDIR + \
+                    '/bin/mariadb  --user=root --socket=' + WORKDIR + \
                         '/node' + str(j) + '/mysql.sock -Bse"select @@pid_file"  2>&1`'
             time.sleep(1)
             pid = os.popen(query).read().rstrip()

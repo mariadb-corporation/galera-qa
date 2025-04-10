@@ -81,7 +81,7 @@ class CrashRecovery:
         utility_cmd.check_testcase(result, "Sysbench data load")
         if encryption == 'YES':
             for i in range(1, int(SYSBENCH_TABLE_COUNT) + 1):
-                encrypt_table = BASEDIR + '/bin/mysql --user=root ' \
+                encrypt_table = BASEDIR + '/bin/mariadb --user=root ' \
                     '--socket=' + socket + ' -e "' \
                     ' alter table ' + db + '.sbtest' + str(i) + \
                     " encryption='Y'" \
@@ -102,7 +102,7 @@ class CrashRecovery:
         if debug == 'YES':
             print(recovery_startup)
         os.system(recovery_startup)
-        ping_query = self.basedir + '/bin/mysqladmin --user=root --socket=' + \
+        ping_query = self.basedir + '/bin/mariadb-admin --user=root --socket=' + \
                      WORKDIR + '/node' + cluster_node + '/mysql.sock ping > /dev/null 2>&1'
         for startup_timer in range(120):
             time.sleep(1)
@@ -111,7 +111,7 @@ class CrashRecovery:
             if int(ping_status) == 0:
                 wsrep_status = ""
                 while wsrep_status != "Synced":
-                    status_query = self.basedir + '/bin/mysql --user=root --socket=' + \
+                    status_query = self.basedir + '/bin/mariadb --user=root --socket=' + \
                         WORKDIR + '/node' + cluster_node + \
                         '/mysql.sock -Bse"show status like ' \
                         "'wsrep_local_state_comment'\"  2>&1 | awk \'{print $2}\'"
@@ -134,7 +134,7 @@ class CrashRecovery:
         pid_list = []
         if test_name == "with_force_kill":
             for j in range(1, int(self.node) + 1):
-                query = 'cat `' + self.basedir + '/bin/mysql ' \
+                query = 'cat `' + self.basedir + '/bin/mariadb ' \
                         ' --user=root --socket=' + WORKDIR + \
                         '/node' + str(j) + '/mysql.sock -Bse"select @@pid_file"  2>&1`'
                 pid_list += [os.popen(query).read().rstrip()]
@@ -151,7 +151,7 @@ class CrashRecovery:
             os.system(kill_sysbench)
             self.startup_check(self.node)
         elif test_name == "single_restart":
-            shutdown_node = self.basedir + '/bin/mysqladmin --user=root --socket=' + \
+            shutdown_node = self.basedir + '/bin/mariadb-admin --user=root --socket=' + \
                             WORKDIR + '/node' + self.node + '/mysql.sock shutdown > /dev/null 2>&1'
             if debug == 'YES':
                 print(shutdown_node)
@@ -165,7 +165,7 @@ class CrashRecovery:
             self.startup_check(self.node)
         elif test_name == "multi_restart":
             for j in range(1, 3):
-                shutdown_node = self.basedir + '/bin/mysqladmin --user=root --socket=' + \
+                shutdown_node = self.basedir + '/bin/mariadb-admin --user=root --socket=' + \
                                 WORKDIR + '/node' + self.node + '/mysql.sock shutdown > /dev/null 2>&1'
                 if debug == 'YES':
                     print(shutdown_node)

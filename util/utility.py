@@ -41,16 +41,16 @@ class Utility:
 
     def version_check(self, basedir):
         # Get database version number
-        version_info = os.popen(basedir + "/bin/mysqld --version 2>&1 "
-                                          "| grep -oe '10\.[1-9][0]*' | head -n1").read()
+        version_info = os.popen(basedir + "/bin/mariadbd --version 2>&1 "
+                                          "| grep -oe '1[0-9].[1-9][0]*' | head -n1").read()
         version = "{:02d}{:02d}".format(int(version_info.split('.')[0]),
                                         int(version_info.split('.')[1]))
         return version
 
     def create_custom_cnf(self, parent_dir, workdir):
-        """ Add random mysqld options
+        """ Add random mariadbd options
         """
-        # Read 10 random mysqld options from the option file
+        # Read 10 random mariadbd options from the option file
         with open(parent_dir + '/conf/mysql_options_pxc57.txt') as f:
             lines = random.sample(f.readlines(), 10)
         cnf_name = open(workdir + '/conf/custom.cnf', 'a+')
@@ -64,13 +64,13 @@ class Utility:
     def check_gtid_consistency(self, basedir, socket1, socket2):
         """ Compare the table count between two nodes
         """
-        query = basedir + '/bin/mysql -uroot --socket=' + \
+        query = basedir + '/bin/mariadb -uroot --socket=' + \
             socket1 + ' -Bse"SELECT @@gtid_binlog_state;"'
         gtid_binlog_state_1 = os.popen(query).read().rstrip()
         if self.debug == 'YES':
             print(query)
             print('GTID binlog state ' + gtid_binlog_state_1)
-        query = basedir + '/bin/mysql -uroot --socket=' + \
+        query = basedir + '/bin/mariadb -uroot --socket=' + \
             socket2 + ' -Bse"SELECT @@gtid_binlog_state;"'
         gtid_binlog_state_2 = os.popen(query).read().rstrip()
         if self.debug == 'YES':
@@ -87,19 +87,19 @@ class Utility:
     def check_table_count(self, basedir, db, socket1, socket2):
         """ Compare the table count between two nodes
         """
-        query = basedir + '/bin/mysql -uroot ' + db + ' --socket=' + \
+        query = basedir + '/bin/mariadb -uroot ' + db + ' --socket=' + \
                 socket1 + ' -Bse"show tables;"'
         tables = os.popen(query).read().rstrip()
         # Compare the table checksum between node1 and node2
         for table in tables.split('\n'):
-            query = basedir + '/bin/mysql -uroot --socket=' + \
+            query = basedir + '/bin/mariadb -uroot --socket=' + \
                 socket1 + ' -Bse"checksum table ' + \
                 db + '.' + table + ';"'
             table_count_node1 = os.popen(query).read().rstrip()
             if self.debug == 'YES':
                 print(query)
                 print('Table count ' + table_count_node1)
-            query = basedir + '/bin/mysql -uroot --socket=' + \
+            query = basedir + '/bin/mariadb -uroot --socket=' + \
                 socket2 + ' -Bse"checksum table ' + \
                 db + '.' + table + ';"'
             table_count_node2 = os.popen(query).read().rstrip()
@@ -129,7 +129,7 @@ class Utility:
 
         # Check PXC version and create XB user with mysql_native_password plugin.
         version = self.version_check(basedir)
-        create_user = basedir + "/bin/mysql --user=root "
+        create_user = basedir + "/bin/mariadb --user=root "
         "--socket=" + socket + ' -e"create user xbuser'
         "@'localhost' identified by 'test"
         "';grant all on *.* to xbuser@'localhost'"
@@ -187,12 +187,12 @@ class Utility:
             running status
         """
         if comment == 'msr':
-            io_status = basedir + "/bin/mysql --user=root --socket=" + \
+            io_status = basedir + "/bin/mariadb --user=root --socket=" + \
                  socket + " -Bse\"SHOW SLAVE '" + channel_name + "' STATUS\G\" 2>&1 " \
                  '| grep "Slave_IO_Running:" ' \
                  "| awk '{ print $2 }'"
         else:
-            io_status = basedir + "/bin/mysql --user=root --socket=" + \
+            io_status = basedir + "/bin/mariadb --user=root --socket=" + \
                  socket + " -Bse\"SHOW SLAVE STATUS\G\" 2>&1 " \
                  '| grep "Slave_IO_Running:" ' \
                  "| awk '{ print $2 }'"
@@ -217,12 +217,12 @@ class Utility:
             running status
         """
         if comment == 'msr':
-            sql_status = basedir + "/bin/mysql --user=root --socket=" + \
+            sql_status = basedir + "/bin/mariadb --user=root --socket=" + \
                 socket + " -Bse\"SHOW SLAVE '" + channel_name + "' STATUS\G\" 2>&1 " \
                 '| grep "Slave_SQL_Running:" ' \
                 "| awk '{ print $2 }'"
         else:
-            sql_status = basedir + "/bin/mysql --user=root --socket=" + \
+            sql_status = basedir + "/bin/mariadb --user=root --socket=" + \
                 socket + " -Bse\"SHOW SLAVE STATUS\G\" 2>&1 " \
                 '| grep "Slave_SQL_Running:" ' \
                 "| awk '{ print $2 }'"
@@ -244,7 +244,7 @@ class Utility:
 
     def rpl_flush_log(self, basedir, socket):
         # Run FLUSH LOGS command in given server
-        flush_log = basedir + "/bin/mysql --user=root --socket=" + \
+        flush_log = basedir + "/bin/mariadb --user=root --socket=" + \
             socket + ' -Bse "flush logs" 2>&1'
         if self.debug == 'YES':
             print(flush_log)
@@ -252,7 +252,7 @@ class Utility:
 
     def rpl_master_log_file(self, basedir, socket):
         # get latest master log file from the server
-        master_log_file = basedir + "/bin/mysql --user=root --socket=" + \
+        master_log_file = basedir + "/bin/mariadb --user=root --socket=" + \
             socket + " -Bse 'show master logs' | awk '{print $1}' | tail -1 2>&1"
         if self.debug == 'YES':
             print(master_log_file)
@@ -260,7 +260,7 @@ class Utility:
 
     def rpl_master_log_pos(self, basedir, socket):
         # get latest master log position from the server
-        master_log_pos = basedir + "/bin/mysql --user=root --socket=" + \
+        master_log_pos = basedir + "/bin/mariadb --user=root --socket=" + \
             socket + " -Bse 'show master logs' | awk '{print $2}' | tail -1 2>&1"
         if self.debug == 'YES':
             print(master_log_pos)
@@ -268,14 +268,14 @@ class Utility:
 
     def get_port(self, basedir, socket):
         # get the port from the server
-        server_port = basedir + "/bin/mysql --user=root --socket=" + \
+        server_port = basedir + "/bin/mariadb --user=root --socket=" + \
             socket + ' -Bse "select @@port" 2>&1'
         if self.debug == 'YES':
             print(server_port)
         return os.popen(server_port).read().rstrip()
 
     def rpl_binlog_gtid_pos(self, basedir, socket, master_log_file, master_log_pos):
-        binlog_gtid_pos = basedir + "/bin/mysql --user=root --socket=" + \
+        binlog_gtid_pos = basedir + "/bin/mariadb --user=root --socket=" + \
             socket + " -Bse \"select binlog_gtid_pos('" + master_log_file + \
             "'," + master_log_pos + ")\" | awk '{print $1}' | tail -1 2>&1"
         if self.debug == 'YES':
@@ -301,7 +301,7 @@ class Utility:
         # flush logs
         self.rpl_flush_log(basedir, master_socket)
         if repl_mode == 'backup_slave':
-            data_dir = basedir + "/bin/mysql --user=root --socket=" + \
+            data_dir = basedir + "/bin/mariadb --user=root --socket=" + \
                        slave_socket + " -Bse 'select @@datadir';"
             if self.debug == 'YES':
                 print(data_dir)
@@ -318,24 +318,24 @@ class Utility:
         # get master port number
         master_port = self.get_port(basedir, master_socket)
         if repl_mode == 'GTID':
-            binlog_gtid_pos = basedir + "/bin/mysql --user=root --socket=" + \
+            binlog_gtid_pos = basedir + "/bin/mariadb --user=root --socket=" + \
                               master_socket + " -Bse \"select binlog_gtid_pos('" + master_log_file + \
                               "'," + master_log_pos + ")\" | awk '{print $1}' | tail -1 2>&1"
             if self.debug == 'YES':
                 print(binlog_gtid_pos)
             binlog_gtid_pos = os.popen(binlog_gtid_pos).read().rstrip()
-            apply_gtid_slave_pos = basedir + "/bin/mysql --user=root --socket=" + \
+            apply_gtid_slave_pos = basedir + "/bin/mariadb --user=root --socket=" + \
                 slave_socket + " -Bse\"set global gtid_slave_pos='" + binlog_gtid_pos + "';\" 2>&1"
             if self.debug == 'YES':
                 print(apply_gtid_slave_pos)
             #result = os.system(apply_gtid_slave_pos)
             #self.check_testcase(result, "Updated GTID slave position")
-            invoke_slave = basedir + "/bin/mysql --user=root --socket=" + \
+            invoke_slave = basedir + "/bin/mariadb --user=root --socket=" + \
                 slave_socket + " -Bse\"CHANGE MASTER " + comment + " TO MASTER_HOST=" + \
                 "'127.0.0.1', MASTER_PORT=" + master_port + ", MASTER_USER='root'" + \
                 ", MASTER_USE_GTID=slave_pos ; START SLAVE " + comment + ";\" 2>&1"
         else:
-            invoke_slave = basedir + "/bin/mysql --user=root --socket=" + \
+            invoke_slave = basedir + "/bin/mariadb --user=root --socket=" + \
                slave_socket + " -Bse\"CHANGE MASTER " + comment + " TO MASTER_HOST=" + \
                "'127.0.0.1', MASTER_PORT=" + master_port + ", MASTER_USER='root'" + \
                ", MASTER_LOG_FILE='" + master_log_file + "'" + \
@@ -363,7 +363,7 @@ class Utility:
         else:
             log_pos = "MASTER_LOG_POS=" + str(log_position)
 
-        invoke_replication = basedir + "/bin/mysql --user=root --socket=" + \
+        invoke_replication = basedir + "/bin/mariadb --user=root --socket=" + \
             socket + " -Bse\"CHANGE MASTER " + comment + " TO MASTER_HOST=" + \
             "'127.0.0.1', MASTER_PORT=" + port + ", MASTER_USER='root'" + \
             ", MASTER_LOG_FILE='" + log_file + "', " + str(log_pos) + \
@@ -418,21 +418,21 @@ class Utility:
         if repl_mode == 'GTID':
             binlog1_gtid_pos = self.rpl_binlog_gtid_pos(basedir, master1_socket, master1_log_file, master1_log_pos)
             binlog2_gtid_pos = self.rpl_binlog_gtid_pos(basedir, master2_socket, master2_log_file, master2_log_pos)
-            apply_gtid_slave_pos = basedir + "/bin/mysql --user=root --socket=" + \
+            apply_gtid_slave_pos = basedir + "/bin/mariadb --user=root --socket=" + \
                 slave_socket + " -Bse\"set global gtid_slave_pos='" + binlog1_gtid_pos + \
                 "," + binlog2_gtid_pos + "';\" 2>&1"
             if self.debug == 'YES':
                 print(apply_gtid_slave_pos)
             result = os.system(apply_gtid_slave_pos)
             self.check_testcase(result, "Updated GTID slave position")
-            invoke_slave = basedir + "/bin/mysql --user=root --socket=" + \
+            invoke_slave = basedir + "/bin/mariadb --user=root --socket=" + \
                 slave_socket + " -Bse\"CHANGE MASTER 'master1' TO MASTER_HOST=" + \
                 "'127.0.0.1', MASTER_PORT=" + master1_port + ", MASTER_USER='root'" + \
                 ", MASTER_USE_GTID=slave_pos ; CHANGE MASTER 'master2' TO MASTER_HOST=" + \
                 "'127.0.0.1', MASTER_PORT=" + master2_port + ", MASTER_USER='root'" + \
                 ", MASTER_USE_GTID=slave_pos ; START SLAVE 'master1'; START SLAVE 'master2';\" 2>&1"
         else:
-            invoke_slave = basedir + "/bin/mysql --user=root --socket=" + \
+            invoke_slave = basedir + "/bin/mariadb --user=root --socket=" + \
                slave_socket + " -Bse\"CHANGE MASTER 'master1' TO MASTER_HOST=" + \
                "'127.0.0.1', MASTER_PORT=" + master1_port + ", MASTER_USER='root'" + \
                ", MASTER_LOG_FILE='" + master1_log_file + "'" + \
@@ -491,7 +491,7 @@ class Utility:
     def stop_galera(self, workdir, basedir, node):
         # Stop MariaDB Galera cluster
         for i in range(int(node), 0, -1):
-            shutdown_node = basedir + '/bin/mysqladmin --user=root --socket=' + \
+            shutdown_node = basedir + '/bin/mariadb-admin --user=root --socket=' + \
                             workdir + '/node' + str(i) + '/mysql.sock shutdown > /dev/null 2>&1'
             if self.debug == 'YES':
                 print(shutdown_node)
@@ -501,7 +501,7 @@ class Utility:
     def stop_md(self, workdir, basedir, node):
         # Stop Percona Server
         for i in range(int(node), 0, -1):
-            shutdown_node = basedir + '/bin/mysqladmin --user=root --socket=/tmp/mdnode' + \
+            shutdown_node = basedir + '/bin/mariadb-admin --user=root --socket=/tmp/mdnode' + \
                             str(i) + '.sock shutdown > /dev/null 2>&1'
             if self.debug == 'YES':
                 print(shutdown_node)
@@ -512,11 +512,11 @@ class Utility:
         """ This method will check the node
             startup status.
         """
-        query_cluster_status = basedir + '/bin/mysql --user=root --socket=' + \
+        query_cluster_status = basedir + '/bin/mariadb --user=root --socket=' + \
             workdir + '/node' + str(cluster_node) + \
             '/mysql.sock -Bse"show status like \'wsrep_local_state_comment\';"' \
             ' 2>/dev/null | awk \'{print $2}\''
-        ping_query = basedir + '/bin/mysqladmin --user=root --socket=' + \
+        ping_query = basedir + '/bin/mariadb-admin --user=root --socket=' + \
             workdir + '/node' + str(cluster_node) + \
             '/mysql.sock ping > /dev/null 2>&1'
         for startup_timer in range(300):
@@ -533,7 +533,7 @@ class Utility:
                 if int(ping_status) == 0:
                     self.check_testcase(int(ping_status), "Node startup is successful "
                                                           "(Node status:" + cluster_status + ")")
-                    break  # break the loop if mysqld is running
+                    break  # break the loop if mariadbd is running
 
     def node_joiner(self, workdir, basedir, donor_node, joiner_node):
         # Add new node to existing cluster
@@ -541,11 +541,11 @@ class Utility:
         joiner = 'node' + joiner_node  # Joiner node
         shutil.copy(workdir + '/conf/' + donor + '.cnf',
                     workdir + '/conf/' + joiner + '.cnf')
-        query = basedir + '/bin/mysql --user=root --socket=' + workdir + '/node' + donor_node + \
+        query = basedir + '/bin/mariadb --user=root --socket=' + workdir + '/node' + donor_node + \
                 '/mysql.sock -Bse"show variables like \'wsrep_cluster_address\';"' \
                 ' 2>/dev/null | awk \'{print $2}\''
         wsrep_cluster_addr = os.popen(query).read().rstrip()  # Get cluster address
-        query = basedir + "/bin/mysql --user=root --socket=" + \
+        query = basedir + "/bin/mariadb --user=root --socket=" + \
                 workdir + '/node' + donor_node + '/mysql.sock -Bse"select @@port" 2>&1'
         if self.debug == 'YES':
             print(query)

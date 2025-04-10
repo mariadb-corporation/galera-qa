@@ -28,18 +28,18 @@ class RQGDataGen:
         """
         # Get RQG module
         module = parent_dir + '/randgen/conf/' + module
-        master_port = self.basedir + "/bin/mysql --user=root --socket=" + socket + \
+        master_port = self.basedir + "/bin/mariadb --user=root --socket=" + socket + \
             ' -Bse"select @@port" 2>&1'
         port = os.popen(master_port).read().rstrip()
         # Create schema for RQG run
-        create_db = self.basedir + "/bin/mysql --user=root --socket=" + socket + \
+        create_db = self.basedir + "/bin/mariadb --user=root --socket=" + socket + \
             ' -Bse"drop database if exists ' + db + \
             ';create database ' + db + ';" 2>&1'
         if self.debug == 'YES':
             print(create_db)
         os.system(create_db)
         if int(self.version) > int("050700"):
-            create_user = self.basedir + "/bin/mysql --user=root --socket=" + socket + \
+            create_user = self.basedir + "/bin/mariadb --user=root --socket=" + socket + \
                 ' -Bse"create user rqg_test@\'%\' identified with mysql_native_password by \'\'; ' \
                 'grant all on *.* to rqg_test@\'%\';" 2>&1'
             if self.debug == 'YES':
@@ -74,10 +74,10 @@ class RQGDataGen:
             rqg_config = ['optimizer']
         for config in rqg_config:
             self.initiate_rqg(config, 'db_' + config, socket)
-            flush_log = basedir + "/bin/mysql --user=root --socket=" + \
+            flush_log = basedir + "/bin/mariadb --user=root --socket=" + \
                         workdir + '/node1/mysql.sock' + ' -Bse "flush logs" 2>&1'
             os.system(flush_log)
-            flush_log = basedir + "/bin/mysql --user=root --socket=" + \
+            flush_log = basedir + "/bin/mariadb --user=root --socket=" + \
                         workdir + '/node2/mysql.sock' + ' -Bse "flush logs" 2>&1'
             os.system(flush_log)
             time.sleep(5)

@@ -78,7 +78,7 @@ class GALERAUpgrade:
         """ This method will check the node
             startup status.
         """
-        ping_query = GALERA_LOWER_BASE + '/bin/mysqladmin --user=root --socket=' + \
+        ping_query = GALERA_LOWER_BASE + '/bin/mariadb-admin --user=root --socket=' + \
             WORKDIR + '/node' + str(cluster_node) + \
             '/mysql.sock ping > /dev/null 2>&1'
         for startup_timer in range(300):
@@ -90,7 +90,7 @@ class GALERAUpgrade:
                 if int(version) > int("080000"):
                     wsrep_status = ""
                     while wsrep_status != "Synced":
-                        status_query = BASEDIR + '/bin/mysql --user=root --socket=' + \
+                        status_query = BASEDIR + '/bin/mariadb --user=root --socket=' + \
                             WORKDIR + '/node' + str(cluster_node) + \
                             '/mysql.sock -Bse"show status like ' \
                             "'wsrep_local_state_comment'\"  2>&1 | awk \'{print $2}\'"
@@ -108,11 +108,11 @@ class GALERAUpgrade:
         # Start Galera cluster for upgrade test
         shutil.copy(WORKDIR + '/conf/node3.cnf',
                     WORKDIR + '/conf/node4.cnf')
-        query = GALERA_LOWER_BASE + '/bin/mysql --user=root --socket=' + WORKDIR + \
+        query = GALERA_LOWER_BASE + '/bin/mariadb --user=root --socket=' + WORKDIR + \
             '/node3/mysql.sock -Bse"show variables like \'wsrep_cluster_address\';"' \
             ' 2>/dev/null | awk \'{print $2}\''
         wsrep_cluster_addr = os.popen(query).read().rstrip()
-        query = GALERA_LOWER_BASE + "/bin/mysql --user=root --socket=" + \
+        query = GALERA_LOWER_BASE + "/bin/mariadb --user=root --socket=" + \
             WORKDIR + '/node3/mysql.sock -Bse"select @@port" 2>&1'
         port_no = os.popen(query).read().rstrip()
         wsrep_port_no = int(port_no) + 108
@@ -149,7 +149,7 @@ class GALERAUpgrade:
         result = os.system(upgrade_startup)
         utility_cmd.check_testcase(result, "Starting Galera cluster node4 for upgrade testing")
         self.startup_check(4)
-        upgrade_cmd = GALERA_UPPER_BASE + '/bin/mysql_upgrade -uroot --socket=' + \
+        upgrade_cmd = GALERA_UPPER_BASE + '/bin/mariadb-upgrade -uroot --socket=' + \
             WORKDIR + '/node4/mysql.sock --skip-write-binlog > ' + \
             WORKDIR + '/log/node4_upgrade.log 2>&1'
         if debug == 'YES':
@@ -207,7 +207,7 @@ class GALERAUpgrade:
             if debug == 'YES':
                 print("Terminating sysbench run : " + kill_sysbench)
             os.system(kill_sysbench)
-            shutdown_node = GALERA_LOWER_BASE + '/bin/mysqladmin --user=root --socket=' + \
+            shutdown_node = GALERA_LOWER_BASE + '/bin/mariadb-admin --user=root --socket=' + \
                 WORKDIR + '/node' + str(i) + \
                 '/mysql.sock shutdown > /dev/null 2>&1'
             if debug == 'YES':
@@ -233,7 +233,7 @@ class GALERAUpgrade:
 
             os.system("sed -i '/basedir =/d' " + WORKDIR + '/conf/node' + str(i) + '.cnf')
             os.system("sed -i '/wsrep-provider =/d' " + WORKDIR + '/conf/node' + str(i) + '.cnf')
-            startup_cmd = GALERA_UPPER_BASE + '/bin/mysqld --defaults-file=' + \
+            startup_cmd = GALERA_UPPER_BASE + '/bin/mariadbd --defaults-file=' + \
                 WORKDIR + '/conf/node' + str(i) + '.cnf --wsrep-provider=' + \
                 GALERA_UPPER_BASE + '/lib/libgalera_smm.so --datadir=' + \
                 WORKDIR + '/node' + str(i) + ' --basedir=' + GALERA_UPPER_BASE + ' >> ' + \
@@ -244,7 +244,7 @@ class GALERAUpgrade:
                 print(startup_cmd)
             os.system(startup_cmd)
             self.startup_check(i)
-            upgrade_cmd = GALERA_UPPER_BASE + '/bin/mysql_upgrade -uroot --socket=' + \
+            upgrade_cmd = GALERA_UPPER_BASE + '/bin/mariadb-upgrade -uroot --socket=' + \
                 WORKDIR + '/node' + str(i) + \
                 '/mysql.sock --skip-write-binlog > ' + WORKDIR + '/log/node' + str(i) + '_upgrade.log 2>&1'
             if debug == 'YES':
@@ -288,9 +288,9 @@ class GALERAUpgrade:
         utility_cmd.stop_galera(WORKDIR, GALERA_UPPER_BASE, NODE)
 
 
-query = GALERA_LOWER_BASE + "/bin/mysqld --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | tail -1"
+query = GALERA_LOWER_BASE + "/bin/mariadbd --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | tail -1"
 lower_version = os.popen(query).read().rstrip()
-query = GALERA_UPPER_BASE + "/bin/mysqld --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | tail -1"
+query = GALERA_UPPER_BASE + "/bin/mariadbd --version 2>&1 | grep -oE '([0-9]+).([0-9]+).([0-9]+)' | tail -1"
 upper_version = os.popen(query).read().rstrip()
 version = utility_cmd.version_check(GALERA_UPPER_BASE)
 upgrade_qa = GALERAUpgrade()

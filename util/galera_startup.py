@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # Created by Ramesh Sivaraman, Percona LLC.
-# This will help us to start Percona XtraDB Cluster
+# Updated by Ramesh Sivaraman, MariaDB
+# This will help us to start Percona XtraDB Cluster/ MariaDB Galera Cluster
 
 import os
 import subprocess
@@ -21,10 +22,10 @@ class StartCluster:
     def sanity_check(self):
         """ Sanity check method will remove existing
             cluster data directories and forcefully kill
-            running mysqld processes. This will also check
-            the availability of mysqld binary file.
+            running mariadbd processes. This will also check
+            the availability of mariadbd binary file.
         """
-        # kill existing mysqld process
+        # kill existing mariadbd process
         os.system("ps -ef | grep '" + self.workdir + "/conf/node[0-9].cnf' | grep -v grep | "
                                                      "awk '{print $2}' | xargs kill -9 >/dev/null 2>&1")
         if not os.path.exists(self.workdir + '/log'):
@@ -33,8 +34,8 @@ class StartCluster:
         if not os.path.exists(self.workdir + '/conf'):
             os.mkdir(self.workdir + '/conf')
 
-        if not os.path.isfile(self.basedir + '/bin/mysqld'):
-            print(self.basedir + '/bin/mysqld does not exist')
+        if not os.path.isfile(self.basedir + '/bin/mariadbd'):
+            print(self.basedir + '/bin/mariadbd does not exist')
             return 1
         return 0
 
@@ -77,7 +78,7 @@ class StartCluster:
             #    cnf_name.write('gtid_domain_id=' + str(20 + i) + '\n')
             cnf_name.write('!include ' + self.workdir + '/conf/custom.cnf\n')
             if wsrep_extra != "none":
-                cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
+                cnf_name.write("wsrep_provider_options='gcache.keep_pages_size=5;gcache.page_size=1024M;gcache.size=1024M;gmcast.listen_addr=tcp://127.0.0.1:"
                                + str(port_list[i - 1] + 8) + ';' + wsrep_provider_option + 'socket.ssl_key='
                                + self.workdir + '/cert/server-key.pem;socket.ssl_cert='
                                + self.workdir + '/cert/server-cert.pem;socket.ssl_ca='
@@ -102,7 +103,7 @@ class StartCluster:
             else:
                 #if int(version) >= int("1006"):
                     #cnf_name.write('wsrep-ssl-mode=PROVIDER\n')
-                cnf_name.write("wsrep_provider_options='gmcast.listen_addr=tcp://127.0.0.1:"
+                cnf_name.write("wsrep_provider_options='gcache.keep_pages_size=5;gcache.page_size=1024M;gcache.size=1024M;gmcast.listen_addr=tcp://127.0.0.1:"
                                + str(port_list[i - 1] + 8) + ';' + wsrep_provider_option + "'\n")
             cnf_name.close()
             if wsrep_extra == "encrypt2":
@@ -180,7 +181,7 @@ class StartCluster:
                 gtid_domain_id = ' --gtid_domain_id=2' + str(i)
             if i == 1:
                 if rr_check == "NO":
-                    startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
+                    startup = self.basedir + '/bin/mariadbd --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
                           '.cnf ' + my_extra + gtid_domain_id + ' --wsrep-new-cluster > ' + self.workdir + \
                           '/node' + str(i) + '/node' + str(i) + '.err 2>&1 &'
                 else:
@@ -189,11 +190,11 @@ class StartCluster:
                     os.mkdir(self.workdir + '/rr')
                     startup = 'export_RR_TRACE_DIR = "' + self.workdir + '/rr' \
                               '" ; /usr/bin/rr record --chaos ' + \
-                              self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
+                              self.basedir + '/bin/mariadbd --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
                               '.cnf ' + my_extra + gtid_domain_id + ' --wsrep-new-cluster > ' + self.workdir + \
                               '/node' + str(i) + '/node' + str(i) + '.err 2>&1 &'
             else:
-                startup = self.basedir + '/bin/mysqld --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
+                startup = self.basedir + '/bin/mariadbd --defaults-file=' + self.workdir + '/conf/node' + str(i) + \
                     '.cnf ' + my_extra + gtid_domain_id + ' > ' + self.workdir + '/node' + str(i) + '/node' + \
                     str(i) + '.err 2>&1 &'
 
@@ -216,7 +217,7 @@ class StartCluster:
                     if self.debug == 'YES':
                         print(query)
                     os.system(query)
-                    break  # break the loop if mysqld is running
+                    break  # break the loop if mariadbd is running
                 time.sleep(1)
 
         return int(ping_status)
